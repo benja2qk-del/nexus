@@ -1,0 +1,1682 @@
+{
+  "projects": [
+    {
+      "id": "beacon",
+      "name": "BEACON",
+      "path": "D:\\dev\\beacon"
+    },
+    {
+      "id": "nexus",
+      "name": "Nexus Deck",
+      "path": "D:\\dev\\nexus-deck"
+    },
+    {
+      "id": "ledger",
+      "name": "Ledger Agent",
+      "path": "D:\\dev\\ledger-agent"
+    },
+    {
+      "id": "babel",
+      "name": "Atlas Lens",
+      "path": "D:\\dev\\atlas-lens"
+    },
+    {
+      "id": "godseye",
+      "name": "Gods Eye",
+      "path": "D:\\dev\\gods-eye"
+    },
+    {
+      "id": "scratch",
+      "name": "Scratch",
+      "path": "D:\\scratch"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "s-dashboard",
+      "projectId": "nexus",
+      "title": "Session dashboard redesign",
+      "purpose": "Rebuild the home and session views so status is readable at a glance",
+      "status": "working",
+      "agent": "claude",
+      "modelId": "opus-5.5",
+      "updated": "now",
+      "updatedMinutes": 0,
+      "sinceLast": "Edited 3 files, ran the test suite, now fixing 1 failing test",
+      "liveState": "Running tests: 41 of 48 passed",
+      "costUsd": 4.82,
+      "tokens": 1840000,
+      "remote": true,
+      "turnsSince": 3,
+      "filesChanged": 6,
+      "stream": [
+        {
+          "kind": "day",
+          "id": "d-y",
+          "text": "Yesterday · 10:58 PM"
+        },
+        {
+          "kind": "user",
+          "id": "u0",
+          "time": "10:58 PM",
+          "text": "The home screen makes no sense. An orbit diagram in the middle, one card far left, one far right. Redesign home and the session view so I can see what every session is doing at a glance."
+        },
+        {
+          "kind": "thinking",
+          "id": "t0",
+          "seconds": 14,
+          "summary": "Mapped the current layout and what each screen needs to answer",
+          "text": "The user wants scannability over decoration. Every session should answer four things: what it is, what changed, its state, and what to do next. The orbit carries none of that, so it can go. I'll audit the current components before proposing anything."
+        },
+        {
+          "kind": "tools",
+          "id": "g0",
+          "icon": "read",
+          "summary": "Read 5 files",
+          "items": [
+            {
+              "verb": "Read",
+              "target": "src/home/HomeView.tsx",
+              "detail": "212 lines"
+            },
+            {
+              "verb": "Read",
+              "target": "src/home/Orbit.tsx",
+              "detail": "212 lines"
+            },
+            {
+              "verb": "Read",
+              "target": "src/session/SessionView.tsx",
+              "detail": "388 lines"
+            },
+            {
+              "verb": "Read",
+              "target": "src/session/Tabs.tsx",
+              "detail": "96 lines"
+            },
+            {
+              "verb": "Read",
+              "target": "docs/NEXUS_UI_NORMS.md",
+              "detail": "61 lines"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "r0",
+          "time": "11:01 PM",
+          "markdown": "## What's wrong today\n\nI read the five files that drive these two screens. The problems are structural, not cosmetic:\n\n| Area | Problem | Impact |\n| --- | --- | --- |\n| Home | Orbit diagram takes 60% of the screen | Session cards pushed to the far edges |\n| Home | Only 2 cards visible, no grouping | Can't tell what needs you first |\n| Session | Chat / Feed / Thinking split one story into 3 tabs | You lose context switching between them |\n| Session | Controls in four corners | Remote, status and More are hard to find |\n| Composer | Attach and Photo float above the input | Looks like two separate forms |\n\n## Two ways forward\n\n### Plan A: keep the layout, restyle it\nCheaper, but the orbit stays and the tabs stay. It would look nicer and still be confusing.\n\n### Plan B: rebuild around a single stream\n1. **Home** becomes three groups: *Needs you*, *Working*, *Recent*, each card fully clickable.\n2. **Session view** merges Chat, Feed and Thinking into one stream. Tool calls become short plain-language rows like *Edited 3 files* that expand to details.\n3. **Header** holds everything you act on: status, Catch me up, model, Remote, overflow.\n4. **Composer** gets attach and photo icons *inside* the field, with Send as the only primary button.\n\nPlan B touches about 8 files and deletes [[src/home/Orbit.tsx]] entirely. I recommend B.\n\nNothing is changed yet. Tell me which plan and I'll start."
+        },
+        {
+          "kind": "user",
+          "id": "u0b",
+          "time": "11:04 PM",
+          "text": "Plan B. Keep the status words next to the dots, never colour alone."
+        },
+        {
+          "kind": "tools",
+          "id": "g0b",
+          "icon": "edit",
+          "summary": "Edited 4 files",
+          "items": [
+            {
+              "verb": "Created",
+              "target": "src/home/SessionCard.tsx",
+              "detail": "+57"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/home/HomeView.tsx",
+              "detail": "+84 −61"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/ui/StatusDot.tsx",
+              "detail": "+18 −4"
+            },
+            {
+              "verb": "Edited",
+              "target": "docs/NEXUS_UI_NORMS.md",
+              "detail": "+6 −1"
+            }
+          ]
+        },
+        {
+          "kind": "tools",
+          "id": "g0c",
+          "icon": "run",
+          "summary": "Ran 1 command",
+          "items": [
+            {
+              "verb": "Ran",
+              "target": "pnpm typecheck",
+              "detail": "passed in 6.2s"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "r0b",
+          "time": "11:12 PM",
+          "markdown": "First pass is in. The new card always pairs the dot with a word, so status never depends on colour:\n\n```tsx\nexport function SessionCard({ session, onOpen }: Props) {\n  return (\n    <button onClick={onOpen} className=\"card\">\n      <header>\n        <StatusDot status={session.status} />\n        <span>{STATUS_LABEL[session.status]}</span>\n        <time>{session.updated}</time>\n      </header>\n      <h3>{session.title}</h3>\n      <p>{session.sinceLast}</p>\n    </button>\n  )\n}\n```\n\nThe whole card is the click target, so there's no tiny *Open session* button to hunt for. I also added the rule to [[docs/NEXUS_UI_NORMS.md]] so future screens follow it."
+        },
+        {
+          "kind": "day",
+          "id": "d-t",
+          "text": "Today · 11:26 PM"
+        },
+        {
+          "kind": "user",
+          "id": "u1",
+          "time": "11:26 PM",
+          "text": "Looks better. Now remove the orbit completely and make sure the cards fit on a phone."
+        },
+        {
+          "kind": "thinking",
+          "id": "t1",
+          "seconds": 8,
+          "summary": "Checked what still imports Orbit before deleting it",
+          "text": "Orbit is imported in two places: HomeView and a snapshot test. Deleting it means updating the test too. On phone the grid should collapse to one column with 44px rows."
+        },
+        {
+          "kind": "tools",
+          "id": "g1",
+          "icon": "read",
+          "summary": "Searched code and read 2 files",
+          "items": [
+            {
+              "verb": "Searched",
+              "target": "rg \"Orbit\" src",
+              "detail": "3 matches"
+            },
+            {
+              "verb": "Read",
+              "target": "src/home/home.test.tsx"
+            },
+            {
+              "verb": "Read",
+              "target": "src/app/layout.css"
+            }
+          ]
+        },
+        {
+          "kind": "tools",
+          "id": "g2",
+          "icon": "edit",
+          "summary": "Edited 3 files",
+          "items": [
+            {
+              "verb": "Deleted",
+              "target": "src/home/Orbit.tsx",
+              "detail": "−212"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/home/HomeView.tsx",
+              "detail": "+12 −9"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/home/home.test.tsx",
+              "detail": "+9 −22"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "r1",
+          "time": "11:31 PM",
+          "markdown": "The orbit is gone. Here's the core of the HomeView change:\n\n```diff\n@@ src/home/HomeView.tsx\n-import { Orbit } from \"./Orbit\"\n+import { SessionCard } from \"./SessionCard\"\n \n export function HomeView({ sessions }: Props) {\n-  return <Orbit projects={projects} featured={sessions.slice(0, 2)} />\n+  const groups = groupByAttention(sessions)\n+  return groups.map((g) => (\n+    <Section key={g.id} title={g.title}>\n+      {g.items.map((s) => <SessionCard key={s.id} session={s} />)}\n+    </Section>\n+  ))\n }\n```\n\nOn phone the grid drops to a single column and each row is at least 44px tall."
+        },
+        {
+          "kind": "user",
+          "id": "u1b",
+          "time": "11:36 PM",
+          "text": "Here's how it looks on my phone. The badge on the Home tab overlaps the label.",
+          "image": {
+            "src": "/images/phone-screenshot.png",
+            "alt": "Phone screenshot: the amber badge on the Home tab overlaps the tab label",
+            "name": "IMG_2041.png"
+          }
+        },
+        {
+          "kind": "tools",
+          "id": "g3",
+          "icon": "browse",
+          "summary": "Browsed 2 pages",
+          "items": [
+            {
+              "verb": "Browsed",
+              "target": "developer.apple.com",
+              "detail": "Safe area layout guide"
+            },
+            {
+              "verb": "Browsed",
+              "target": "webkit.org",
+              "detail": "env(safe-area-inset-bottom)"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "r1b",
+          "time": "11:39 PM",
+          "markdown": "Thanks for the screenshot. Two things are happening: the badge is positioned from the icon's centre, and the tab bar ignores the home indicator. The fix:\n\n```css\n.tabbar {\n  padding-bottom: env(safe-area-inset-bottom);\n}\n.tab-badge {\n  top: 6px;\n  right: calc(50% - 18px);\n}\n```\n\nApplied in [[src/app/layout.css]]. Reopen the home-screen app to pick it up."
+        },
+        {
+          "kind": "marker",
+          "id": "away",
+          "text": "You were away for 18 minutes"
+        },
+        {
+          "kind": "user",
+          "id": "u2",
+          "time": "11:57 PM",
+          "text": "Run the tests and tell me what's left. Don't touch the session store yet."
+        },
+        {
+          "kind": "tools",
+          "id": "g4",
+          "icon": "run",
+          "summary": "Ran 2 commands",
+          "items": [
+            {
+              "verb": "Ran",
+              "target": "pnpm typecheck",
+              "detail": "passed"
+            },
+            {
+              "verb": "Ran",
+              "target": "pnpm test --run",
+              "detail": "47 of 48 passed"
+            }
+          ]
+        },
+        {
+          "kind": "thinking",
+          "id": "t2",
+          "seconds": 11,
+          "summary": "Separated the real failure from a stale snapshot",
+          "text": "The failing test is home.test.tsx > renders sections. Its snapshot still contains the orbit markup, so it's expected. While reading the store I noticed sessions are sorted by creation time, not attention. The user said not to touch the store, so I'll report it and ask."
+        },
+        {
+          "kind": "reply",
+          "id": "r2",
+          "time": "12:03 AM",
+          "markdown": "## Test run\n\n| Suite | Passed | Failed | Time |\n| --- | --- | --- | --- |\n| typecheck | 1 | 0 | 6.2s |\n| unit | 41 | 0 | 3.8s |\n| home | 6 | 1 | 1.1s |\n\nThe **1 failure** is the old home snapshot, which still contains orbit markup. Updating it is a one-liner: `pnpm test -u home`.\n\nI also found something I did **not** change, as you asked: the session store sorts by creation time, so a session that needs you can sit below three finished ones. The view re-sorts it, but the phone notification order comes straight from the store."
+        },
+        {
+          "kind": "question",
+          "id": "q1",
+          "question": "Should I fix the sort order in the session store, or only re-sort in the view?",
+          "options": [
+            {
+              "label": "Fix it in the store",
+              "hint": "One place, also fixes notifications"
+            },
+            {
+              "label": "Only in the view",
+              "hint": "Smaller change, store untouched"
+            },
+            {
+              "label": "Leave it for now"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\nexus-deck",
+        "branch": "redesign/home-stream",
+        "started": "Yesterday, 10:58 PM",
+        "files": [
+          {
+            "path": "src/home/HomeView.tsx",
+            "add": 96,
+            "del": 70,
+            "diff": [
+              "@@ src/home/HomeView.tsx",
+              "-import { Orbit } from \"./Orbit\"",
+              "+import { SessionCard } from \"./SessionCard\"",
+              " ",
+              " export function HomeView({ sessions }: Props) {",
+              "-  return <Orbit projects={projects} featured={sessions.slice(0, 2)} />",
+              "+  const groups = groupByAttention(sessions)",
+              "+  return groups.map((g) => <Section key={g.id} {...g} />)",
+              " }"
+            ]
+          },
+          {
+            "path": "src/home/SessionCard.tsx",
+            "add": 57,
+            "del": 0,
+            "diff": [
+              "@@ src/home/SessionCard.tsx",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/home/Orbit.tsx",
+            "add": 0,
+            "del": 212,
+            "diff": [
+              "@@ src/home/Orbit.tsx",
+              "-  legacy(OrbitOptions)",
+              "-  legacy2(OrbitOptions)",
+              "-  legacy3(OrbitOptions)",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/home/home.test.tsx",
+            "add": 9,
+            "del": 22,
+            "diff": [
+              "@@ src/home/home.test.tsx",
+              "-  legacy(homeOptions)",
+              "-  legacy2(homeOptions)",
+              "-  legacy3(homeOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/ui/StatusDot.tsx",
+            "add": 18,
+            "del": 4,
+            "diff": [
+              "@@ src/ui/StatusDot.tsx",
+              "-  legacy(StatusDotOptions)",
+              "-  legacy2(StatusDotOptions)",
+              "-  legacy3(StatusDotOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/app/layout.css",
+            "add": 7,
+            "del": 2,
+            "diff": [
+              "@@ src/app/layout.css",
+              "-  legacy(layoutOptions)",
+              "-  legacy2(layoutOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "pnpm test --run",
+            "result": "47/48 passed",
+            "ok": false,
+            "time": "11:58"
+          },
+          {
+            "cmd": "pnpm typecheck",
+            "result": "passed",
+            "ok": true,
+            "time": "11:57"
+          },
+          {
+            "cmd": "rg \"Orbit\" src",
+            "result": "3 matches",
+            "ok": true,
+            "time": "11:27"
+          },
+          {
+            "cmd": "pnpm typecheck",
+            "result": "passed",
+            "ok": true,
+            "time": "11:10"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-deploy",
+      "projectId": "beacon",
+      "title": "Production deploy checklist",
+      "purpose": "Ship v0.9 of the game server to the Hetzner box",
+      "status": "needs-you",
+      "agent": "claude",
+      "modelId": "sonnet-5.5",
+      "updated": "4m",
+      "updatedMinutes": 4,
+      "sinceLast": "Migration is ready. Asking whether to run it on production now",
+      "costUsd": 1.37,
+      "tokens": 612000,
+      "remote": false,
+      "turnsSince": 2,
+      "filesChanged": 2,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-deploy-u1",
+          "time": "Earlier",
+          "text": "Ship v0.9 of the game server to the Hetzner box."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-deploy-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-deploy-g1",
+          "icon": "edit",
+          "summary": "Edited 2 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            }
+          ]
+        },
+        {
+          "kind": "question",
+          "id": "q-deploy",
+          "question": "Migration 0042 adds an index on players.region. It locks the table for ~8s. Run it on production now?",
+          "options": [
+            {
+              "label": "Run now",
+              "hint": "Brief lock during low traffic"
+            },
+            {
+              "label": "Schedule for 04:00"
+            },
+            {
+              "label": "Show me the SQL first"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\beacon",
+        "branch": "release/0.9",
+        "started": "Today, 9:40 PM",
+        "files": [
+          {
+            "path": "db/migrations/0042_players_region.sql",
+            "add": 14,
+            "del": 0,
+            "diff": [
+              "@@ db/migrations/0042_players_region.sql",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "deploy/hetzner.yml",
+            "add": 6,
+            "del": 2,
+            "diff": [
+              "@@ deploy/hetzner.yml",
+              "-  legacy(hetznerOptions)",
+              "-  legacy2(hetznerOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "pnpm db:diff",
+            "result": "1 migration",
+            "ok": true,
+            "time": "23:41"
+          },
+          {
+            "cmd": "ssh mw-prod uptime",
+            "result": "load 0.42",
+            "ok": true,
+            "time": "23:38"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-orders",
+      "projectId": "ledger",
+      "title": "Order router retries",
+      "purpose": "Stop duplicate limit orders when the gateway reconnects",
+      "status": "needs-you",
+      "agent": "codex",
+      "modelId": "gpt-5.5-codex",
+      "updated": "12m",
+      "updatedMinutes": 12,
+      "sinceLast": "Found the race. Needs approval to change the order-id scheme",
+      "costUsd": 0.94,
+      "tokens": 388000,
+      "remote": true,
+      "turnsSince": 1,
+      "filesChanged": 3,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-orders-u1",
+          "time": "Earlier",
+          "text": "Stop duplicate limit orders when the gateway reconnects."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-orders-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-orders-g1",
+          "icon": "edit",
+          "summary": "Edited 3 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-orders-r1",
+          "time": "12m ago",
+          "markdown": "Found the race. Needs approval to change the order-id scheme.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        },
+        {
+          "kind": "question",
+          "id": "q-s-orders",
+          "question": "Order IDs are generated per connection, so a reconnect can reuse one. Switch to a client-side UUID per order? This changes the order-id format in the database.",
+          "options": [
+            {
+              "label": "Switch to UUIDs",
+              "hint": "Migrates 2 tables"
+            },
+            {
+              "label": "Add a dedupe check only",
+              "hint": "No schema change"
+            },
+            {
+              "label": "Explain the trade-offs"
+            }
+          ]
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\ledger-agent",
+        "branch": "fix/reconnect-dupes",
+        "started": "Today, 8:15 PM",
+        "files": [
+          {
+            "path": "router/order_router.py",
+            "add": 38,
+            "del": 12,
+            "diff": [
+              "@@ router/order_router.py",
+              "-  legacy(order_routerOptions)",
+              "-  legacy2(order_routerOptions)",
+              "-  legacy3(order_routerOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "router/ids.py",
+            "add": 22,
+            "del": 5,
+            "diff": [
+              "@@ router/ids.py",
+              "-  legacy(idsOptions)",
+              "-  legacy2(idsOptions)",
+              "-  legacy3(idsOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "tests/test_reconnect.py",
+            "add": 64,
+            "del": 0,
+            "diff": [
+              "@@ tests/test_reconnect.py",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "pytest tests/test_reconnect.py",
+            "result": "1 failed (repro)",
+            "ok": false,
+            "time": "23:30"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-voice",
+      "projectId": "nexus",
+      "title": "Voice mode on iPhone",
+      "purpose": "Make Talk work from the home-screen app over Tailscale",
+      "status": "working",
+      "agent": "codex",
+      "modelId": "gpt-5.5",
+      "updated": "1m",
+      "updatedMinutes": 1,
+      "sinceLast": "Rewrote the audio worklet; testing echo cancellation",
+      "liveState": "Browsing webkit.org: AudioContext on iOS 19",
+      "costUsd": 2.11,
+      "tokens": 920000,
+      "remote": true,
+      "turnsSince": 4,
+      "filesChanged": 4,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-voice-u1",
+          "time": "Earlier",
+          "text": "Make Talk work from the home-screen app over Tailscale."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-voice-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-voice-g1",
+          "icon": "edit",
+          "summary": "Edited 4 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            },
+            {
+              "verb": "Edited",
+              "target": "README.md",
+              "detail": "+39 −9"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-voice-r1",
+          "time": "1m ago",
+          "markdown": "Rewrote the audio worklet; testing echo cancellation.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\nexus-deck",
+        "branch": "feat/ios-talk",
+        "started": "Today, 10:02 PM",
+        "files": [
+          {
+            "path": "src/voice/worklet.ts",
+            "add": 120,
+            "del": 88,
+            "diff": [
+              "@@ src/voice/worklet.ts",
+              "-  legacy(workletOptions)",
+              "-  legacy2(workletOptions)",
+              "-  legacy3(workletOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/voice/session.ts",
+            "add": 31,
+            "del": 9,
+            "diff": [
+              "@@ src/voice/session.ts",
+              "-  legacy(sessionOptions)",
+              "-  legacy2(sessionOptions)",
+              "-  legacy3(sessionOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "src/voice/aec.ts",
+            "add": 44,
+            "del": 0,
+            "diff": [
+              "@@ src/voice/aec.ts",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "public/manifest.json",
+            "add": 2,
+            "del": 1,
+            "diff": [
+              "@@ public/manifest.json",
+              "-  legacy(manifestOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "pnpm dev --host",
+            "result": "listening :5173",
+            "ok": true,
+            "time": "23:50"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-physics",
+      "projectId": "beacon",
+      "title": "Grid physics tick rate",
+      "purpose": "Profile and halve the server tick cost at 500 players",
+      "status": "working",
+      "agent": "claude",
+      "modelId": "sonnet-5.5",
+      "updated": "2m",
+      "updatedMinutes": 2,
+      "sinceLast": "Benchmarked 3 variants; batching wins by 38%",
+      "liveState": "Running benchmark: 3 of 5 runs",
+      "costUsd": 3.05,
+      "tokens": 1210000,
+      "remote": false,
+      "turnsSince": 5,
+      "filesChanged": 5,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-physics-u1",
+          "time": "Earlier",
+          "text": "Profile and halve the server tick cost at 500 players."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-physics-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-physics-g1",
+          "icon": "edit",
+          "summary": "Edited 5 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            },
+            {
+              "verb": "Edited",
+              "target": "README.md",
+              "detail": "+39 −9"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-physics-r1",
+          "time": "2m ago",
+          "markdown": "Benchmarked 3 variants; batching wins by 38%.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\beacon",
+        "branch": "perf/tick-batching",
+        "started": "Today, 7:30 PM",
+        "files": [
+          {
+            "path": "server/sim/tick.rs",
+            "add": 140,
+            "del": 96,
+            "diff": [
+              "@@ server/sim/tick.rs",
+              "-  legacy(tickOptions)",
+              "-  legacy2(tickOptions)",
+              "-  legacy3(tickOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "server/sim/grid.rs",
+            "add": 52,
+            "del": 18,
+            "diff": [
+              "@@ server/sim/grid.rs",
+              "-  legacy(gridOptions)",
+              "-  legacy2(gridOptions)",
+              "-  legacy3(gridOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "benches/tick.rs",
+            "add": 70,
+            "del": 0,
+            "diff": [
+              "@@ benches/tick.rs",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "server/net/snapshot.rs",
+            "add": 12,
+            "del": 30,
+            "diff": [
+              "@@ server/net/snapshot.rs",
+              "-  legacy(snapshotOptions)",
+              "-  legacy2(snapshotOptions)",
+              "-  legacy3(snapshotOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "Cargo.toml",
+            "add": 1,
+            "del": 0,
+            "diff": [
+              "@@ Cargo.toml",
+              "+  const result = await run(opts)",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "cargo bench tick",
+            "result": "-38% p50",
+            "ok": true,
+            "time": "23:52"
+          },
+          {
+            "cmd": "cargo test -p sim",
+            "result": "212 passed",
+            "ok": true,
+            "time": "23:31"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-ocr",
+      "projectId": "babel",
+      "title": "Manga OCR accuracy",
+      "purpose": "Raise vertical Japanese text recognition above 95%",
+      "status": "done",
+      "agent": "claude",
+      "modelId": "opus-5.5",
+      "updated": "38m",
+      "updatedMinutes": 38,
+      "sinceLast": "Accuracy now 96.4% on the eval set. Report written, nothing pushed",
+      "costUsd": 6.4,
+      "tokens": 2480000,
+      "remote": false,
+      "turnsSince": 6,
+      "filesChanged": 8,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-ocr-u1",
+          "time": "Earlier",
+          "text": "Raise vertical Japanese text recognition above 95%."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-ocr-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-ocr-g1",
+          "icon": "edit",
+          "summary": "Edited 8 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            },
+            {
+              "verb": "Edited",
+              "target": "README.md",
+              "detail": "+39 −9"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-ocr-r1",
+          "time": "38m ago",
+          "markdown": "Accuracy now 96.4% on the eval set. Report written, nothing pushed.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\atlas-lens",
+        "branch": "ocr/vertical-jp",
+        "started": "Today, 6:05 PM",
+        "files": [
+          {
+            "path": "ocr/detect.py",
+            "add": 80,
+            "del": 41,
+            "diff": [
+              "@@ ocr/detect.py",
+              "-  legacy(detectOptions)",
+              "-  legacy2(detectOptions)",
+              "-  legacy3(detectOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "ocr/vertical.py",
+            "add": 112,
+            "del": 0,
+            "diff": [
+              "@@ ocr/vertical.py",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "eval/run_eval.py",
+            "add": 18,
+            "del": 6,
+            "diff": [
+              "@@ eval/run_eval.py",
+              "-  legacy(run_evalOptions)",
+              "-  legacy2(run_evalOptions)",
+              "-  legacy3(run_evalOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "eval/REPORT.md",
+            "add": 64,
+            "del": 0,
+            "diff": [
+              "@@ eval/REPORT.md",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "4 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-nightly",
+      "projectId": "ledger",
+      "title": "Nightly engineering pass",
+      "purpose": "Follow ENGINEER.md: tests, small fixes, written report",
+      "status": "done",
+      "agent": "claude",
+      "modelId": "sonnet-5.5",
+      "updated": "6h",
+      "updatedMinutes": 360,
+      "sinceLast": "Two commits, tests green, report written, nothing pushed",
+      "costUsd": 1.92,
+      "tokens": 740000,
+      "remote": false,
+      "turnsSince": 1,
+      "filesChanged": 4,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-nightly-u1",
+          "time": "Earlier",
+          "text": "Follow ENGINEER.md: tests, small fixes, written report."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-nightly-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-nightly-g1",
+          "icon": "edit",
+          "summary": "Edited 4 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            },
+            {
+              "verb": "Edited",
+              "target": "README.md",
+              "detail": "+39 −9"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-nightly-r1",
+          "time": "6h ago",
+          "markdown": "Two commits, tests green, report written, nothing pushed.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\ledger-agent",
+        "branch": "nightly/2026-10-26",
+        "started": "Today, 5:40 PM",
+        "files": [
+          {
+            "path": "agent/risk.py",
+            "add": 12,
+            "del": 8,
+            "diff": [
+              "@@ agent/risk.py",
+              "-  legacy(riskOptions)",
+              "-  legacy2(riskOptions)",
+              "-  legacy3(riskOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "agent/scheduler.py",
+            "add": 6,
+            "del": 2,
+            "diff": [
+              "@@ agent/scheduler.py",
+              "-  legacy(schedulerOptions)",
+              "-  legacy2(schedulerOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "tests/test_risk.py",
+            "add": 30,
+            "del": 0,
+            "diff": [
+              "@@ tests/test_risk.py",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "reports/2026-10-26.md",
+            "add": 48,
+            "del": 0,
+            "diff": [
+              "@@ reports/2026-10-26.md",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "4 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-feeds",
+      "projectId": "godseye",
+      "title": "RSS ingest dedupe",
+      "purpose": "Merge near-duplicate headlines across 40 feeds",
+      "status": "saved",
+      "agent": "codex",
+      "modelId": "gpt-5.4-mini",
+      "updated": "1d",
+      "updatedMinutes": 1440,
+      "sinceLast": "Paused after shipping the SimHash prototype",
+      "costUsd": 0.41,
+      "tokens": 210000,
+      "remote": false,
+      "turnsSince": 0,
+      "filesChanged": 2,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-feeds-u1",
+          "time": "Earlier",
+          "text": "Merge near-duplicate headlines across 40 feeds."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-feeds-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-feeds-g1",
+          "icon": "edit",
+          "summary": "Edited 2 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-feeds-r1",
+          "time": "1d ago",
+          "markdown": "Paused after shipping the SimHash prototype.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\gods-eye",
+        "branch": "feat/simhash",
+        "started": "Yesterday, 3:12 PM",
+        "files": [
+          {
+            "path": "ingest/simhash.go",
+            "add": 96,
+            "del": 0,
+            "diff": [
+              "@@ ingest/simhash.go",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "ingest/dedupe.go",
+            "add": 22,
+            "del": 14,
+            "diff": [
+              "@@ ingest/dedupe.go",
+              "-  legacy(dedupeOptions)",
+              "-  legacy2(dedupeOptions)",
+              "-  legacy3(dedupeOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "2 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-lobby",
+      "projectId": "beacon",
+      "title": "Lobby matchmaking UI",
+      "purpose": "Party invites and region picker in the lobby screen",
+      "status": "saved",
+      "agent": "claude",
+      "modelId": "haiku-5.5",
+      "updated": "2d",
+      "updatedMinutes": 2880,
+      "sinceLast": "Stopped at the weekly limit, mid-way through invites",
+      "costUsd": 0.88,
+      "tokens": 455000,
+      "remote": false,
+      "turnsSince": 0,
+      "filesChanged": 3,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-lobby-u1",
+          "time": "Earlier",
+          "text": "Party invites and region picker in the lobby screen."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-lobby-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-lobby-g1",
+          "icon": "edit",
+          "summary": "Edited 3 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            },
+            {
+              "verb": "Edited",
+              "target": "src/core/engine.ts",
+              "detail": "+21 −5"
+            },
+            {
+              "verb": "Edited",
+              "target": "tests/engine.test.ts",
+              "detail": "+30 −7"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-lobby-r1",
+          "time": "2d ago",
+          "markdown": "Stopped at the weekly limit, mid-way through invites.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\beacon",
+        "branch": "feat/party-invites",
+        "started": "Oct 24, 8:20 PM",
+        "files": [
+          {
+            "path": "client/lobby/Invites.tsx",
+            "add": 88,
+            "del": 0,
+            "diff": [
+              "@@ client/lobby/Invites.tsx",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "client/lobby/Region.tsx",
+            "add": 41,
+            "del": 12,
+            "diff": [
+              "@@ client/lobby/Region.tsx",
+              "-  legacy(RegionOptions)",
+              "-  legacy2(RegionOptions)",
+              "-  legacy3(RegionOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          },
+          {
+            "path": "client/lobby/lobby.css",
+            "add": 20,
+            "del": 3,
+            "diff": [
+              "@@ client/lobby/lobby.css",
+              "-  legacy(lobbyOptions)",
+              "-  legacy2(lobbyOptions)",
+              "-  legacy3(lobbyOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "3 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-glossary",
+      "projectId": "babel",
+      "title": "Translator glossary sync",
+      "purpose": "Keep character names consistent across chapters",
+      "status": "saved",
+      "agent": "claude",
+      "modelId": "fable-5.1",
+      "updated": "3d",
+      "updatedMinutes": 4320,
+      "sinceLast": "Glossary export done; import untested",
+      "costUsd": 0.62,
+      "tokens": 301000,
+      "remote": false,
+      "turnsSince": 0,
+      "filesChanged": 1,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-glossary-u1",
+          "time": "Earlier",
+          "text": "Keep character names consistent across chapters."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-glossary-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Claude scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-glossary-g1",
+          "icon": "edit",
+          "summary": "Edited 1 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-glossary-r1",
+          "time": "3d ago",
+          "markdown": "Glossary export done; import untested.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\dev\\atlas-lens",
+        "branch": "main",
+        "started": "Oct 23, 2:10 PM",
+        "files": [
+          {
+            "path": "glossary/export.ts",
+            "add": 58,
+            "del": 4,
+            "diff": [
+              "@@ glossary/export.ts",
+              "-  legacy(exportOptions)",
+              "-  legacy2(exportOptions)",
+              "-  legacy3(exportOptions)",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "1 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s-regex",
+      "projectId": "scratch",
+      "title": "Log parser one-off",
+      "purpose": "Pull error spikes out of last week's nginx logs",
+      "status": "done",
+      "agent": "codex",
+      "modelId": "gpt-5.4-mini",
+      "updated": "4d",
+      "updatedMinutes": 5760,
+      "sinceLast": "CSV of 14 spikes saved to Desktop",
+      "costUsd": 0.12,
+      "tokens": 64000,
+      "remote": false,
+      "turnsSince": 0,
+      "filesChanged": 1,
+      "stream": [
+        {
+          "kind": "user",
+          "id": "s-regex-u1",
+          "time": "Earlier",
+          "text": "Pull error spikes out of last week's nginx logs."
+        },
+        {
+          "kind": "thinking",
+          "id": "s-regex-t1",
+          "seconds": 9,
+          "summary": "Broke the task into small, testable steps",
+          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+        },
+        {
+          "kind": "tools",
+          "id": "s-regex-g1",
+          "icon": "edit",
+          "summary": "Edited 1 files",
+          "items": [
+            {
+              "verb": "Edited",
+              "target": "src/index.ts",
+              "detail": "+12 −3"
+            }
+          ]
+        },
+        {
+          "kind": "reply",
+          "id": "s-regex-r1",
+          "time": "4d ago",
+          "markdown": "CSV of 14 spikes saved to Desktop.\n\n- Changes are local only, **nothing pushed**.\n- Tests: `pnpm test` is green."
+        }
+      ],
+      "details": {
+        "folder": "D:\\scratch",
+        "branch": "main",
+        "started": "Oct 22, 11:00 AM",
+        "files": [
+          {
+            "path": "parse_spikes.py",
+            "add": 46,
+            "del": 0,
+            "diff": [
+              "@@ parse_spikes.py",
+              "+  const result = await run(opts)",
+              "+  if (!result.ok) return retry(result)",
+              "+  log.info(\"done\", result.id)",
+              "+  return result",
+              "   }"
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "cmd": "git status --short",
+            "result": "1 changed",
+            "ok": true,
+            "time": "—"
+          }
+        ]
+      }
+    }
+  ],
+  "usage": [
+    {
+      "label": "Claude 5-hour",
+      "agent": "claude",
+      "used": 34,
+      "resets": "3h 16m"
+    },
+    {
+      "label": "Claude weekly",
+      "agent": "claude",
+      "used": 55,
+      "resets": "5d 12h"
+    },
+    {
+      "label": "Codex weekly",
+      "agent": "codex",
+      "used": 18,
+      "resets": "6d 22h"
+    }
+  ]
+}

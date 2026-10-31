@@ -1,0 +1,17 @@
+/* File paths in answers, their right-click menu, and the HTML preview under a conversation. */
+a.nx-path{color:var(--primary);text-decoration:underline;text-decoration-color:color-mix(in oklch,var(--primary) 40%,transparent);text-underline-offset:2px;cursor:pointer;overflow-wrap:anywhere}
+a.nx-path:hover{text-decoration-color:var(--primary)}
+a.nx-path code,a.nx-path strong{color:inherit}
+.nx-path-preview{margin-left:6px;padding:1px 8px;border:1px solid color-mix(in oklch,var(--primary) 45%,transparent);border-radius:999px;background:color-mix(in oklch,var(--primary) 10%,transparent);color:var(--primary);font-size:11px;font-weight:600;line-height:18px;vertical-align:1px;cursor:pointer}
+.nx-path-preview:hover{background:color-mix(in oklch,var(--primary) 18%,transparent)}
+#nxPathMenu{position:fixed;z-index:1000;min-width:168px;padding:4px;border:1px solid var(--input);border-radius:8px;background:var(--popover);box-shadow:0 10px 28px oklch(0 0 0/.45)}
+#nxPathMenu button{display:block;width:100%;padding:8px 10px;border:0;border-radius:6px;background:none;color:var(--foreground);font-size:13px;text-align:left;cursor:pointer}
+#nxPathMenu button:hover,#nxPathMenu button:focus-visible{background:var(--accent);outline:0}
+.nx-preview-card{margin:16px 0 4px;border:1px solid var(--input);border-radius:var(--radius-xl);overflow:hidden;background:var(--surface)}
+.nx-preview-card>header{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;border-bottom:1px solid var(--hairline);font-size:13px}
+.nx-preview-card>header b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.nx-preview-card>header button{display:grid;place-items:center;height:28px;padding:0 10px;border:1px solid var(--hairline);border-radius:6px;background:none;color:var(--foreground);font-size:12px;cursor:pointer}
+.nx-preview-card>header [data-preview-close]{width:28px;padding:0}
+.nx-preview-card>header [data-preview-close] svg{width:14px;height:14px}
+.nx-preview-card iframe{display:block;width:100%;height:min(560px,62vh);border:0;background:#fff}
+@media(max-width:700px){.nx-preview-card iframe{height:58vh}}

@@ -1,0 +1,50 @@
+/* Compact activity cards retain the deck's existing two-column desktop grid. */
+.wall {grid-auto-rows:max-content;gap:12px;align-content:start}
+.apsis #app.in.wall-mode>.stage {opacity:1;transform:none}
+.wall .tile {min-width:0;cursor:default;animation:none;border-radius:16px}
+.wall .tile-head {padding:14px 16px 0;border:0}
+.wall .tile-title {margin:9px 0 3px;line-height:1.3;font-size:17px}
+.tile-title button {font:inherit;color:var(--text);border:0;background:none;text-align:left;padding:0;cursor:pointer;max-width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.tile-subtitle {font-size:13px;color:var(--dim);margin:0;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-project {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:9px;font-size:12px;color:var(--dim)}
+.tile-project .session-tags {margin:0;display:inline-flex;gap:4px}
+.tile-latest {padding:12px 16px 4px;flex:1}
+.tile-latest>span {font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.tile-latest p {margin:4px 0 0;font-size:14px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;color:var(--text)}
+.tile-actions {padding:8px 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tile-actions .btn,.tile-actions .text-action {min-height:40px;font-size:13px}
+.wall .tile.ready {border-color:rgba(238,181,90,.45)}
+.modal-card:has(.recap-sheet) {max-width:680px}
+.modal-card:has(.recap-sheet)::before {display:none}
+.recap-sheet {font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+.recap-sheet .recap-session {color:var(--dim);font-size:14px;margin:0 0 14px;line-height:1.5}
+.recap-sheet section {margin:16px 0;padding-top:14px;border-top:1px solid var(--line)}
+.apsis .recap-sheet h3 {font-size:14px;margin:0 0 8px;color:var(--text)}
+.recap-sheet h3 span {font-size:12px;font-weight:400;color:var(--dim);margin-left:6px}
+.apsis .recap-sheet p,.apsis .recap-sheet .md {font-size:15px;line-height:1.6}
+.recap-sheet .recap-state {display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:14px}
+.recap-state>span {flex-basis:100%;color:var(--dim)}
+.recap-dot {width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.recap-dot.working {background:var(--accent)}
+.recap-dot.waiting {background:#eeb55a}
+.recap-sheet blockquote {margin:0;padding:8px 12px;border-left:2px solid var(--accent);background:oklch(0.74 calc(0.063 * var(--cs, 1)) calc(var(--ah, 214) + 9.4) / .05);white-space:pre-wrap;font-size:14px;max-height:160px;overflow:auto}
+.recap-counts {padding-left:20px;margin:6px 0;font-size:14px}
+.recap-counts li {margin:4px 0}.recap-counts span {display:block;color:var(--dim);font-size:13px}
+.recap-answer .md {max-height:280px;overflow:auto}
+.recap-summary ul {padding-left:20px}.recap-summary li {margin:7px 0}
+.recap-sheet .recap-cost,.recap-sheet small {font-size:12px;color:var(--dim);line-height:1.5}
+.recap-sheet .recap-coverage,.recap-sheet .recap-error {font-size:14px;color:#eeb55a;background:rgba(238,181,90,.06);padding:10px;border-radius:8px}
+.recap-next {padding:10px 12px;background:oklch(0.74 calc(0.063 * var(--cs, 1)) calc(var(--ah, 214) + 9.4) / .06);border-radius:8px}
+.recap-footer {display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:16px}
+.recap-footer>span {font-size:12px;color:var(--dim);margin-right:auto}
+.recap-sheet .btn {min-height:44px}
+@media(max-width:700px) {
+  .wall {grid-template-columns:minmax(0,1fr);padding:10px;gap:10px;grid-auto-rows:max-content}
+  .wall .tile-head {padding:12px 12px 0}.wall .tile-title {font-size:16px;margin-top:7px}
+  .tile-latest {padding:10px 12px 2px}.tile-actions {padding:6px 12px 10px}.tile-actions .btn,.tile-actions .text-action {min-height:44px}
+  .recap-head-button {display:none}
+  .apsis .modal-card:has(.recap-sheet) {padding:20px 16px 16px;border-radius:20px 20px 0 0;width:100%;max-height:calc(var(--visible-height,100dvh) - 24px)}
+  .modal:has(.recap-sheet) {align-items:flex-end;padding:24px 0 0}
+  .recap-sheet h2 {padding-right:32px}.apsis .recap-sheet p,.apsis .recap-sheet .md {font-size:14px}
+  .recap-sheet section {margin:14px 0;padding-top:12px}.recap-footer {padding-bottom:env(safe-area-inset-bottom)}
+}

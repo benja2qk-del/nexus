@@ -1,0 +1,24 @@
+.talk-panel{flex:none;border:1px solid oklch(0.614 calc(0.037 * var(--ns, 1)) calc(var(--nh, 256) - 8.9));border-radius:16px;margin:8px 16px;padding:12px 16px;background:oklch(0.277 calc(0.041 * var(--ns, 1)) calc(var(--nh, 256) - 10.3));color:oklch(0.964 calc(0.011 * var(--ns, 1)) calc(var(--nh, 256) - 12.3));max-height:50dvh;overflow:auto;overscroll-behavior:contain}
+.talk-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;letter-spacing:.08em;color:oklch(0.854 calc(0.034 * var(--ns, 1)) calc(var(--nh, 256) - 12))}
+.talk-heading .btn{min-width:60px;min-height:44px}
+#talkState{text-align:center;font-size:20px;font-weight:600;line-height:1.35;margin:0 0 8px}
+.talk-meter{height:8px;max-width:180px;border-radius:4px;margin:8px auto;background:oklch(0.55 calc(0.038 * var(--ns, 1)) calc(var(--nh, 256) - 8.8));overflow:hidden}
+.talk-meter i{display:block;height:100%;width:0;background:oklch(0.902 calc(0.046 * var(--cs, 1)) calc(var(--ah, 214) + 23.2))}
+.talk-panel:not([data-state=listening]) .talk-meter{visibility:hidden;height:0;margin:0}
+#talkHint{text-align:center;font-size:13px;line-height:1.4;color:oklch(0.86 calc(0.023 * var(--ns, 1)) calc(var(--nh, 256) - 12.2));margin:8px 0}
+#talkHeard{font-size:14px;line-height:1.4;margin:8px 0;overflow-wrap:anywhere;max-height:80px;overflow:auto}
+#talkHeard:empty{display:none}
+#talkHeard:not(:empty):before{content:'Heard: ';color:oklch(0.86 calc(0.023 * var(--ns, 1)) calc(var(--nh, 256) - 12.2))}
+.talk-actions{display:flex;justify-content:flex-end;gap:8px}.talk-actions .btn{min-height:44px;min-width:100px}
+.talk-panel [hidden]{display:none!important}
+.talk-panel:not([data-state=listening]) [data-talk=send]{display:none}
+.talk-settings{font-size:13px;color:oklch(0.86 calc(0.023 * var(--ns, 1)) calc(var(--nh, 256) - 12.2))}.talk-settings summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.talk-settings label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;min-height:44px}
+.talk-settings select{background:oklch(0.239 calc(0.039 * var(--ns, 1)) calc(var(--nh, 256) - 4.9));color:oklch(0.964 calc(0.011 * var(--ns, 1)) calc(var(--nh, 256) - 12.3));border:1px solid oklch(0.614 calc(0.037 * var(--ns, 1)) calc(var(--nh, 256) - 8.9));border-radius:8px;min-height:44px;padding:0 8px;font:13px var(--ui)}
+.talk-settings input{width:24px;height:24px;accent-color:oklch(0.869 calc(0.054 * var(--cs, 1)) calc(var(--ah, 214) + 22.4))}
+.talk-settings p,#voiceResults p{font-size:13px;line-height:1.4;margin:8px 0}
+body>.talk-panel{position:fixed;z-index:200;left:50%;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 32px));margin:0;max-height:calc(100dvh - 40px);box-shadow:0 0 0 100vmax #07111de8}
+.talk-active .focus[data-tab=chat]>.steer{display:none!important}
+.talk-panel[data-state=speaking]{cursor:pointer;border-color:oklch(0.869 calc(0.054 * var(--cs, 1)) calc(var(--ah, 214) + 22.4))}.talk-panel[data-state=error] #talkState{color:#ffb5aa}
+@media(max-width:700px){.talk-panel{padding:8px 12px;margin:8px 16px;max-height:48dvh}.talk-heading{font-size:12px}#talkState{font-size:20px}#voiceResults p{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.talk-panel *{animation:none!important;transition:none!important}}

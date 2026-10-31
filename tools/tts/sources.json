@@ -1,0 +1,324 @@
+[
+  {
+    "file": "models/kokoro/README.md",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/README.md",
+    "bytes": 6348,
+    "license": "Apache-2.0",
+    "sha256": "91dcabced89db6f109b8786642f50402d3ee87450e8189589b6f85520e7f4d78"
+  },
+  {
+    "file": "models/kokoro/VOICES.md",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/VOICES.md",
+    "bytes": 7625,
+    "license": "Apache-2.0",
+    "sha256": "ec7e4941ad7e194af61e3455928528a9ff5360c7c505e412efab27d6a69ea106"
+  },
+  {
+    "file": "models/kokoro/config.json",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/config.json",
+    "bytes": 2351,
+    "license": "Apache-2.0",
+    "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f"
+  },
+  {
+    "file": "models/kokoro/kokoro-v1_0.pth",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/kokoro-v1_0.pth",
+    "bytes": 327212226,
+    "license": "Apache-2.0",
+    "sha256": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4"
+  },
+  {
+    "file": "models/kokoro/voices/af_heart.pt",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/af_heart.pt",
+    "bytes": 523425,
+    "license": "Apache-2.0",
+    "sha256": "0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff"
+  },
+  {
+    "file": "models/kokoro/voices/am_michael.pt",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/am_michael.pt",
+    "bytes": 523435,
+    "license": "Apache-2.0",
+    "sha256": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37"
+  },
+  {
+    "file": "models/kokoro/voices/ef_dora.pt",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/ef_dora.pt",
+    "bytes": 523420,
+    "license": "Apache-2.0",
+    "sha256": "d9d69b0f8a2b87a345f269d89639f89dfbd1a6c9da0c498ae36dd34afcf35530"
+  },
+  {
+    "file": "models/kokoro/voices/em_alex.pt",
+    "url": "https://huggingface.co/hexgrad/Kokoro-82M/resolve/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/em_alex.pt",
+    "bytes": 523420,
+    "license": "Apache-2.0",
+    "sha256": "5eac53f767c3f31a081918ba531969aea850bed18fe56419b804d642c6973431"
+  },
+  {
+    "file": "models/qwen/README.md",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/README.md",
+    "bytes": 3214,
+    "license": "Apache-2.0",
+    "sha256": "acfaf6c0d433866cb5e2bb73e7915ea3767f5a2e3abca413b485635a2c72b5e6"
+  },
+  {
+    "file": "models/qwen/config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/config.json",
+    "bytes": 4421,
+    "license": "Apache-2.0",
+    "sha256": "aecd2cc4c1fe9edef1cb7ca7c401685a43879ad43f3f9e883f1c6760b61731e0"
+  },
+  {
+    "file": "models/qwen/generation_config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/generation_config.json",
+    "bytes": 245,
+    "license": "Apache-2.0",
+    "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+  },
+  {
+    "file": "models/qwen/merges.txt",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/merges.txt",
+    "bytes": 1671839,
+    "license": "Apache-2.0",
+    "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+  },
+  {
+    "file": "models/qwen/model.safetensors",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/model.safetensors",
+    "bytes": 3833402552,
+    "license": "Apache-2.0",
+    "sha256": "391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522"
+  },
+  {
+    "file": "models/qwen/preprocessor_config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/preprocessor_config.json",
+    "bytes": 127,
+    "license": "Apache-2.0",
+    "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+  },
+  {
+    "file": "models/qwen/speech_tokenizer/config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/speech_tokenizer/config.json",
+    "bytes": 2336,
+    "license": "Apache-2.0",
+    "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+  },
+  {
+    "file": "models/qwen/speech_tokenizer/configuration.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/speech_tokenizer/configuration.json",
+    "bytes": 76,
+    "license": "Apache-2.0",
+    "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+  },
+  {
+    "file": "models/qwen/speech_tokenizer/model.safetensors",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/speech_tokenizer/model.safetensors",
+    "bytes": 682293092,
+    "license": "Apache-2.0",
+    "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+  },
+  {
+    "file": "models/qwen/speech_tokenizer/preprocessor_config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/speech_tokenizer/preprocessor_config.json",
+    "bytes": 234,
+    "license": "Apache-2.0",
+    "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+  },
+  {
+    "file": "models/qwen/tokenizer_config.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/tokenizer_config.json",
+    "bytes": 7344,
+    "license": "Apache-2.0",
+    "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+  },
+  {
+    "file": "models/qwen/vocab.json",
+    "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign/resolve/5ecdb67327fd37bb2e042aab12ff7391903235d3/vocab.json",
+    "bytes": 2776833,
+    "license": "Apache-2.0",
+    "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+  },
+  {
+    "file": "models/piper/en_US-ljspeech-high-MODEL_CARD",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/en/en_US/ljspeech/high/MODEL_CARD",
+    "bytes": 513,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "289f7421072d689a3d91f6c632f486af46f9b8b04417536104a4ea667b8a394b"
+  },
+  {
+    "file": "models/piper/en_US-ljspeech-high.onnx",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx",
+    "bytes": 114199011,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "5d4f08ba6a2a48c44592eed3ce56bf85e9de3dd4e20df90541ae68a8310c029a"
+  },
+  {
+    "file": "models/piper/en_US-ljspeech-high.onnx.json",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json",
+    "bytes": 4970,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "7e1f4634af596d83cca997fb7a931ba80b70f8a316a2655ee69c55365e0ace14"
+  },
+  {
+    "file": "models/piper/es_AR-daniela-high-MODEL_CARD",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/es/es_AR/daniela/high/MODEL_CARD",
+    "bytes": 353,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "39fda44bb85009b0bd7aabb455b113e50abf1f2a2013f3264c482691105e4e3b"
+  },
+  {
+    "file": "models/piper/es_AR-daniela-high.onnx",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/es/es_AR/daniela/high/es_AR-daniela-high.onnx",
+    "bytes": 114199011,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "7ceb1fc0dab349418c5b54a639ae9ee595212d7c9ea422220d8419163d5cc985"
+  },
+  {
+    "file": "models/piper/es_AR-daniela-high.onnx.json",
+    "url": "https://huggingface.co/rhasspy/piper-voices/resolve/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/es/es_AR/daniela/high/es_AR-daniela-high.onnx.json",
+    "bytes": 7248,
+    "license": "MIT repository; see individual MODEL_CARD",
+    "sha256": "aedbf69647e1d754c62ecf8e0366ca5f16af3e768e3c6b5329af6eb6bde3852b"
+  },
+  {
+    "file": "models/chatterbox/Cangjie5_TC.json",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/Cangjie5_TC.json",
+    "bytes": 1920163,
+    "license": "MIT",
+    "sha256": "7073fd9de919443ae88e0bd2449917a65fe54898a4413ed1edcc4b67f28bce8c"
+  },
+  {
+    "file": "models/chatterbox/README.md",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/README.md",
+    "bytes": 10081,
+    "license": "MIT",
+    "sha256": "6ac86d5ec7e85a9cf6566a34c6aae60ac1d50a6fceccade4c2aa57cfa6f590b4"
+  },
+  {
+    "file": "models/chatterbox/conds.pt",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/conds.pt",
+    "bytes": 107374,
+    "license": "MIT",
+    "sha256": "6552d70568833628ba019c6b03459e77fe71ca197d5c560cef9411bee9d87f4e"
+  },
+  {
+    "file": "models/chatterbox/grapheme_mtl_merged_expanded_v1.json",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/grapheme_mtl_merged_expanded_v1.json",
+    "bytes": 69989,
+    "license": "MIT",
+    "sha256": "69632f47220a788a52ce2661d096453c5655e9bf25289d89a8d832c46ee07dbf"
+  },
+  {
+    "file": "models/chatterbox/s3gen.pt",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/s3gen.pt",
+    "bytes": 1057165844,
+    "license": "MIT",
+    "sha256": "9b9ff07e60b20c136e2b1b3d7563a24604e8d2c4c267888d1ee929dd0151d2a3"
+  },
+  {
+    "file": "models/chatterbox/t3_mtl23ls_v3.safetensors",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/t3_mtl23ls_v3.safetensors",
+    "bytes": 2143989928,
+    "license": "MIT",
+    "sha256": "5abca8321ede76f8e61f1cc0d19aea6c946b28871017ce8726f8a69203f05953"
+  },
+  {
+    "file": "models/chatterbox/ve.pt",
+    "url": "https://huggingface.co/ResembleAI/chatterbox/resolve/5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18/ve.pt",
+    "bytes": 5698626,
+    "license": "MIT",
+    "sha256": "4b16d836bc598509860f6fa068165a8bb5e9ac84f05582dfcf278a5a372879f1"
+  },
+  {
+    "file": "uv.zip",
+    "url": "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-pc-windows-msvc.zip",
+    "bytes": 15239500,
+    "license": "MIT OR Apache-2.0",
+    "sha256": "a2a8820d5eea32f08ef467ef3b7f66883a9b076d5737a2fc2fbb5f458d1bb50f"
+  },
+  {
+    "file": "chatterbox-source.zip",
+    "url": "https://github.com/resemble-ai/chatterbox/archive/5de7a54aa4e5e2baadb0182dde554908b48b85c2.zip",
+    "bytes": 1478295,
+    "license": "MIT",
+    "sha256": "bb7363a76c0c0432a0305681fe2e533bbfb0f10fcf7b98d75a439d9a909f1576"
+  },
+  {
+    "file": "perth-source.zip",
+    "url": "https://github.com/resemble-ai/Perth/archive/ff1c8ac55a976971245cdd53c18d6131ca00d993.zip",
+    "bytes": 34593374,
+    "license": "MIT",
+    "sha256": "de43869691c365a936c6ac4995b56d1311f21209d2020c7f43a337fa7f8fd4bc"
+  },
+  {
+    "file": "archives/python-3.11.18.tar.gz",
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.11.18%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+    "bytes": 25128375,
+    "license": "PSF-2.0; bundled notices in runtime LICENSE.txt",
+    "sha256": "67215a7bf1643e33d01b17ee3f1e91a8b0b39163746855ee02594bf0608f68b4"
+  },
+  {
+    "file": "archives/en_core_web_sm-3.8.0-py3-none-any.whl",
+    "url": "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+    "bytes": 12806118,
+    "license": "MIT",
+    "sha256": "1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85"
+  },
+  {
+    "file": "pkuseg/spacy_ontonotes.zip",
+    "url": "https://github.com/explosion/spacy-pkuseg/releases/download/v0.0.26/spacy_ontonotes.zip",
+    "bytes": 34567143,
+    "license": "MIT spacy-pkuseg; upstream language model",
+    "sha256": "b216e7f92de7ae285aeab8feba2faa8ea8216e5995ff6fb3d391cc8356db1bfe"
+  },
+  {
+    "file": "archives/torch-2.10.0+cu128-cp311-cp311-win_amd64.whl",
+    "url": "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp311-cp311-win_amd64.whl",
+    "bytes": 2867372330,
+    "license": "BSD-3-Clause; CUDA bundled component notices",
+    "sha256": "3523fda6e2cfab2b04ae09b1424681358e508bb3faa11ceb67004113d5e7acad"
+  },
+  {
+    "file": "archives/torchaudio-2.10.0+cu128-cp311-cp311-win_amd64.whl",
+    "url": "https://download-r2.pytorch.org/whl/cu128/torchaudio-2.10.0%2Bcu128-cp311-cp311-win_amd64.whl",
+    "bytes": 1950314,
+    "license": "BSD-3-Clause; CUDA bundled component notices",
+    "sha256": "680fb8dd4e682ecb67c9465ffb3c08cf87926a08b2431eddfc527cc5facefdab"
+  },
+  {
+    "file": "archives/kokoro-0.9.4-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/ea/cc/75f41633c75224ba820a4533163bc8b070b6bf25416014074c63284c2d4e/kokoro-0.9.4-py3-none-any.whl",
+    "bytes": 32592,
+    "license": "Apache-2.0",
+    "sha256": "a129dc6364a286bd6a92c396e9862459d3d3e45f2c15596ed5a94dcee5789efd"
+  },
+  {
+    "file": "archives/qwen_tts-0.1.1-py3-none-any.whl",
+    "url": "https://files.pythonhosted.org/packages/31/01/95f3ae26f5b7eb2105f69ad2c15af5a28b9ebdd1258a0b27541f5ebd6225/qwen_tts-0.1.1-py3-none-any.whl",
+    "bytes": 113529,
+    "license": "Apache-2.0",
+    "sha256": "11a290d8dabc7ef91a90c54478c8ab19b3edb1d85c0882313721892bdc4af15d"
+  },
+  {
+    "file": "archives/piper_tts-1.8.0-cp39-abi3-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/12/9c/c736d1961cf9ce0655278731b9430df41892ca2ded7b09dabcb340612158/piper_tts-1.8.0-cp39-abi3-win_amd64.whl",
+    "bytes": 34119688,
+    "license": "GPL-3.0-or-later",
+    "sha256": "5da9bfdb05dfe15da3536859d422e605483ffa6d2b3ec2c5b9593bae6b5aa6a4"
+  },
+  {
+    "file": "archives/espeakng_loader-0.2.4-py3-none-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/9d/ed/a3d872fbad4f3a3f3db0e8c31768ab14e77cd77306de16b8b20b1e1df7ea/espeakng_loader-0.2.4-py3-none-win_amd64.whl",
+    "bytes": 9437292,
+    "license": "MIT wrapper; GPL-3.0 eSpeak NG",
+    "sha256": "41f1e08ac9deda2efd1ea9de0b81dab9f5ae3c4b24284f76533d0a7b1dd7abd7"
+  },
+  {
+    "file": "archives/onnxruntime_gpu-1.23.2-cp311-cp311-win_amd64.whl",
+    "url": "https://files.pythonhosted.org/packages/a9/5c/dba7c009e73dcce02e7f714574345b5e607c5c75510eb8d7bef682b45e5d/onnxruntime_gpu-1.23.2-cp311-cp311-win_amd64.whl",
+    "bytes": 244506823,
+    "license": "MIT; bundled notices",
+    "sha256": "054282614c2fc9a4a27d74242afbae706a410f1f63cc35bc72f99709029a5ba4"
+  }
+]

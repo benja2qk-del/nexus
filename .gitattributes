@@ -1,0 +1,2 @@
+# PTY recordings contain meaningful CR/LF and escape sequences.
+tools/fixtures/onechat/*.raw binary

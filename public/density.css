@@ -1,0 +1,40 @@
+/* Chat density: the working row, queue and composer share the transcript's centered column, and the working row
+   sits on top of the composer as one card. Transcript items keep 12px between them on a PC.
+   The column grows with wide windows, from 712px on a laptop to 1040px on a large screen, so less space sits empty beside it. */
+body.redesign{--chat-col:clamp(712px,calc(100vw - 900px),1040px)}
+@media(min-width:701px){
+ body.redesign #chatView{padding-left:max(24px,calc((100% - var(--chat-col))/2));padding-right:max(24px,calc((100% - var(--chat-col))/2))}
+ body.redesign #steer{margin-left:max(24px,calc((100% - var(--chat-col))/2));margin-right:max(24px,calc((100% - var(--chat-col))/2))}
+ body.redesign #chatMessages,body.redesign #chatPending,body.redesign #chatConnection{max-width:none}
+}
+@media(min-width:1800px){body.redesign #chatMessages .md,body.redesign #chatMessages .bubble{font-size:16px}}
+body.redesign #chatConnection,body.redesign #nxQueue{margin-left:max(24px,calc((100% - var(--chat-col))/2));margin-right:max(24px,calc((100% - var(--chat-col))/2))}
+body.redesign #chatConnection:has(.chat-live-state){margin-top:8px}
+body.redesign .chat-live-state{min-height:34px;padding:3px 6px 3px 12px;gap:8px;font-size:13px;border:1px solid var(--input);border-bottom-color:var(--hairline);border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--surface)}
+body.redesign .chat-live-state .nx-live-step{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted-foreground);font-size:13px}
+body.redesign .chat-live-state .btn{margin-left:auto;height:26px;min-height:26px;padding:0 10px}
+body.redesign #nxConversation:has(#chatConnection .chat-live-state):has(#nxQueue:empty) #steer,body.redesign #nxConversation:has(#chatConnection .chat-live-state):not(:has(#nxQueue)) #steer{margin-top:0;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+body.redesign #nxConversation:has(#nxQueue:not(:empty)) .chat-live-state{border-bottom-color:var(--input);border-radius:var(--radius-xl)}
+body.redesign .nx-delegated-step{margin:0}
+body.redesign .ev-label{margin-bottom:4px}
+.nx-day,.nx-away{padding:2px 0}.nx-day span,.nx-away span{padding:2px 10px}
+@media(min-width:701px){body.redesign #chatMessages{gap:12px}}
+@media(max-width:700px){body.redesign #chatConnection,body.redesign #nxQueue{margin-left:12px;margin-right:12px}}
+
+/* Commands and Recent sit right under the main nav as two clear buttons; refresh stays small in the foot. */
+.nx-quick{display:flex;gap:4px;margin:4px 0 8px}.nx-quick>[data-nx=palette]{flex:1 1 auto}.nx-quick>[data-recent-work]{flex:0 0 auto}
+.nx-quick>button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:32px;padding:0 6px;border:1px solid var(--input);border-radius:6px;background:var(--surface);color:var(--foreground);font-size:12px;font-weight:500;cursor:pointer}
+.nx-quick>button>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-quick>button:hover,.nx-quick>button:focus-visible{border-color:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .55);background:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .08)}
+.nx-quick>button .nx-icon{width:15px;height:15px;flex:none;color:var(--primary)}
+@media(max-width:700px){.nx-quick{display:none}}
+.nx-sidebar-foot{justify-content:flex-end;padding:4px 8px}.nx-sidebar-foot>button:first-child{flex:0 0 auto;min-height:28px}
+
+/* Session cards: two lines for what the latest exchange was about. */
+@media(min-width:701px){.nx-session-open .nx-row-context{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.4}}
+
+/* Dialogs: the close button floats beside the title, so a field right under the title starts below it; the actions
+   row has no box of its own. Undo countdowns pause while hovered. */
+body.redesign #modalCard>h2+input,body.redesign #modalCard>h2+.picker-search{margin-top:16px}
+body.redesign .modal-actions{position:static;background:none}
+.nx-undo-toast.paused i{animation-play-state:paused}

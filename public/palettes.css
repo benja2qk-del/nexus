@@ -1,0 +1,25 @@
+/* Color themes. Every stylesheet draws its accent and background tint from four variables: --ah (accent hue),
+   --cs (accent strength), --nh (background hue) and --ns (background tint). Agent and status colors stay fixed so they
+   keep their meaning. The crystal is drawn with fixed colors, so it is turned to the theme's hue. */
+html[data-accent=azure]{--ah:250;--nh:264;--prism-turn:28deg}
+html[data-accent=aurora]{--ah:162;--nh:200;--ns:.8;--prism-turn:-55deg}
+html[data-accent=ember]{--ah:74;--cs:1.05;--nh:62;--ns:.45;--prism-turn:-150deg}
+html[data-accent=orchid]{--ah:345;--nh:322;--ns:.6;--prism-turn:128deg}
+html[data-accent=graphite]{--ah:250;--cs:.12;--ns:.12;--prism-tone:saturate(.08)}
+html[data-accent] .nexus-gem{filter:hue-rotate(var(--prism-turn,0deg)) var(--prism-tone,saturate(1))}
+
+/* Settings > Theme: a Color row of accent swatches above the Background row. */
+.nx-theme-label{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--muted-foreground)}
+.nx-theme-options+.nx-theme-label{margin-top:20px}
+.nx-accent-options{grid-template-columns:repeat(6,minmax(0,1fr))}
+.nx-accent-options>button{align-items:center;text-align:center}
+.nx-accent-swatch{width:36px;height:36px;border-radius:50%;border:1px solid var(--hairline);background:radial-gradient(circle at 35% 30%,oklch(.95 calc(.05 * var(--sw-c)) var(--sw-h)),oklch(.83 calc(.115 * var(--sw-c)) var(--sw-h)) 55%,oklch(.55 calc(.12 * var(--sw-c)) var(--sw-h)))}
+.nx-theme-swatch{background:linear-gradient(90deg,oklch(.27 calc(.03 * var(--ns,1)) var(--nh,256)) 25%,oklch(.17 calc(.03 * var(--ns,1)) var(--nh,256)) 25%)}
+.nx-theme-swatch.oled{background:linear-gradient(90deg,oklch(.17 calc(.014 * var(--ns,1)) var(--nh,256)) 25%,oklch(.09 calc(.006 * var(--ns,1)) var(--nh,256)) 25%)}
+.nx-theme-swatch.dim{background:linear-gradient(90deg,oklch(.36 calc(.026 * var(--ns,1)) var(--nh,256)) 25%,oklch(.28 calc(.024 * var(--ns,1)) var(--nh,256)) 25%)}
+@media(max-width:700px){.nx-accent-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* A few older rules still use the original cyan directly; a color theme recolors them. */
+html[data-accent] ::selection{background:color-mix(in oklch,var(--primary) 35%,transparent)}
+html[data-accent] .md code{background:color-mix(in oklch,var(--primary) 9%,transparent);color:color-mix(in oklch,var(--primary) 72%,white)}
+html[data-accent] mark{background:color-mix(in oklch,var(--primary) 30%,transparent);color:inherit}

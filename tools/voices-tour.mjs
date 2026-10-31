@@ -1,0 +1,60 @@
+// Real neural service, fake microphone, fixture coding sessions, recorded brain
+// timing. Chrome CDP uses inherited pipes: only HTTP ports 4785 and 4786 exist.
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import net from 'node:net';import {spawn} from 'node:child_process';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),{fixture}=require('./redesign-fixture.cjs'),core=require('../public/voice-core');
+const width=Number(process.argv[2]||1568),height=width===440?956:width===390?844:width===1920?1080:773;
+const out=path.resolve('.local/voices-tour',String(width));fs.mkdirSync(out,{recursive:true});
+for(const port of [4785,4786])await new Promise((r,j)=>{const s=net.createServer();s.once('error',j);s.listen(port,'127.0.0.1',()=>s.close(r));});
+const {root,env}=fixture(),ttsRoot=path.join(process.env.LOCALAPPDATA,'NexusDeck','tts');env.NEXUS_PORT='4785';env.NEXUS_TTS_ROOT=ttsRoot;env.CODEX_HOME=path.join(root,'codex');env.COPILOT_HOME=path.join(root,'copilot');
+const latency=process.argv.includes('--latency');if(latency)env.NEXUS_LIVE_WHISPER=fs.readFileSync(path.join(process.env.LOCALAPPDATA,'NexusDeck/whisper/install.json'),'utf8').replace(/^\uFEFF/,'');
+fs.writeFileSync(path.join(root,'stub-model'),'fixture');fs.writeFileSync(path.join(root,'utterance.txt'),'Hello, what is the current status?');
+const run=(exe,args,options={})=>new Promise((r,j)=>{const p=spawn(exe,args,{windowsHide:true,stdio:'ignore',...options});p.once('error',j);p.once('exit',c=>c?j(Error('Helper failed '+c)):r());});
+const input=path.join(root,'speech.json'),fake=path.join(root,'microphone.wav'),source=path.join(root,'owner.wav');fs.writeFileSync(input,JSON.stringify({lang:'en',text:'Hello, what is the current status?'}));
+await run('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.resolve('tools/voice-tts.ps1'),'-InputFile',input,'-OutputFile',source]);
+const wav=fs.readFileSync(source);let pcm;for(let at=12;at+8<=wav.length;){const n=wav.readUInt32LE(at+4);if(wav.toString('ascii',at,at+4)==='data')pcm=wav.subarray(at+8,at+8+n);at+=8+n+(n%2);}const floats=new Float32Array(pcm.length/2+16000*(latency?5:2.5));for(let i=0;i<pcm.length/2;i++)floats[i]=pcm.readInt16LE(i*2)/32768;fs.writeFileSync(fake,Buffer.from(core.encodeWav([floats],16000)));
+const server=spawn(process.execPath,['--require','./tools/voices-preload.cjs','server.js'],{env,windowsHide:true,stdio:['ignore','pipe','pipe']});let browser;
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+try{
+  await new Promise((r,j)=>{const timer=setTimeout(()=>j(Error('Fixture server timeout')),15000);server.stdout.on('data',d=>{if(String(d).includes('4785/')){clearTimeout(timer);r();}});server.stderr.on('data',d=>process.stderr.write(d));server.once('exit',c=>j(Error('Fixture server exited '+c)));});
+  browser=spawn('C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--remote-debugging-pipe','--user-data-dir='+path.join(root,'browser'),'--no-first-run','--no-default-browser-check','--mute-audio','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--use-file-for-fake-audio-capture='+fake,'--autoplay-policy=no-user-gesture-required','--disable-background-timer-throttling','--disable-renderer-backgrounding','about:blank'],{windowsHide:true,stdio:['ignore','ignore','ignore','pipe','pipe']});
+  let serial=0,buffer='',session;const pending=new Map(),errors=[],checks=[];
+  function cmd(method,params={},target=session){return new Promise((r,j)=>{const id=++serial,t=setTimeout(()=>{pending.delete(id);j(Error('CDP timeout '+method));},30000);pending.set(id,{r:v=>{clearTimeout(t);r(v);},j:e=>{clearTimeout(t);j(e);}});browser.stdio[3].write(JSON.stringify({id,method,params,...(target?{sessionId:target}:{})})+'\0');});}
+  browser.stdio[4].on('data',chunk=>{buffer+=chunk;let at;while((at=buffer.indexOf('\0'))>=0){const raw=buffer.slice(0,at);buffer=buffer.slice(at+1);if(!raw)continue;const m=JSON.parse(raw);if(m.id){const p=pending.get(m.id);pending.delete(m.id);m.error?p?.j(Error(JSON.stringify(m.error))):p?.r(m.result);}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails);}});
+  const targets=await cmd('Target.getTargets',{},null);session=(await cmd('Target.attachToTarget',{targetId:targets.targetInfos.find(t=>t.type==='page').targetId,flatten:true},null)).sessionId;
+  const js=async expression=>{if(/\bawait\b/.test(expression))expression=`(async()=>(${expression}))()`;const r=await cmd('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));return r.result?.value;};
+  const until=async expression=>{const start=Date.now();while(!await js(expression)){if(Date.now()-start>90000)throw Error('Timed out: '+expression+' '+await js('document.body.innerText.slice(-1500)'));await delay(200);}};
+  const check=async(expression,label)=>{if(!await js(expression))throw Error(label);checks.push(label);console.log('PASS '+label);};
+  const shot=async name=>{await delay(200);fs.writeFileSync(path.join(out,name+'.png'),Buffer.from((await cmd('Page.captureScreenshot',{format:'png'})).data,'base64'));};
+  await cmd('Runtime.enable');await cmd('Page.enable');await cmd('Emulation.setFocusEmulationEnabled',{enabled:true});await cmd('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=700});
+  await cmd('Page.addScriptToEvaluateOnNewDocument',{source:`window.tour={streams:[],timings:[],audio:[],barge:[],fallbacks:0};localStorage.setItem('nexus.bootSeen','1');localStorage.setItem('nexus.callMode','live');const realMedia=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=async o=>{const s=await realMedia(o);tour.streams.push(s);return s;};`});
+  await cmd('Page.navigate',{url:'http://127.0.0.1:4785/'});await until(`typeof state!=='undefined'&&state.booted&&state.sessions.length>0`);
+  await js(`setView('settings');document.querySelector('#nxSetting-voice').scrollIntoView({block:'start'});`);await until(`document.querySelectorAll('[data-voice-play]').length===18`);await shot('voice-picker');
+  await check(`document.documentElement.scrollWidth<=innerWidth`,'voice picker has no horizontal overflow');
+  await check(`[...document.querySelectorAll('#nxVoicePicker .btn')].every(b=>b.getBoundingClientRect().height>=44)`,'voice controls meet 44px target size');
+  await js(`document.querySelector('[data-voice-language="es"]').click()`);await shot('spanish-picker');await check(`document.querySelector('[data-voice-use="piper-daniela"]').textContent==='Selected'`,'Argentine default is labelled and selected');
+  const extraWidth=width===1568?1920:390,extraHeight=width===1568?1080:844;await cmd('Emulation.setDeviceMetricsOverride',{width:extraWidth,height:extraHeight,deviceScaleFactor:1,mobile:extraWidth<=700});await shot('spanish-'+extraWidth);await check(`document.documentElement.scrollWidth<=innerWidth`,'additional norms viewport has no overflow');await cmd('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=700});
+  await js(`document.querySelector('[data-voice-language="en"]').click()`);
+  await js(`document.querySelector('[data-voice-play="kokoro-heart"]').click()`);await until(`document.querySelector('[data-voice-play="kokoro-heart"]').textContent==='Stop'`);await shot('sample-playing');await js(`NexusVoicePicker.stop()`);
+  await js(`document.querySelector('[data-voice-use="kokoro-michael"]').click()`);await until(`document.querySelector('[data-voice-use="kokoro-michael"]').textContent==='Selected'`);await check(`(await (await fetch('/api/voices')).json()).selected.en==='kokoro-michael'`,'voice selection persists on server');await js(`document.querySelector('[data-voice-use="kokoro-heart"]').click()`);await until(`document.querySelector('[data-voice-use="kokoro-heart"]').textContent==='Selected'`);
+  // Paired phone reads the same samples; no local paths or service credentials leak.
+  const config=JSON.parse(fs.readFileSync(path.join(root,'config.json'))),code=await(await fetch('http://127.0.0.1:4785/api/pair/new',{method:'POST',headers:{'X-Nexus':'1'}})).json();
+  const remote={'X-Nexus':'1','X-Forwarded-Host':config.remoteHost,'Tailscale-User-Login':config.remoteUser,'Content-Type':'application/json'},paired=await fetch('http://127.0.0.1:4785/api/pair',{method:'POST',headers:remote,body:JSON.stringify({code:code.code,name:'Synthetic phone'})}),cookie=paired.headers.get('set-cookie').split(';')[0];
+  if((await fetch('http://127.0.0.1:4785/api/voices/sample/piper-daniela/0',{headers:remote})).status!==401)throw Error('Unpaired sample exposed');
+  const heard=await fetch('http://127.0.0.1:4785/api/voices/sample/piper-daniela/0',{headers:{...remote,Cookie:cookie}});if(heard.status!==200||(await heard.arrayBuffer()).byteLength<1000)throw Error('Paired sample failed');console.log('PASS paired phone sample and unpaired refusal');
+  await js(`select('claude:s-dashboard');window.sessionKeys=state.sessions.map(keyOf).sort().join(',');
+    const capture=NexusLiveAudio.open;NexusLiveAudio.open=opts=>{const onset=opts.onStart;opts.onStart=()=>{tour.ownerOnset=performance.now();onset();};return capture(opts);};
+    const make=NexusNeuralAudio.create;NexusNeuralAudio.create=opts=>{const p=make(opts),push=p.push,cancel=p.cancel;p.push=x=>{tour.audio.push(performance.now());return push(x);};p.cancel=()=>{const was=p.playing;cancel();if(was&&tour.ownerOnset)tour.barge.push(performance.now()-tour.ownerOnset);};return p;};
+    const open=NexusLiveCall.open;NexusLiveCall.open=(key,hooks)=>{const report=hooks.latency,notice=hooks.notice;hooks.latency=v=>{report(v);if(v.measured){const item=tour.timings.find(t=>t.speechEnd===v.speechEnd);if(item)Object.assign(item,v);else tour.timings.push({...v});}};hooks.notice=v=>{if(v.includes('Using device speech'))tour.fallbacks++;notice(v);};return open(key,hooks);};`);await until(`chatFor().loaded`);
+  await js(`document.querySelector('[data-steer="talk"]').click()`);await until(`NexusCall.status==='listening'`);await shot('listening');
+  await until(`(await (await fetch('/api/voices')).json()).voices.filter(v=>['kokoro-heart','piper-daniela'].includes(v.id)).every(v=>v.ready)`);
+  await js(`tour.coldTimings=tour.timings;tour.timings=[];`);
+  await until(`tour.audio.length>=1`);await shot('neural-call');await check(`document.querySelector('#nxCallMeta').textContent.includes('Neural')`,'call identifies neural playback');await until(`tour.timings.filter(t=>t.voice!=='Device speech').length>=${latency?4:2}`);
+  await js(`document.querySelector('[data-call="stop-speech"]')?.click()`);
+  if(!latency){await until(`tour.barge.length>0`);await check(`tour.barge.every(ms=>ms<150)`,'neural speaking interruption under 150 ms');await shot('barge-in');}
+  await check(`tour.streams.some(s=>s.getTracks().some(t=>t.readyState==='live'))`,'capture remains active with neural playback');
+  await js(`document.querySelector('.nx-call-debug').open=true;document.querySelector('.nx-call-debug').scrollIntoView({block:'end'});`);await shot('timing');
+  const metrics=await js(`({timings:tour.timings,bargeMs:tour.barge,fallbacks:tour.fallbacks,chunks:tour.audio.length})`);fs.writeFileSync(path.join(out,latency?'latency-metrics.json':'metrics.json'),JSON.stringify(metrics,null,2));console.log(JSON.stringify(metrics));
+  await js(`document.querySelector('[data-call="end"]').click()`);await until(`NexusCall.status==='ended'`);await check(`tour.streams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))`,'End releases microphone');await check(`state.sessions.map(keyOf).sort().join(',')===sessionKeys`,'fixture calls never add sessions');await shot('ended');
+  fs.writeFileSync(path.join(out,'verification.json'),JSON.stringify({width,height,checks,errors},null,2));if(errors.length)throw Error('Browser exceptions: '+JSON.stringify(errors));
+  await cmd('Browser.close',{},null);
+}finally{browser?.kill();server.kill();await delay(1000);}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080f19">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS">
+<title>NEXUS Pairing</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+  :root { --accent: #a5dfff; --accent-rgb: 165,223,255; --text: #e1ebf4; --dim: #a0b2c4; --muted: #7890a6; --line: rgba(172,207,231,.14); --line-hi: rgba(172,207,231,.26); --bad: #ffb4a3; }
+  * { box-sizing: border-box; }
+  html { background: #080f19; color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    font-family: "Segoe UI Variable", "Segoe UI", -apple-system, system-ui, sans-serif; color: var(--text);
+    background: radial-gradient(ellipse at 50% 30%, rgba(var(--accent-rgb), .08), transparent 60%), linear-gradient(160deg, #0b1521, #080e17 70%); }
+  main { width: 100%; max-width: 380px; text-align: center; }
+  .core { width: 112px; height: 112px; margin: 0 auto 18px; filter: drop-shadow(0 10px 30px rgba(var(--accent-rgb), .18)); animation: breathe 6s ease-in-out infinite; }
+  .core img { width: 100%; height: 100%; object-fit: contain; }
+  @keyframes breathe { 50% { transform: translateY(-5px); } }
+  h1 { font-weight: 500; letter-spacing: .34em; padding-left: .34em; font-size: 22px; margin: 0 0 6px; }
+  .sub { font: 10px/1.6 "Cascadia Code", ui-monospace, monospace; letter-spacing: .2em; color: var(--accent); opacity: .75; margin: 0 0 30px; }
+  .card { padding: 24px 20px 22px; border: 1px solid var(--line); border-top-color: rgba(var(--accent-rgb), .3); border-radius: 26px;
+    background: linear-gradient(150deg, rgba(27,45,62,.6), rgba(13,24,37,.85)); box-shadow: 0 24px 70px #0006; text-align: left; }
+  label { display: block; font: 10px "Cascadia Code", ui-monospace, monospace; letter-spacing: .14em; color: var(--muted); margin-bottom: 9px; }
+  input { width: 100%; height: 56px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--line-hi); background: #080f1999; color: var(--text);
+    font: 500 24px "Cascadia Code", ui-monospace, monospace; letter-spacing: .18em; text-align: center; text-transform: uppercase; outline: none; transition: border-color .2s, background .2s; }
+  input:focus { border-color: rgba(var(--accent-rgb), .6); background: #0a1824; }
+  input.name { font: 16px "Segoe UI Variable", -apple-system, system-ui, sans-serif; letter-spacing: 0; text-transform: none; height: 48px; text-align: left; }
+  .field + .field { margin-top: 16px; }
+  button { width: 100%; height: 54px; margin-top: 20px; border: 1px solid rgba(var(--accent-rgb), .4); border-radius: 16px; cursor: pointer;
+    background: linear-gradient(130deg, rgba(var(--accent-rgb), .95), rgba(var(--accent-rgb), .75)); color: #102331; font: 600 16px -apple-system, "Segoe UI", system-ui, sans-serif; transition: filter .2s; }
+  button:disabled { filter: grayscale(.6) brightness(.7); cursor: default; }
+  .msg { min-height: 22px; margin: 14px 2px 0; font-size: 13px; line-height: 1.5; color: var(--dim); }
+  .msg.bad { color: var(--bad); }
+  .tip { margin: 22px 6px 0; font-size: 12px; line-height: 1.65; color: var(--muted); text-align: left; }
+  .tip b { color: var(--dim); font-weight: 500; }
+  .welcome { font-size: 26px; letter-spacing: -.035em; font-weight: 400; margin: 22px 0 10px; }
+  .intro { font-size: 13px; line-height: 1.75; color: var(--dim); margin: 0 10px 24px; }
+  .sub { margin-bottom: 16px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  @media(max-height:740px) { .core { width: 76px; height: 76px; margin-bottom: 10px; } .welcome { margin-top: 16px; } body { align-items: start; } }
+  @media(prefers-reduced-motion:reduce) { * { animation: none!important; transition: none!important; } }
+  @media(max-width:700px) {
+    .core { width:72px; height:72px; margin-bottom:10px; }
+    .welcome { font-size:22px; margin:16px 0 8px; }
+    .intro { margin:0 4px 16px; line-height:1.6; }
+    .card { padding:18px 16px 16px; border-radius:20px; }
+    input { height:48px; font-size:24px; }
+    button { height:44px; margin-top:16px; }
+    .tip { margin-top:16px; }
+  }
+</style>
+<style>
+  body{background:#060f1c;color:#eff4f8;padding:24px 16px;font-family:system-ui,sans-serif}
+  .core{width:64px;height:64px;margin-bottom:12px}h1{font-size:18px;font-weight:600}.sub{font-size:12px}.welcome{font-size:18px;font-weight:600;letter-spacing:0}.intro{font-size:13px;line-height:1.6}.card{border-radius:12px;background:#0c1826;border-color:#a9c9e326;padding:24px 16px}.card[hidden]{display:none}label{font-size:12px;letter-spacing:0;text-transform:none;color:#a9bdcf}input{border-radius:8px;border-color:#849db477;background:#07101c;font-size:23px;letter-spacing:.15em}input[aria-invalid=true]{border-color:#ec9683}button{height:44px;border-radius:8px;background:#5ed7ed;color:#09202c;font-size:14px}.pair-success{text-align:center}.pair-success>span{display:grid;place-items:center;width:64px;height:64px;margin:auto;border-radius:50%;font-size:32px;color:#6bdbac;background:#6bdbac18;border:1px solid #6bdbac66}.pair-success h2{font-size:18px}.pair-success p{font-size:13px;color:#a9bdcf}.pair-success a{display:block;padding:12px;color:#62d9ee}.tip{color:#a9bdcf}.msg.bad{color:#edaa9a}
+</style>
+<style>
+ .pair-code-entry{position:relative}.pair-code-tiles{display:flex;gap:4px;min-height:52px}.pair-code-tiles span{flex:1;display:grid;place-items:center;min-width:0;height:52px;border:1px solid #849db477;border-radius:6px;background:#07101c;font:600 22px ui-monospace,monospace}.pair-code-tiles span:nth-child(5){margin-left:6px}.pair-code-entry input{position:absolute;inset:0;width:100%;height:52px;opacity:.01;cursor:text}.pair-code-entry:focus-within .pair-code-tiles span{border-color:#62d9ee}.pair-code-entry:has([aria-invalid=true]) .pair-code-tiles span{border-color:#ec9683}
+</style>
+</head>
+<body>
+<main>
+  <div class="core"><img src="/icon-512.png" alt=""></div>
+  <h1>NEXUS</h1>
+  <p class="sub">PAIR THIS DEVICE</p>
+  <h2 class="welcome">Enter the 8-character code</h2>
+  <p class="intro">On your PC, open NEXUS, then Settings, then Pair a phone.</p>
+  <form class="card" id="pair" autocomplete="off">
+    <div class="field">
+      <label for="code">PAIRING CODE</label>
+      <div class="pair-code-entry"><div class="pair-code-tiles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><input id="code" inputmode="text" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="9" pattern="[A-Za-z0-9]{4}-?[A-Za-z0-9]{4}" title="Enter the eight-character code shown on your PC" aria-describedby="msg" placeholder="XXXX-XXXX" required></div>
+    </div>
+    <div class="field">
+      <label for="name">DEVICE NAME</label>
+      <input id="name" class="name" maxlength="60" value="iPhone">
+    </div>
+    <button id="go" type="submit">Connect to NEXUS</button>
+    <p class="msg" id="msg" role="status">Or scan the QR code with the Camera app.</p>
+  </form>
+  <section class="card pair-success" id="pairSuccess" role="status" hidden><span>✓</span><h2>Paired with your PC</h2><p>Your sessions are on this phone now.</p><a href="/">Open NEXUS</a></section>
+  <p class="tip"><b>Using NEXUS as a home-screen app?</b> Add it first (Share → Add to Home Screen), open it from the icon, and pair there: the app keeps its own sign-in, separate from Safari.</p>
+</main>
+<script src="/pair.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+// File paths in answers: which text becomes a link, where it points, and which links offer an in-chat preview.
+const fs=require('fs'),vm=require('vm'),path=require('path'),assert=require('assert/strict');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ctx={esc,blockHTML:(b)=>b.html,renderReadableChat(){},document:{addEventListener(){}},state:{},$:()=>null,console};
+vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../public/paths-ui.js'),'utf8'),ctx);
+const s={cwd:'C:\\Work\\fib'},links=html=>[...html.matchAll(/data-path="([^"]+)"/g)].map(m=>m[1].replace(/&#39;/g,"'")),run=html=>ctx.nxLinkPaths(html,s);
+let out=run('<p>Saved to <strong>C:\\Work\\fib\\fibonacci.html</strong></p>');
+assert.deepEqual(links(out),['C:\\Work\\fib\\fibonacci.html']);assert.ok(out.includes('data-preview="C:\\Work\\fib\\fibonacci.html"'),'an HTML file in the session folder can be previewed');
+out=run('<p>Open <code>fibonacci.html</code> or <code>notes/plan.md</code></p>');
+assert.deepEqual(links(out),['C:\\Work\\fib\\fibonacci.html','C:\\Work\\fib\\notes\\plan.md'],'bare names in code mean the session folder');
+out=run('<p>Wrote C:\\Temp\\out.txt. Then /c/Users/me/a.log, see (D:/x/y.json)</p>');
+assert.deepEqual(links(out),['C:\\Temp\\out.txt','C:\\Users\\me\\a.log','D:\\x\\y.json'],'running text: drive and Git Bash paths, trailing punctuation left out');
+assert.ok(out.includes('out.txt</a>. Then'));assert.ok(!out.includes('data-preview'),'files outside the session folder are not previewed');
+out=run('<p><code>C:\\Users\\Me\\Desktop\\Nexus Deck\\README.md</code></p>');
+assert.deepEqual(links(out),['C:\\Users\\Me\\Desktop\\Nexus Deck\\README.md'],'a code span may hold a path with spaces');
+out=run('<pre><code>cd C:\\Work\\fib\nnode run.js</code></pre><p><a href="https://example.com/C:/x">link</a> and <code>v1.2</code> and <code>npm test</code></p>');
+assert.deepEqual(links(out),[],'code blocks, existing links, versions and commands stay as they are');
+assert.equal(ctx.nxLinkPaths('<p>hello</p>',{}),'<p>hello</p>');
+assert.equal(ctx.blockHTML({t:'user',html:'<p>C:\\Temp\\a.txt</p>'},s),'<p>C:\\Temp\\a.txt</p>','only answers are linked');
+assert.ok(links(ctx.blockHTML({t:'ai',html:'<p>C:\\Temp\\a.txt</p>'},s)).length===1);
+console.log('PASS answer paths: drive, Git Bash and session-folder names linked; punctuation, code blocks and links left alone; HTML preview only inside the session folder');

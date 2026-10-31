@@ -1,0 +1,436 @@
+/* Tokens and motion from the approved NEXUS v0 reference. */
+:root {
+  color-scheme: dark;
+  /* ink-navy neutrals */
+  --background: oklch(0.155 calc(0.028 * var(--ns, 1)) calc(var(--nh, 256) + 2));
+  --surface: oklch(0.185 calc(0.03 * var(--ns, 1)) var(--nh, 256));
+  --elevated: oklch(0.225 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 2));
+  --foreground: oklch(0.965 calc(0.008 * var(--ns, 1)) calc(var(--nh, 256) - 16));
+  --card: oklch(0.19 calc(0.03 * var(--ns, 1)) var(--nh, 256) / 0.72);
+  --card-foreground: oklch(0.965 calc(0.008 * var(--ns, 1)) calc(var(--nh, 256) - 16));
+  --popover: oklch(0.21 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 1));
+  --popover-foreground: oklch(0.965 calc(0.008 * var(--ns, 1)) calc(var(--nh, 256) - 16));
+  /* ice-blue to cyan accent family */
+  --primary: oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214));
+  --agent-astra: oklch(0.83 0.115 214);
+  --agent-claude: oklch(0.76 0.13 52);
+  --agent-copilot: oklch(0.74 0.13 295);
+  --agent-antigravity: oklch(0.78 0.13 150);
+  --primary-foreground: oklch(0.2 calc(0.045 * var(--ns, 1)) calc(var(--nh, 256) - 11));
+  --secondary: oklch(0.24 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 2));
+  --secondary-foreground: oklch(0.94 calc(0.01 * var(--ns, 1)) calc(var(--nh, 256) - 16));
+  --muted: oklch(0.25 calc(0.03 * var(--ns, 1)) calc(var(--nh, 256) - 2));
+  --muted-foreground: oklch(0.74 calc(0.025 * var(--ns, 1)) calc(var(--nh, 256) - 11));
+  --accent: oklch(0.26 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 8));
+  --accent-foreground: oklch(0.97 calc(0.008 * var(--ns, 1)) calc(var(--nh, 256) - 16));
+  --destructive: oklch(0.72 0.16 22);
+  --hairline: oklch(0.85 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 26) / 0.1);
+  --border: oklch(0.85 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 26) / 0.11);
+  --input: oklch(0.85 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 26) / 0.16);
+  --ring: oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.7);
+  --status-working: oklch(0.83 0.115 214);
+  --status-needs: oklch(0.84 0.14 78);
+  --status-done: oklch(0.8 0.14 158);
+  --status-saved: oklch(0.7 0.025 245);
+  --radius: 0.625rem;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Canvas: shared by the workspace and full-screen phone call. */
+:root {
+  --nx-canvas-image:
+    radial-gradient(ellipse 45% 40% at 0% 0%, oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.08), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 100% 100%, oklch(0.86 calc(0.09 * var(--cs, 1)) calc(var(--ah, 214) - 14) / 0.07), transparent 70%),
+    radial-gradient(ellipse 70% 55% at 60% -10%, oklch(0.62 calc(0.12 * var(--cs, 1)) calc(var(--ah, 214) + 11) / 0.12), transparent 70%),
+    linear-gradient(oklch(0.9 calc(0.05 * var(--cs, 1)) calc(var(--ah, 214) + 6) / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.9 calc(0.05 * var(--cs, 1)) calc(var(--ah, 214) + 6) / 0.025) 1px, transparent 1px);
+  --nx-canvas-size: auto, auto, auto, 32px 32px, 32px 32px;
+}
+.nexus-canvas, body.redesign #app {
+  background-color: var(--background);
+  background-image: var(--nx-canvas-image);
+  background-size: var(--nx-canvas-size);
+}
+
+/* Slow animated amber border for "Needs you" cards */
+@property --nx-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes nx-spin {
+  to { --nx-angle: 360deg; }
+}
+.needs-border {
+  position: relative;
+  border-color: transparent !important;
+}
+.needs-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--nx-angle),
+    oklch(0.84 0.14 78 / 0.22),
+    oklch(0.84 0.14 78 / 0.95) 12%,
+    oklch(0.84 0.14 78 / 0.22) 30%,
+    oklch(0.84 0.14 78 / 0.22) 62%,
+    oklch(0.84 0.14 78 / 0.7) 76%,
+    oklch(0.84 0.14 78 / 0.22) 92%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: nx-spin 7s linear infinite;
+}
+
+/* One-shot pulse for attention badges */
+@keyframes nx-pulse-once {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.pulse-once { position: relative; animation: nx-pulse-once 900ms var(--ease-out) 2; }
+.pulse-once::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid oklch(0.84 0.14 78 / .7);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: nx-attention-halo 900ms var(--ease-out) 2;
+}
+@keyframes nx-attention-halo {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.1); opacity: 0; }
+}
+
+/* Reading comfort */
+.nx-prose > :where(p, ul, ol, h2, h3, h4) { max-width: 75ch; }
+
+@keyframes nx-overlay-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.overlay-in { animation: nx-overlay-in 200ms var(--ease-out); }
+
+/* Dark glass panel with hairline border and soft inner highlight */
+.glass {
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.01) 40%),
+    oklch(0.185 calc(0.03 * var(--ns, 1)) var(--nh, 256) / 0.62);
+  /* The exported v0 build resolves .glass to no backdrop filter. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--hairline);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.06),
+    0 12px 40px -20px oklch(0.05 calc(0.02 * var(--ns, 1)) calc(var(--nh, 256) + 4) / 0.8);
+}
+
+.glass-raised {
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.015) 50%),
+    oklch(0.215 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 2) / 0.75);
+  border: 1px solid oklch(0.85 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 26) / 0.14);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07);
+}
+
+.glass-hover:hover {
+  border-color: oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.32);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.08),
+    0 0 0 1px oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.08),
+    0 16px 40px -20px oklch(0.6 calc(0.14 * var(--cs, 1)) calc(var(--ah, 214) + 6) / 0.35);
+}
+
+/* Breathing glow on working dots */
+@keyframes nexus-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+.animate-breathe { position: relative; animation: nexus-breathe 2.4s ease-in-out infinite; }
+.animate-breathe::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--status-working);
+  animation: nx-dot-halo 2.4s ease-in-out infinite;
+}
+@keyframes nx-dot-halo {
+  0%, 100% { transform: scale(1); opacity: .55; }
+  50% { transform: scale(2); opacity: 0; }
+}
+
+/* Breathing outline on the session that is currently running */
+@keyframes nexus-live {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}
+.live-glow { position: relative; }
+.live-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / .38), 0 0 26px -6px oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / .45);
+  animation: nexus-live 3.2s ease-in-out infinite;
+}
+
+/* Thin moving shimmer for live state lines */
+@keyframes nexus-shimmer {
+  from { transform: translateX(0); }
+  to { transform: translateX(270%); }
+}
+.shimmer-track {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-track::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -24%;
+  width: 40%;
+  background-image: linear-gradient(90deg, transparent, oklch(0.88 calc(0.12 * var(--cs, 1)) calc(var(--ah, 214) - 4) / 0.9), transparent);
+  animation: nexus-shimmer 1.8s var(--ease-out) infinite;
+}
+
+/* Skeleton loading */
+@keyframes nexus-skeleton {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(50%); }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: oklch(1 0 0 / .04);
+  border-radius: var(--radius-md);
+}
+.skeleton::before {
+  content: '';
+  position: absolute;
+  inset: 0 -50%;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / .05), transparent);
+  animation: nexus-skeleton 1.6s ease-in-out infinite;
+}
+
+@keyframes nexus-level {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.animate-level {
+  animation: nexus-level 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Logo assembly */
+@keyframes facet-in {
+  from { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.82); }
+  to { opacity: 1; transform: none; }
+}
+.facet-in {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: facet-in 620ms var(--ease-out) forwards;
+}
+@keyframes core-ignite {
+  0% { opacity: 0; transform: scale(0.3); }
+  60% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.core-ignite {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+  animation: core-ignite 520ms var(--ease-out) 760ms forwards;
+}
+@keyframes core-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+.core-pulse { animation: core-pulse 2.8s ease-in-out infinite; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.fade-up { opacity: 0; animation: fade-up 240ms var(--ease-out) forwards; }
+
+/* Living core: reflects global fleet state */
+.living-core { transition: filter 240ms var(--ease-out); }
+.core-idle { filter: saturate(0.8) brightness(0.95); }
+@keyframes nx-core-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.core-working { animation: nx-core-breathe 3.6s ease-in-out infinite; }
+@keyframes nx-core-amber {
+  0%, 100% { opacity: .3125; }
+  50% { opacity: 1; }
+}
+.core-needs { animation: nx-core-amber 2.4s ease-in-out infinite; }
+@keyframes nx-core-ring {
+  from { scale: 0.85; opacity: 0.7; }
+  to { scale: 1.7; opacity: 0; }
+}
+.core-ring { border: 1px solid oklch(0.84 0.14 78 / 0.8); animation: nx-core-ring 2.4s var(--ease-out) infinite; }
+@keyframes nx-core-spin { to { rotate: 360deg; } }
+.core-spin > svg { animation: nx-core-spin 900ms linear infinite; }
+
+/* View transitions: shared hero morph + quick crossfade */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: var(--ease-out); }
+::view-transition-group(nx-hero) { animation-duration: 240ms; animation-timing-function: var(--ease-out); }
+::view-transition-old(nx-hero),
+::view-transition-new(nx-hero) { animation-duration: 240ms; height: 100%; object-fit: cover; overflow: clip; }
+.nx-sidebar-vt { view-transition-name: nx-sidebar; }
+.nx-hero { view-transition-name: nx-hero; }
+@keyframes nx-view-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.view-in { animation: nx-view-in 200ms var(--ease-out); }
+
+/* Light sweep across a tile on hover */
+.sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(105deg, transparent 35%, oklch(0.95 calc(0.06 * var(--cs, 1)) calc(var(--ah, 214) - 4) / 0.09) 50%, transparent 65%);
+  translate: -110% 0;
+}
+.sweep:hover::after { translate: 110% 0; transition: translate 240ms var(--ease-out); }
+
+/* Data stream along live Working bars */
+@keyframes nx-stream {
+  from { transform: translateX(0); }
+  to { transform: translateX(411.4286%); }
+}
+.data-stream {
+  overflow: hidden;
+}
+.data-stream::before, .data-stream::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+.data-stream::before {
+  inset: 0 auto 0 -21.6%;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, oklch(0.92 calc(0.11 * var(--cs, 1)) calc(var(--ah, 214) - 9)), transparent);
+  animation: nx-stream 1.8s linear infinite;
+}
+.data-stream::after {
+  inset: 0 -44px 0;
+  background: repeating-linear-gradient(90deg, oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.55) 0 6px, transparent 6px 10px, oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214) / 0.25) 10px 12px, transparent 12px 22px);
+  animation: nx-stream-texture 1.8s linear infinite;
+}
+@keyframes nx-stream-texture { to { transform: translateX(44px); } }
+
+/* Ambient particle field: two slow-drifting layers for parallax depth */
+.ambient-layer {
+  position: absolute;
+  inset: -320px;
+  will-change: transform;
+}
+.ambient-far {
+  background-image:
+    radial-gradient(circle at 30% 40%, oklch(0.92 calc(0.06 * var(--cs, 1)) calc(var(--ah, 214) - 4)) 0 0.8px, transparent 1.4px),
+    radial-gradient(circle at 78% 72%, oklch(0.92 calc(0.06 * var(--cs, 1)) calc(var(--ah, 214) - 4)) 0 0.8px, transparent 1.4px);
+  background-size: 260px 260px;
+  opacity: 0.16;
+  animation: nx-drift-far 180s linear infinite;
+}
+.ambient-near {
+  background-image:
+    radial-gradient(circle at 62% 22%, oklch(0.9 calc(0.09 * var(--cs, 1)) calc(var(--ah, 214) - 9)) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 14% 84%, oklch(0.9 calc(0.09 * var(--cs, 1)) calc(var(--ah, 214) - 9)) 0 0.9px, transparent 1.6px);
+  background-size: 190px 190px;
+  opacity: 0.22;
+  animation: nx-drift-near 110s linear infinite;
+}
+@keyframes nx-drift-far { to { transform: translate3d(-260px, -260px, 0); } }
+@keyframes nx-drift-near { to { transform: translate3d(190px, -190px, 0); } }
+.ambient-paused .ambient-layer { animation-play-state: paused; }
+
+@keyframes nx-meter-fill { from { scale: 0 1; } }
+.meter-fill { transform-origin: left; animation: nx-meter-fill 240ms var(--ease-out); }
+
+/* Haptic-style press */
+.press { transition: scale 120ms var(--ease-out), background-color 150ms; }
+.press:active { scale: 0.98; }
+
+/* v0 popovers and phone sheets; the live terminal keeps its own contents. */
+@keyframes nx-pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nx-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+#nxModelMenu, #nxSessionSettings, .more-menu { animation: nx-pop-in 160ms ease-out both; }
+#nxRaw { animation: nx-rise 200ms ease-out both; }
+#nxCall { animation: nx-overlay-in 200ms var(--ease-out); }
+/* Sonner's reference toast uses 400ms ease for translation and opacity. */
+@keyframes nx-toast-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nx-toast-out {
+  to { opacity: 0; transform: translateY(100%); }
+}
+body.redesign .toast { animation: nx-toast-in 400ms ease both; }
+body.redesign .toast.bye { animation: nx-toast-out 400ms ease forwards; }
+@media(max-width:700px) {
+  #nxModelMenu, #nxSessionSettings, #nxPhoneRecap {
+    animation: nx-rise 220ms cubic-bezier(.2,.8,.2,1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .animate-breathe, .live-glow, .shimmer-track, .skeleton, .animate-level, .core-pulse, .needs-border::before, .pulse-once,
+  .core-working, .core-needs, .core-ring, .core-spin > svg, .data-stream, .ambient-layer, .view-in {
+    animation: none !important;
+  }
+  .sweep::after { display: none; }
+  .press:active { scale: 1; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.85 calc(0.04 * var(--ns, 1)) calc(var(--nh, 256) - 26) / 0.16) transparent;
+}
+
+html[data-theme="oled"] {
+  --background: oklch(0.09 calc(0.006 * var(--ns, 1)) calc(var(--nh, 256) + 2));
+  --surface: oklch(0.13 calc(0.012 * var(--ns, 1)) var(--nh, 256));
+  --elevated: oklch(0.17 calc(0.016 * var(--ns, 1)) calc(var(--nh, 256) - 2));
+  --card: oklch(0.12 calc(0.012 * var(--ns, 1)) var(--nh, 256) / 0.75);
+  --popover: oklch(0.15 calc(0.014 * var(--ns, 1)) calc(var(--nh, 256) - 1));
+}
+
+html[data-theme="dim"] {
+  --background: oklch(0.235 calc(0.022 * var(--ns, 1)) calc(var(--nh, 256) - 1));
+  --surface: oklch(0.265 calc(0.024 * var(--ns, 1)) calc(var(--nh, 256) - 2));
+  --elevated: oklch(0.3 calc(0.026 * var(--ns, 1)) calc(var(--nh, 256) - 4));
+  --card: oklch(0.27 calc(0.024 * var(--ns, 1)) calc(var(--nh, 256) - 2) / 0.72);
+  --popover: oklch(0.29 calc(0.026 * var(--ns, 1)) calc(var(--nh, 256) - 3));
+}

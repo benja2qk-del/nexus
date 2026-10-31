@@ -1,0 +1,21 @@
+{
+  "name": "nexus-deck",
+  "version": "1.0.0",
+  "description": "A local session deck for Claude Code, Codex and GitHub Copilot CLI.",
+  "main": "server.js",
+  "scripts": {
+    "test": "node tools/telemetry-checks.cjs && node tools/insights-checks.cjs && node tools/design-checks.mjs && node tools/polish-auth-unit.cjs && node tools/phoneux-checks.cjs && node tools/wall-checks.cjs && node tools/onechat-checks.cjs && node tools/voice-checks.cjs && node tools/redesign-checks.cjs && node tools/redesign-round2-checks.cjs && node tools/call-checks.cjs && node tools/copilot-checks.cjs && node tools/copilot-scale-checks.cjs && node tools/review-checks.cjs && node tools/live-checks.cjs && node tools/neural-checks.cjs && node tools/themes-checks.cjs && node tools/themes-fixes-checks.cjs && node tools/onedrive-themes-checks.cjs && node tools/company-folder-themes-checks.cjs && node tools/theme-sorter-checks.cjs && node tools/themes-full-scan-checks.cjs && node tools/themes-api-checks.cjs && node tools/themes-ui-checks.cjs && node tools/themes-recap-checks.cjs && node tools/slash-checks.cjs && node tools/slash2-checks.cjs && node tools/activity-checks.cjs && node tools/file-locate-checks.cjs && node tools/responsive-checks.cjs && node tools/theme-about-checks.cjs && node tools/session-labels-checks.cjs && node tools/handoff-checks.cjs && node tools/queued-prompt-checks.cjs && node tools/paths-checks.cjs && node tools/board-tour.mjs && node tools/recent-work-tour.mjs && node tools/spend-tour.mjs && node tools/home-tour.mjs && node tools/copilot-reply-tour.mjs",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@lydell/node-pty": "^1.1.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^5.5.0",
+    "ws": "^8.22.0"
+  }
+}

@@ -1,0 +1,88 @@
+/* NEXUS norms: readable dark surfaces, 44px actions, 16px gutters, 4/8 spacing. */
+:root{--muted:oklch(0.783 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 10.8));--dim:oklch(0.834 calc(0.027 * var(--ns, 1)) calc(var(--nh, 256) - 13.2));--line-hi:oklch(0.613 calc(0.038 * var(--ns, 1)) calc(var(--nh, 256) - 11.5))}
+.apsis{font-weight:400}
+.apsis :is(button,input,textarea,select,summary){font-family:var(--ui)}
+.apsis:not(.redesign) :is(button,summary,[role=button]):active{filter:brightness(1.2)}
+.apsis :is(button,summary,a,input,textarea,select):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.apsis :is(.btn,.icon-btn,.chip-btn,.text-action,.permission-option,.chat-new,.more-menu button,.fh-tabs button,.session-more summary,.recap-head-button,.back-overview){min-height:44px;min-width:44px}
+.apsis :is(.chat-thinking summary,.chat-tools summary){min-height:44px;display:flex;align-items:center;padding:8px 12px}
+.apsis :is(.ev-label,.chat-thinking time,.session-tags>span,.agent,.status,.sheet-kicker,.brand-sub,.overview-footer,.c-meta,.c-snip,.project-tile-top,.project-tile-status,.project-agents,.eyebrow,.briefing-sign,.orbit-coordinate,.orbit-caption,.core-place>p,.mission-heading,.mission-count,.mission-card small){font-size:12px}
+.apsis :is(.preview-title,.fh-title,.briefing-copy h1,.project-tile strong,.mission-title,.c-title){font-weight:600}
+.apsis :is(.btn,.icon-btn,.chip-btn,.permission-option,.picker-search,.search,.steer textarea,.session-more summary,.chat-tools){border-color:oklch(0.613 calc(0.038 * var(--ns, 1)) calc(var(--nh, 256) - 11.5))}
+.apsis .btn.primary{background:oklch(0.877 calc(0.054 * var(--cs, 1)) calc(var(--ah, 214) + 20.6));color:oklch(0.239 calc(0.039 * var(--ns, 1)) calc(var(--nh, 256) - 4.9));border-color:oklch(0.877 calc(0.054 * var(--cs, 1)) calc(var(--ah, 214) + 20.6));box-shadow:none}
+.apsis .btn:disabled{opacity:1;color:oklch(0.775 calc(0.025 * var(--ns, 1)) calc(var(--nh, 256) - 11.8));background:oklch(0.346 calc(0.041 * var(--cs, 1)) calc(var(--ah, 214) + 28.6));border-color:oklch(0.613 calc(0.038 * var(--ns, 1)) calc(var(--nh, 256) - 11.5));cursor:not-allowed}
+.apsis:not(.redesign) .status.busy{color:oklch(0.875 calc(0.074 * var(--cs, 1)) calc(var(--ah, 214) + 18.8))}.apsis:not(.redesign) .status.busy i{background:oklch(0.875 calc(0.074 * var(--cs, 1)) calc(var(--ah, 214) + 18.8))}
+.apsis:not(.redesign) .status.ready{color:#f4ca93}.apsis:not(.redesign) .status.ready i{background:#f4ca93}
+.apsis:not(.redesign) .status.done{color:#a9e6c6}.apsis:not(.redesign) .status.done i{background:#a9e6c6}
+.apsis:not(.redesign) .status.off{color:oklch(0.834 calc(0.027 * var(--ns, 1)) calc(var(--nh, 256) - 13.2))}.apsis:not(.redesign) .status.off i{background:oklch(0.834 calc(0.027 * var(--ns, 1)) calc(var(--nh, 256) - 13.2))}
+.apsis .preview-context{display:block;white-space:nowrap;text-overflow:ellipsis;line-height:1.4;font-size:14px}
+.apsis .session-preview{display:flex;flex-direction:column;gap:4px;padding:12px 16px;border-radius:12px}
+.apsis .preview-meta{order:3;margin:0;gap:8px;width:100%}.apsis .preview-title,.apsis .preview-context{width:100%}
+.apsis .session-preview .session-tags{display:none}
+.apsis .delivery-starting .bubble,.apsis .delivery-pending .bubble,.apsis .delivery-queued .bubble{opacity:1}
+.apsis .geo-line{font:12px/1.4 var(--mono);color:var(--dim);overflow-wrap:anywhere;margin-top:12px}
+.apsis .fh-tabs button.on{background:none;box-shadow:inset 0 -2px var(--accent)}
+.apsis #readBriefing{padding:0;text-align:left;font-size:12px;color:var(--dim);background:none;border:0}
+.apsis .steer-buttons [data-steer=send]{order:5}.apsis .steer-buttons [data-steer=help]{order:4}
+@media(min-width:701px){.apsis .steer-buttons [data-steer=send]{margin-left:auto}}
+.apsis .focus[data-tab=chat] #steerIn{height:48px;max-height:calc(7.5em + 22px);min-height:48px;line-height:1.5}
+.apsis .recap-head-button{background:none;border-color:transparent;padding:8px!important}
+.apsis .fh-actions>.btn.primary{background:none;color:var(--accent);border-color:oklch(0.613 calc(0.038 * var(--ns, 1)) calc(var(--nh, 256) - 11.5))}
+.apsis .focus[data-tab=chat] .fh-actions>.btn[data-a=resume]{display:none}
+.apsis .fh-latest{color:var(--dim)}
+.apsis .chat-new{background:oklch(0.312 calc(0.055 * var(--ns, 1)) calc(var(--nh, 256) - 8.6));border-color:oklch(0.753 calc(0.062 * var(--cs, 1)) calc(var(--ah, 214) + 24.8))}
+.apsis:not(.redesign) #chatMessages .md,.apsis:not(.redesign) #chatMessages .bubble{line-height:1.45}
+.apsis .session-details{font-size:12px}
+.apsis #overview :is(.btn,.text-action,.lim-none,.lim-foot,.lim-top,.spend-total>span,.spend-total small,#overviewCounts span,#projectShelfCount,#overviewHelp,.project-node strong,.project-node small,.mission-facts p,.fact-link,.fact-preview,.alignment p,.mission-id,.mission-project,.mission-objective>p){font-size:12px}
+.apsis #overview :is(.btn,.text-action) span{font-size:inherit}
+.apsis #overview .mission-objective h2{font-size:20px;font-weight:600}
+.apsis #overview .mission-facts :is(strong,b){font-weight:600}
+.apsis #overview .mission-objective>p{font-size:14px;line-height:1.4}
+.apsis input::placeholder,.apsis textarea::placeholder{color:oklch(0.783 calc(0.032 * var(--ns, 1)) calc(var(--nh, 256) - 10.8));opacity:1}
+.apsis .focus[data-tab=chat] .fh-actions>.recap-head-button{border-color:transparent;background:none}
+.apsis .c-snip{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.apsis .project-all .project-agents,.apsis .project-all .project-tile-top{display:none}
+.apsis #overview :is(.briefing-sign small,.project-hint,.agent-mark,.mission-project span,.mission-spend .fact-link>span,.orbit-caption span,.orbit-coordinate small,.overview-footer>span){font-size:12px}
+.apsis #overview .alignment b{font-size:inherit}
+.apsis #app :is(h1,h2,h3,h4,strong,b){font-weight:600}
+.apsis .fh-row .status{font-size:12px;flex-shrink:0}
+.apsis #overview :is(.eyebrow small,.mission-spend .fact-link small,#projectCount){font-size:12px}
+.apsis .cards .c-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:14px}
+.apsis .cards .c-time{font-size:12px}.apsis .cards .session-tags,.apsis .cards .c-meta{display:none}
+.apsis .fh-context,.apsis .attachment-tools>span{font-size:12px}
+.apsis .top :is(.seg button,.theme-picker select,.clock,.stats span){font-size:12px}
+.apsis #overview .mission-card :is(.alignment,.mission-spend){display:none}
+.apsis #overview .mission-facts{gap:12px;margin-top:16px}
+.apsis #overview .mission-card{padding:20px}
+.apsis #overview .mission-actions{margin-top:16px}
+.apsis #overview{min-width:0;width:100%;overflow-x:hidden}
+.apsis #overview :is(#phoneSessions,#phoneNavigation,#projectSelection,.briefing-band,.overview-tray){min-width:0;max-width:100%}
+.apsis #phoneNavigation .btn{min-width:0;flex:1;white-space:normal}
+@media(max-width:700px){
+  body.apsis #app{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  body.apsis #app[data-view=focus]{padding-left:0;padding-right:0}
+  .apsis #appMenuBtn{display:none}
+  .apsis .brand-sub{display:none}
+  .apsis .focus-head{padding:calc(44px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 8px max(16px,env(safe-area-inset-left))}
+  .apsis .fh-row{padding-right:0}.apsis .back-overview{left:16px;height:44px}
+  .apsis .fh-title{font-size:17px}.apsis .fh-subtitle,.apsis .fh-latest{font-size:12px;line-height:17px}
+  .apsis .fh-actions{gap:4px 8px;margin-top:4px}
+  .apsis .fh-actions>.recap-head-button{grid-column:1/-1;grid-row:2;min-height:44px;padding:8px 0}
+  .apsis .fh-tabs button,.apsis .session-more summary{min-height:44px;padding:8px;font-size:12px}
+  .apsis .focus[data-tab=chat] .chat-view{padding:8px 16px}
+  body.apsis .focus.has[data-tab=chat]>.steer:not(:empty){padding:8px 16px;gap:8px}
+  .apsis .focus[data-tab=chat] .steer-buttons{gap:8px}
+  .apsis .steer-buttons>.btn,.apsis .steer-buttons>.chip-btn{height:44px;min-height:44px;font-size:13px;padding:0 8px}
+  .apsis .steer-buttons>.chip-btn{flex:0 0 44px}
+  .apsis #steer .attachment-tools{gap:4px}.apsis #steer .attachment-tools>.btn{width:44px;min-width:44px}
+  .apsis #steer .attachment-tools{margin-left:-4px}
+  .apsis .briefing-copy h1{font-size:20px}.apsis .briefing-copy p{font-size:14px;line-height:1.4}
+  .apsis .briefing-band{gap:4px}.apsis #overview{gap:12px}
+  .apsis .project-tile{padding:8px 12px;border-radius:12px}.apsis .project-tile strong{font-size:14px}
+  .apsis #phoneNavigation .btn{min-height:44px}
+  .apsis .modal-card h2{font-size:20px}.apsis .modal-card{padding:16px;border-radius:16px}
+  .apsis .finder-results{gap:8px;margin-top:12px;max-height:60dvh}
+  .apsis .preview-meta{font-size:12px}
+  .apsis #chatMessages .ev-label{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.apsis *,.apsis *:before,.apsis *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

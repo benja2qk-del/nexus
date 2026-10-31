@@ -1,0 +1,21 @@
+/* Phone Wall: themes in play stacked, with the PC Wall's tiles (and their motion) at full width; quiet themes fold
+   into one list at the end. */
+.nx-pwall{display:flex;flex-direction:column;gap:18px;padding:4px 16px 24px}
+.nx-pwall-theme>header{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.nx-pwall-theme>header>button{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:4px 0;border:0;background:none;color:var(--foreground);font-size:15px;text-align:left}
+.nx-pwall-theme>header>button b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.nx-pwall-theme>header>small{font-size:11px;color:var(--muted-foreground);white-space:nowrap}
+.nx-pwall-list .nx-board-tile{margin-bottom:8px}
+.nx-pwall-quiet{border:1px solid var(--hairline);border-radius:10px;background:var(--card)}
+.nx-pwall-quiet>summary{display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;list-style:none}
+.nx-pwall-quiet>summary::-webkit-details-marker{display:none}
+.nx-pwall-quiet>summary small{color:var(--muted-foreground);font-weight:400}
+.nx-pwall-quiet>button{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:10px 14px;border:0;border-top:1px solid var(--hairline);background:none;color:var(--foreground);font-size:13px;text-align:left}
+.nx-pwall-quiet>button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-pwall-quiet>button small{font-size:11px;color:var(--muted-foreground)}
+.nx-pwall-empty{margin:8px 0;color:var(--muted-foreground);font-size:14px}
+
+/* The phone bar holds Wall where New used to be, so New sits in the Home header, after Recent. */
+.nx-phone-home-new{order:1;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px}
+.nx-phone-home-new svg{width:16px;height:16px}
+@media(min-width:701px){.nx-phone-home-new{display:none}}

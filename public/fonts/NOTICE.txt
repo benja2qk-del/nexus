@@ -1,0 +1,13 @@
+Sora and JetBrains Mono are self-hosted, unmodified WOFF2 font assets copied
+from the approved v0 reference's Next.js font output. No runtime font CDN
+request or npm dependency is required by NEXUS.
+
+Sora: Copyright 2019 The Sora Project Authors
+https://github.com/sora-xor/sora-font
+License: Sora-OFL.txt (SIL Open Font License 1.1)
+License source: https://raw.githubusercontent.com/google/fonts/main/ofl/sora/OFL.txt
+
+JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors
+https://github.com/JetBrains/JetBrainsMono
+License: JetBrainsMono-OFL.txt (SIL Open Font License 1.1)
+License source: https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/OFL.txt

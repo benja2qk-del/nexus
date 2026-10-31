@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1424">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS">
+<title>NEXUS Session Deck</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/vendor/xterm.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="apsis.css">
+<link rel="stylesheet" href="polish.css">
+<link rel="stylesheet" href="projects.css">
+<link rel="stylesheet" href="uploads.css">
+<link rel="stylesheet" href="phoneux.css">
+<link rel="stylesheet" href="wall.css">
+<link rel="stylesheet" href="onechat.css">
+<link rel="stylesheet" href="voice.css">
+<link rel="stylesheet" href="voice-picker.css">
+<link rel="stylesheet" href="ux.css">
+<link rel="stylesheet" href="redesign-tokens.css">
+<link rel="stylesheet" href="redesign.css">
+<link rel="stylesheet" href="redesign-round2.css">
+<link rel="stylesheet" href="call.css">
+<link rel="stylesheet" href="review.css">
+<link rel="stylesheet" href="themes-ui.css">
+<link rel="stylesheet" href="copilot-ui.css">
+<link rel="stylesheet" href="slash.css">
+<link rel="stylesheet" href="activity-polish.css">
+<link rel="stylesheet" href="recent-work.css">
+<link rel="stylesheet" href="home.css">
+<link rel="stylesheet" href="density.css">
+<link rel="stylesheet" href="palettes.css">
+<link rel="stylesheet" href="load.css">
+<link rel="stylesheet" href="phone-wall.css">
+<link rel="stylesheet" href="paths.css">
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+
+<!-- boot sequence -->
+<div id="boot">
+  <div class="boot-core">
+    <div class="nexus-core" data-state="working"><div class="core-aura"></div><img src="/core.svg" alt="" width="320" height="320"></div>
+  </div>
+  <h1 class="boot-title" data-text="NEXUS">NEXUS</h1>
+  <div class="boot-sub">SESSION DECK · NEURAL LINK</div>
+  <div class="boot-log" id="bootLog"></div>
+  <div class="boot-bar"><i id="bootBar"></i></div>
+  <div class="boot-skip">click or press any key to skip</div>
+</div>
+
+<div id="app">
+  <header class="top panel">
+    <div class="brand">
+      <img class="brand-mark" src="/icon.svg" alt="" width="40" height="40">
+      <div><div class="brand-name">NEXUS</div><div class="brand-sub">session deck</div></div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="search" aria-label="Search sessions, prompts, and projects" placeholder="Search sessions…" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+    </div>
+    <div class="seg" id="viewSeg">
+      <button data-view="overview" class="on" aria-pressed="true">Home</button>
+      <button data-view="focus" aria-pressed="false">Focus</button>
+      <button data-view="wall" aria-pressed="false">Wall</button>
+    </div>
+    <label class="theme-picker"><span class="sr-only">Color theme</span><select id="themeSelect" aria-label="Color theme"><option value="apsis">Apsis</option><option value="parallax">Parallax</option><option value="stratum">Stratum</option></select></label>
+    <button class="btn" id="appMenuBtn">More</button>
+    <button class="btn" id="devicesBtn">Pair a phone</button>
+    <button class="icon-btn" id="refreshBtn" aria-label="Refresh sessions" title="Refresh sessions">↻</button>
+    <button class="btn" id="newBtn"><span>＋</span> New session</button>
+    <button class="icon-btn" id="fsBtn" title="Enter fullscreen (F11)" aria-label="Enter fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    <div class="clock" id="clock"></div>
+    <button class="icon-btn exit" id="exitBtn" title="Exit NEXUS" aria-label="Exit NEXUS">
+      <svg viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+    </button>
+  </header>
+
+  <section id="overview" aria-label="Session overview">
+    <div class="briefing-band"><div class="briefing-sign"><span class="signal-bars"><i></i><i></i><i></i></span><span>NEXUS BRIEFING<small id="briefingRange">YOUR WORK, IN VIEW</small></span></div><div class="briefing-copy"><h1 id="briefingTitle">A place for your attention.</h1><p id="briefingText" role="status">Connecting to your local sessions...</p></div><button class="btn" id="finderBtn">All sessions <span aria-hidden="true">↗</span></button></div>
+    <section class="project-shelf" aria-label="Your projects"><div class="project-shelf-label"><span class="eyebrow">YOUR PROJECTS</span><span id="projectShelfCount"></span></div><nav id="projectStrip" aria-label="Filter sessions by project"></nav><div id="projectSelection" aria-live="polite"></div></section>
+    <div class="command-space">
+      <div class="mission-channel" id="missionLeft"></div>
+      <div class="orbit-space"><div class="orbit-coordinate">LOCAL SPACE <span id="projectCount"></span></div><svg class="orbit-lines" viewBox="0 0 700 600" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor"><ellipse cx="350" cy="300" rx="280" ry="157" transform="rotate(-23 350 300)"/><ellipse cx="350" cy="300" rx="289" ry="227" transform="rotate(17 350 300)"/><ellipse cx="350" cy="300" rx="328" ry="265" stroke-dasharray="2 10"/><path d="M350 22v30m0 496v30M18 300h30m604 0h30"/></g></svg><div class="core-place"><div class="nexus-core" id="nexusCore" data-state="idle"><div class="core-aura"></div><img src="/core.svg" alt="" width="320" height="320"></div><h2>NEXUS</h2><p id="coreState">ATTENTION FIELD</p></div><nav id="orbitProjects" aria-label="Project orbit"></nav><div class="orbit-caption">Your projects have a place.<span>○ Claude &nbsp; ◇ Astra</span></div><div id="orbitPages"></div></div>
+      <div class="mission-channel" id="missionRight"></div>
+    </div>
+    <nav id="phoneNavigation" aria-label="Overview shortcuts"><button class="btn" data-phone-live aria-pressed="false">Live only</button><button class="btn" data-phone-wall>Wall</button><button class="btn" data-phone-spend>Spend &amp; limits</button></nav>
+    <div id="phoneSessions"></div>
+    <div class="overview-tray"><div id="overviewCounts"></div><button id="spendTotal" class="spend-total"></button><div id="overviewLimits"></div></div>
+    <footer class="overview-footer"><span><i></i> LOCAL CONNECTION <span id="overviewUpdated"></span></span><span>Intent. Evidence. Your next move.</span><button id="overviewHelp">Keyboard &amp; app tips</button></footer>
+  </section>
+
+  <section id="projectPage" aria-label="Project workspace" tabindex="-1"></section>
+
+  <aside class="rail panel">
+    <div class="rail-head">Filter</div>
+    <div class="pills" id="pills">
+      <button data-f="all" class="on">All</button>
+      <button data-f="live">Live</button>
+      <button data-f="claude">Claude</button>
+      <button data-f="astra">Astra</button>
+    </div>
+    <div id="termsBox" class="hidden">
+      <div class="rail-head">Terminals in NEXUS</div>
+      <div id="terms"></div>
+    </div>
+    <div class="rail-head">Projects</div>
+    <nav id="groups" aria-label="Projects"></nav>
+    <div class="rail-head">Usage <span class="rail-hint">% used</span></div>
+    <div id="limits"></div>
+    <div class="rail-foot">
+      <div class="legend"><i class="dot claude"></i>Claude <i class="dot astra"></i>Astra <i class="dot live"></i>Live</div>
+      <div class="keys">
+        <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+        <span><kbd>Enter</kbd> open</span>
+        <span><kbd>W</kbd> wall</span>
+        <span><kbd>F</kbd> follow</span>
+      </div>
+    </div>
+  </aside>
+
+  <section class="list panel">
+    <div class="list-head"><span id="listTitle">All sessions</span><span id="listCount" class="count"></span></div>
+    <div class="cards" id="cards" aria-label="Sessions"></div>
+  </section>
+
+  <main class="stage panel" id="stage">
+    <button class="wall-back" id="wallBack">← Home</button>
+    <div id="connection" class="connection hidden" role="status"></div>
+    <div id="focus" class="focus">
+      <button class="back-overview" id="backOverview">← Home</button>
+      <div class="empty" id="emptyState">
+        <div class="nexus-core" data-state="idle"><img src="/core.svg" alt="" width="180" height="180"></div>
+        <p>Select a session to open its live feed</p>
+      </div>
+      <div class="focus-head" id="focusHead"></div>
+      <div class="pulse" id="pulse"></div>
+      <div id="focusInsights"></div>
+      <div id="thinkingView" class="thinking-view"></div>
+      <div id="chatView" class="chat-view"></div>
+      <div class="feed" id="feed"></div>
+      <div class="term-host" id="termHost"></div>
+      <div class="term-help"><span>Type directly in the terminal</span><span>Shift+Enter · newline &nbsp; Ctrl+C · copy selection / interrupt</span></div>
+      <div class="feed-foot" id="feedFoot">
+        <button class="chip-btn" id="earlierBtn">Load earlier</button>
+        <span class="tail-info" id="tailInfo"></span>
+        <label class="follow"><input type="checkbox" id="followBox" checked><span></span>Follow live</label>
+      </div>
+      <div class="steer" id="steer"></div>
+    </div>
+    <div id="wall" class="wall hidden"></div>
+  </main>
+</div>
+
+<div id="modal" class="modal"><div class="modal-card panel" id="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"></div></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script src="/vendor/xterm.js"></script>
+<script src="/vendor/addon-fit.js"></script>
+<script src="/vendor/addon-web-links.js"></script>
+<script src="prism.js"></script>
+<script src="polish.js"></script>
+<script src="apsis.js"></script>
+<script src="projects.js"></script>
+<script src="uploads.js"></script>
+<script src="conversation.js"></script>
+<script src="slash-core.js"></script>
+<script src="activity-language.js"></script>
+<script src="subagent-core.js"></script>
+<script src="recap.js"></script>
+<script src="phoneux.js"></script>
+<script src="onechat.js"></script>
+<script src="voice-core.js"></script>
+<script src="call-core.js"></script>
+<script src="live-core.js"></script>
+<script src="voice.js"></script>
+<script src="live-audio.js"></script>
+<script src="neural-audio.js"></script>
+<script src="live-call.js"></script>
+<script src="app.js"></script>
+<script src="redesign-core.js"></script>
+<script src="themes-core.js"></script>
+<script src="redesign.js"></script>
+<script src="redesign-overview.js"></script>
+<script src="redesign-actions.js"></script>
+<script src="qr.js"></script>
+<script src="redesign-pages.js"></script>
+<script src="voice-picker.js"></script>
+<script src="redesign-round2.js"></script>
+<script src="call.js"></script>
+<script src="themes-ui.js"></script>
+<script src="copilot-ui.js"></script>
+<script src="redesign-motion.js"></script>
+<script src="theme-brief-ui.js"></script>
+<script src="activity-ui.js"></script>
+<script src="ios-band.js"></script>
+<script src="slash.js"></script>
+<script src="slash-picker.js"></script>
+<script src="message-queue.js"></script>
+<script src="recent-work.js"></script>
+<script src="load-ui.js"></script>
+<script src="handoff-ui.js"></script>
+<script src="phone-wall.js"></script>
+<script src="paths-ui.js"></script>
+</body>
+</html>

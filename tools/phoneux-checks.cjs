@@ -1,0 +1,60 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path'), vm = require('node:vm');
+const preview = require('../session-preview');
+const {pendingPrompt} = require('../public/conversation');
+let p = preview.createPreview();
+preview.observePreview(p,{type:'assistant',message:{content:[{type:'tool_use',name:'mcp__claude-in-chrome__computer',input:{action:'click'}}]}});
+preview.observePreview(p,{type:'assistant',message:{content:[{type:'tool_use',name:'Bash',input:{command:'codex exec "review"'}}]}});
+preview.observePreview(p,{type:'assistant',message:{content:[{type:'text',text:'Saved. Now publishing it.'}]}});
+assert.deepEqual(preview.previewSummary(p),{latestContext:'Saved.',recentTools:['Chrome','Astra']});
+for(let i=0;i<20;i++) preview.observePreview(p,{type:'assistant',message:{content:[{type:'tool_use',name:'Read',input:{file_path:'notes.md'}}]}});
+assert.deepEqual(preview.previewSummary(p).recentTools,[],'old tags expire after 20 tool calls');
+preview.observePreview(p,{type:'assistant',isSidechain:true,message:{content:[{type:'text',text:'unrelated'}]}});
+assert.equal(p.latestContext,'Read notes.md');
+p=preview.createPreview();
+preview.observePreview(p,{type:'response_item',payload:{type:'function_call',name:'functions.exec_command',arguments:JSON.stringify({cmd:'codex exec review'})}});
+preview.observePreview(p,{type:'response_item',payload:{type:'message',role:'assistant',content:[{type:'output_text',text:'Build checked.'}]}});
+assert.deepEqual(preview.previewSummary(p),{latestContext:'Build checked.',recentTools:['Astra']});
+console.log('PASS: Claude and Codex latest context, recent tool tags, expiry, sidechain exclusion');
+const menu='Do you want to publish?\n  1. Yes, publish\n  2. No, keep draft\nEsc to cancel';
+assert.deepEqual(pendingPrompt(menu).options,[{key:'1',label:'Yes, publish'},{key:'2',label:'No, keep draft'}]);
+assert.equal(pendingPrompt('Here is the plan:\n1. Yes, publish\n2. No, keep draft'),null);
+assert.equal(pendingPrompt('Do you want to publish?\n1. Yes\n2. No'),null);
+// Questions as Claude draws them today: a titled rule under the footer, no footer at all, free wording, a list too long for the screen.
+const titled='─────────── Weekly report ─';
+assert.deepEqual(pendingPrompt('Do you want to proceed?\n❯ 1. Yes\n  2. Yes, and do not ask again for: build\n     --all --fast\n  3. No\nEsc to cancel · Tab to amend\n'+titled).options.map(o=>o.key),['1','2','3']);
+const held=pendingPrompt('▔▔▔▔▔▔▔▔\n   Switch model?\n   Your next response will be slower\n\n   ❯ 1. Yes, switch\n     2. No, go back');
+assert.deepEqual([held.question,held.selected,held.options.length,held.mode],['Switch model? Your next response will be slower','1',2,'number']);
+const free=pendingPrompt('Pick the release name\n\n❯ 1. Harbor\n     The short one\n  2. Lantern\n  3. Type something.\n\nEnter to select · ↑/↓ to navigate · Esc to cancel\n'+titled);
+assert.deepEqual([free.question,free.mode,free.options[0].label],['Pick the release name','arrows','Harbor The short one']);
+assert.equal(pendingPrompt('     -File build --all\n   2. Yes, and do not ask again\n ❯ 3. No\nEsc to cancel\n'+titled).options.length,2,'the start of a long list may be off the screen');
+assert.equal(pendingPrompt('Done.\n'+titled+'\n❯ 1. fix the login\n────────\n  shift+tab to cycle'),null,'a typed message is not a question');
+assert.equal(pendingPrompt('❯ 1. fix the login\n  2. and the logout\nesc to interrupt'),null,'nor is a list while the agent works');
+assert.equal(pendingPrompt('Do you want to publish?\n1. Yes\n1. No\nEsc to cancel'),null);
+assert.equal(pendingPrompt('Working...'),null);
+assert.equal(pendingPrompt(menu+'\nWorking...'),null,'a menu followed by output is stale');
+assert.equal(pendingPrompt('Do you want to proceed?\n1. Yes\n9. No\nEsc to cancel').options[1].key,'9');
+assert.equal(pendingPrompt('Would you like to run this command?\n❯ 1. Yes, and allow this\n     command for the session\n  2. No\nPress Enter to confirm').options[0].label,'Yes, and allow this command for the session');
+console.log('PASS: live permission choices, wrapped labels, ambiguous and ordinary list rejection');
+// Exercise the real metadata scanner against a sparse 800 MB file: reads stay bounded.
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'nexus-phoneux-tail-')),file=path.join(temp,'fixture.jsonl');
+try {
+  const fd=fs.openSync(file,'w');fs.ftruncateSync(fd,800*1024*1024);
+  fs.writeSync(fd,Buffer.from(JSON.stringify({type:'user',message:{content:'Review the release'}})+'\n'),0,undefined,0);
+  const tail='\n'+JSON.stringify({type:'assistant',message:{content:[{type:'tool_use',name:'mcp__claude-in-chrome__computer',input:{action:'click'}},{type:'text',text:'Cloud configuration saved.'}]}})+'\n';
+  fs.writeSync(fd,Buffer.from(tail),0,undefined,800*1024*1024-Buffer.byteLength(tail));fs.closeSync(fd);
+  let readBytes=0;
+  const source=fs.readFileSync('server.js','utf8');
+  const ctx=vm.createContext({...preview,models:require('../models'),Buffer,fs:{...fs,readSync(fd,buf,offset,length,pos){readBytes+=length;return fs.readSync(fd,buf,offset,length,pos);}},file,stat:fs.statSync(file)});
+  vm.runInContext(source.slice(source.indexOf('function readSlice'),source.indexOf('function alive')),ctx);
+  vm.runInContext('const claudeCache = new Map();'+source.slice(source.indexOf('function userText'),source.indexOf('function claudeSessions')),ctx);
+  const result=vm.runInContext('claudeMeta(file,stat)',ctx);
+  assert.equal(result.latestContext,'Cloud configuration saved.');assert.deepEqual(Array.from(result.recentTools),['Chrome']);
+  assert.equal(readBytes,576*1024);vm.runInContext('claudeMeta(file,stat)',ctx);assert.equal(readBytes,576*1024);
+  console.log('PASS: real 800 MB sparse transcript, 576 KB total sampled, unchanged file served from cache');
+} finally {
+  const resolved=fs.realpathSync(temp),base=fs.realpathSync(os.tmpdir());
+  if(!resolved.toLowerCase().startsWith(base.toLowerCase()+path.sep)||!path.basename(resolved).startsWith('nexus-phoneux-tail-')) throw Error('Unsafe fixture cleanup');
+  fs.rmSync(resolved,{recursive:true,force:true});
+}

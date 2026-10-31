@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),vm=require('node:vm');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'nexus-round2-unit-')),file=path.join(root,'session.jsonl');
+const original=JSON.stringify({type:'user',message:{content:'Fixture conversation'}})+'\n';fs.writeFileSync(file,original);
+const titles=require('../session-title'),session={kind:'claude',id:'fixture-session',file};
+assert.deepEqual(titles.rename(session,'  Name with "quotes" and unicode ☑  '),{title:'Name with "quotes" and unicode ☑'});
+const lines=fs.readFileSync(file,'utf8').trim().split('\n');assert.equal(lines[0]+'\n',original);assert.deepEqual(JSON.parse(lines[1]),{type:'custom-title',customTitle:'Name with "quotes" and unicode ☑',sessionId:'fixture-session'});
+for(const title of ['', ' ', 'a\nb', 'a\x00b', 'x'.repeat(201), {}, null])assert.throws(()=>titles.rename(session,title),/one line/);
+const index=path.join(root,'session_index.jsonl');titles.rename({...session,kind:'astra'},'Astra name',index);const codexRecord=JSON.parse(fs.readFileSync(index,'utf8'));assert.equal(codexRecord.thread_name,'Astra name');assert.equal(codexRecord.id,session.id);assert(Number.isFinite(Date.parse(codexRecord.updated_at)));
+fs.writeFileSync(index,JSON.stringify(codexRecord));titles.rename({...session,kind:'astra'},'Second Astra name',index);assert.equal(fs.readFileSync(index,'utf8').trim().split('\n').map(JSON.parse).at(-1).thread_name,'Second Astra name');
+fs.writeFileSync(file,'{"partial":');assert.throws(()=>titles.rename(session,'Name'),/being written/);assert.equal(fs.readFileSync(file,'utf8'),'{"partial":');
+let now=Date.now();class Clock extends Date{static now(){return now;}}const mod={exports:{}};
+vm.runInNewContext(fs.readFileSync('auth.js','utf8'),{require,process:{env:{NEXUS_DEVICES_FILE:path.join(root,'devices.json')},pid:process.pid},module:mod,Date:Clock});
+const auth=mod.exports,p1=auth.newCode(),p2=auth.newCode();assert.match(p1.code,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);assert.equal(auth.pairingStatus(p1.pairingId).state,'waiting');
+auth.redeem(p2.code,'Phone two');assert.equal(auth.pairingStatus(p1.pairingId).state,'waiting','another redemption must not mark this code paired');assert.equal(auth.pairingStatus(p2.pairingId).device.name,'Phone two');assert.throws(()=>auth.redeem(p2.code,'Reuse'),/wrong|expired/);
+now+=600001;assert.equal(auth.pairingStatus(p1.pairingId).state,'expired');assert.equal(auth.pairingStatus(p2.pairingId).state,'paired');assert.equal(auth.pairingStatus('unknown').state,'expired');
+console.log('PASS native rename record, escaping, invalid/incomplete write refusal, exact-code pairing receipts, expiry and single use; isolated files only');

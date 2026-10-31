@@ -1,0 +1,10 @@
+PASS the usual folders are searched first: a Downloads zip is found by name and size
+PASS a same-name file with a different size is not mistaken for the dropped one
+PASS the session folder is a root, before Downloads
+PASS OneDrive folders (including company ones) are searched
+PASS the Windows Search index answers before the walk, and its hits are verified on disk
+PASS a bounded walk finds deeper files and skips node_modules
+PASS the modified time breaks ties between copies with the same size
+PASS dropped folders match directories, not files
+PASS an unknown file reports no path instead of guessing
+PASS names with separators or traversal are refused

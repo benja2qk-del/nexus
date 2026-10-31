@@ -1,0 +1,136 @@
+/* Home on a PC: greeting, latest themes in orbit around the core, recent work newest first. */
+.nx-home-content{container-type:inline-size}
+.nx-welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:24px;min-height:280px}
+.nx-welcome-text{min-width:0;padding:8px 0}
+.nx-welcome-date{margin:0 0 12px;font:12px var(--font-mono);font-feature-settings:inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)}
+.nx-welcome h2{margin:0 0 16px;font-size:34px;line-height:1.15;font-weight:600;letter-spacing:-.035em}
+.nx-welcome-status{margin:0;font-size:15px;line-height:1.5;color:var(--foreground)}
+.nx-welcome-status b{font-weight:600}
+.nx-welcome-where{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0;font-size:13px;color:var(--muted-foreground)}
+.nx-welcome-where b{color:var(--foreground);font-weight:600}
+.nx-welcome-where>span{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.nx-welcome-where b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-welcome-where .nx-theme-tick{width:3px;height:12px}
+.nx-welcome-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:24px;max-width:460px}
+.nx-welcome-actions>.btn{min-height:40px}
+#nxHome .nx-welcome-actions>.nx-welcome-wall{flex-basis:100%;justify-content:flex-start;width:max-content;max-width:max-content;padding:0 2px;min-height:32px;border-color:transparent;background:none;color:var(--muted-foreground)}
+#nxHome .nx-welcome-actions>.nx-welcome-wall:hover{color:var(--foreground)}
+.nx-welcome-actions kbd{margin-left:4px;padding:0 4px;border:1px solid var(--hairline);border-radius:4px;font:12px var(--font-mono);font-feature-settings:inherit;color:var(--muted-foreground)}
+
+.nx-orbit-panel{min-width:0;max-width:620px;width:100%;justify-self:center}
+.nx-orbit{position:relative;height:216px;min-width:0;isolation:isolate;container-type:size;background:radial-gradient(ellipse 42% 48% at 50% 50%,oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .07),transparent 72%)}
+.nx-orbit-rings{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .22);overflow:visible;pointer-events:none}
+.nx-orbit-rings ellipse{vector-effect:non-scaling-stroke;stroke-width:1}
+.nx-orbit-rings ellipse+ellipse{stroke:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .14);stroke-dasharray:2 5}
+.nx-orbit-core{position:absolute;left:50%;top:50%;z-index:1;width:88px;height:88px;transform:translate(-50%,-50%);filter:drop-shadow(0 0 16px oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .2))}
+.nx-orbit-core svg{width:100%;height:100%}
+/* One painted halo; the v0 state cadence changes only transform/opacity. */
+.nx-orbit-core::before{inset:-12%;background:radial-gradient(circle,oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .28),transparent 70%);filter:none}
+.nx-orbit-core[data-state=needs]::before{background:radial-gradient(circle,oklch(.84 .14 78/.38),transparent 70%);animation:nx-home-halo 2.4s ease-in-out infinite}
+.nx-orbit-core[data-state=working]::before{animation:nx-home-halo 3.6s ease-in-out infinite}
+@keyframes nx-home-halo{0%,100%{opacity:.4;transform:scale(.94)}50%{opacity:.85;transform:scale(1.06)}}
+/* Arms turn inside tracks squashed to each ellipse and every label turns back by the same angle: transform only, so the compositor runs the orbit. */
+.nx-orbit-track{position:absolute;inset:0;z-index:2;pointer-events:none}
+.nx-orbit-outer{transform:scaleY(var(--k-outer,.62));--R:28cqw;--T:150s;--p:var(--phase,0s);--ik:var(--ik-outer,1.6)}
+.nx-orbit-inner{transform:scaleY(var(--k-inner,.69));--R:15cqw;--T:48s;--p:var(--sat-phase,0s);--ik:var(--ik-inner,1.45)}
+.nx-orbit-arm{position:absolute;left:50%;top:50%;width:0;height:0;animation:nx-orbit-arm var(--T) linear infinite;animation-delay:calc(-1 * var(--p) - var(--i) / var(--n) * var(--T))}
+.nx-orbit-arm:has(:hover,:focus-visible){z-index:3}
+.nx-orbit-arm>*{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:auto;animation:nx-orbit-label var(--T) linear infinite;animation-delay:inherit}
+@keyframes nx-orbit-arm{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes nx-orbit-label{from{transform:translateX(var(--R)) rotate(0deg) scaleY(var(--ik)) translate(-50%,-50%)}to{transform:translateX(var(--R)) rotate(-360deg) scaleY(var(--ik)) translate(-50%,-50%)}}
+.nx-orbit-node{display:flex;align-items:stretch;gap:8px;width:max-content;max-width:min(176px,42cqw);min-height:32px;padding:7px 10px 7px 7px;border:1px solid oklch(.62 calc(.035 * var(--ns, 1)) calc(var(--nh, 256) - 21));border-radius:8px;background:var(--surface);color:var(--foreground);text-align:left;cursor:pointer;transition:border-color 150ms var(--ease-out),background-color 150ms var(--ease-out)}
+.nx-orbit-node>.nx-theme-tick{width:3px;min-width:3px;height:auto;border-radius:2px}
+.nx-orbit-node>span:first-of-type{display:flex;align-items:center;gap:6px;min-width:0}
+.nx-orbit-node b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.nx-orbit-node small{flex:none;font:12px var(--font-mono);font-feature-settings:inherit;color:var(--muted-foreground)}
+.nx-orbit-node:hover,.nx-orbit-node:focus-visible{z-index:4;border-color:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .55);background:var(--elevated)}
+.nx-orbit-node.selected{border-color:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .6);box-shadow:0 0 0 1px oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .2)}
+.nx-orbit-node.working{border-color:var(--status-working)}
+.nx-orbit-node.needs{border-color:var(--status-needs)}
+/* The detail dock never moves with a node and reserves its space before hover. */
+.nx-orbit-details{height:76px;position:relative;margin:0 8px;font-size:12px;line-height:1.4}
+.nx-orbit-detail{padding:8px 12px;border:1px solid var(--hairline);border-radius:8px;background:var(--surface);animation:nx-home-detail 150ms var(--ease-out)}
+.nx-orbit-detail>div{display:flex;align-items:baseline;gap:12px}.nx-orbit-detail b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nx-orbit-detail small{margin-left:auto;flex-shrink:0;font-size:12px;color:var(--muted-foreground)}
+.nx-orbit-detail p{margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted-foreground)}
+.nx-orbit-hint{margin:0;padding:10px 0;text-align:center;color:var(--muted-foreground)}.nx-orbit-hint span{display:block;margin-top:3px}
+@keyframes nx-home-detail{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* Sessions in play are quiet visual satellites; the cards below supply actions and words. */
+.nx-orbit-sat{width:24px;height:24px;pointer-events:none!important}
+.nx-orbit-sat::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--status-working);box-shadow:0 0 10px var(--status-working)}
+.nx-orbit-sat.ready::before{background:var(--status-needs);box-shadow:0 0 10px var(--status-needs)}
+.nx-orbit-panel:hover :is(.nx-orbit-arm,.nx-orbit-arm>*),.nx-orbit-panel:focus-within :is(.nx-orbit-arm,.nx-orbit-arm>*){animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.nx-orbit-arm{animation:none;transform:rotate(calc(var(--i) / var(--n) * 360deg))}.nx-orbit-arm>*{animation:none;transform:translateX(var(--R)) rotate(calc(var(--i) / var(--n) * -360deg)) scaleY(var(--ik)) translate(-50%,-50%)}}
+@container (max-width:900px){.nx-welcome{gap:16px;min-height:252px}.nx-orbit{height:180px}.nx-welcome h2{font-size:28px}.nx-welcome-actions{margin-top:20px}}
+@container (max-width:640px){.nx-welcome{grid-template-columns:minmax(0,1fr);min-height:0}.nx-orbit-panel{max-width:480px}.nx-orbit{height:200px}}
+/* The Copilot meter keeps to one line in a narrow page header. */
+@media(max-width:1500px){.nx-top-usage .nx-copilot-quota small{display:none}}
+
+.nx-recent-list{border:1px solid var(--hairline);border-radius:8px;overflow:hidden;background:var(--card)}
+.nx-recent-list>.nx-recent+.nx-recent{border-top:1px solid var(--hairline)}
+.nx-recent>span>small{display:flex;align-items:center;gap:8px;min-width:0}
+.nx-recent>span>small .nx-theme-label{flex:none;max-width:50%;color:var(--foreground)}
+.nx-recent>span>small>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-home-recent>.nx-show-all{margin-top:10px}
+
+/* Sidebar theme rows: name, a small session counter, and what the theme holds. */
+.nx-theme-pick .nx-theme-name{display:flex;align-items:center;gap:6px;min-width:0}
+.nx-theme-pick .nx-theme-name strong{flex:1;min-width:0;-webkit-line-clamp:1}
+.nx-theme-pick small.nx-theme-count{flex:none;margin:0 0 0 auto;justify-content:center;min-width:20px;height:18px;padding:0 4px;border-radius:9px;background:oklch(1 0 0/.06);font:400 12px var(--font-mono);font-feature-settings:inherit;color:var(--muted-foreground)}
+.nx-theme-pick small.nx-theme-context{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:12px;line-height:1.4;color:var(--muted-foreground);overflow-wrap:anywhere}
+@media(max-width:700px){.nx-theme-pick small.nx-theme-context{font-size:13px}.nx-theme-pick small.nx-theme-count{font-size:12px;height:20px}}
+@media(min-width:1200px){
+ body.redesign #nxSidebar:has(.nx-theme-column:empty){width:220px;flex-basis:220px;padding-right:0}
+ .nx-theme-column:empty{display:none}
+ .nx-sidebar-foot{padding:8px;gap:4px}
+ .nx-sidebar-foot>button{font-size:12px;gap:4px;padding:3px;min-width:0;min-height:32px}
+ .nx-sidebar-foot>[data-nx=refresh]{flex:0 0 24px;justify-content:center}
+}
+
+/* Wall: the board lists the themes, so the sidebar shows what the focused one is about. */
+.nx-wall-context{display:flex;flex-direction:column;gap:12px;padding:4px 12px 20px}
+.nx-wall-context>header{display:flex;align-items:center;gap:8px}
+.nx-wall-context>header .nx-theme-tick{width:4px;height:22px}
+.nx-wall-context h2{flex:1;min-width:0;margin:0;font-size:16px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.nx-wall-purpose{margin:0;padding:0;border:0;background:none;color:var(--foreground);font-size:13px;line-height:1.5;text-align:left}
+.nx-wall-context dl{display:flex;flex-direction:column;gap:6px;margin:0;padding:10px 0;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline)}
+.nx-wall-context dl>div{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.nx-wall-context dt{color:var(--muted-foreground)}.nx-wall-context dd{margin:0;font-weight:600}
+.nx-wall-context h3,.nx-wall-latest-session>small{display:block;margin:0 0 6px;font:400 12px var(--font-sans);font-feature-settings:inherit;color:var(--muted-foreground)}
+.nx-wall-context h3{margin:0 0 -6px}
+.nx-wall-edit{align-self:flex-start;margin-top:-8px;padding:4px 0;min-height:24px;border:0;background:none;color:var(--primary);font-size:12px;cursor:pointer}
+.nx-wall-latest-session .status{font-size:12px;display:inline-flex;-webkit-line-clamp:unset}
+.nx-wall-latest-session button{display:flex;flex-direction:column;gap:3px;width:100%;padding:8px 10px;border:1px solid var(--hairline);border-radius:6px;background:var(--card);color:var(--foreground);text-align:left;cursor:pointer}
+.nx-wall-latest-session button:hover{border-color:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .4)}
+.nx-wall-latest-session b{font-size:12px;font-weight:600}
+.nx-wall-latest-session span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.45;color:var(--muted-foreground)}
+.nx-wall-context-actions{display:flex;flex-direction:column;gap:6px}.nx-wall-context-actions .btn{justify-content:center}
+@media(min-width:701px) and (max-height:800px){.nx-wall-context{gap:8px}.nx-wall-context dl{padding:8px 0}.nx-wall-context-actions .btn{min-height:32px}}
+.nx-board-col.focused{border-color:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .45)}
+.nx-board-col>header>button[data-board-focus][aria-pressed=true]{color:var(--primary)}
+.nx-board-quiet-col>header>b{flex:1;font-size:13px;font-weight:600}
+.nx-board-quiet-hint{margin:0;padding:8px 12px 4px;font-size:12px;line-height:1.4;color:var(--muted-foreground)}
+.nx-wall-context .nx-board-quiet-hint{padding:0}
+.nx-board-quiet-theme{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:6px 8px;border:1px solid transparent;border-radius:6px;background:none;color:var(--foreground);font-size:12px;text-align:left;cursor:pointer}
+.nx-board-quiet-theme:hover{background:oklch(1 0 0/.04)}
+.nx-board-quiet-theme>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-board-quiet-theme>small{flex:none;font:10px var(--font-mono);font-feature-settings:inherit;color:var(--muted-foreground)}
+.nx-board-quiet-theme>.nx-theme-tick{width:3px;min-width:3px;height:14px}
+.nx-board-quiet-theme.drop-target{border-color:var(--primary);background:oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .08)}
+/* The cards line up with the greeting instead of floating in a centred 1280px box. */
+.nx-home-content>.nx-home-grid{max-width:none;margin:0}
+@media(min-width:701px){
+ .nx-home-content>.nx-home-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+ .nx-home-grid>.nx-home-card{min-height:184px}
+ .nx-home-grid>.nx-home-card:only-child{max-width:660px}
+ .nx-active-heading{font-weight:600}
+ .nx-home-card.needs-border{border-color:oklch(.72 .10 78)!important}
+ .nx-home-card.needs-border::before{animation:none;background:none}
+ .nx-home-card .nx-card-purpose:empty{display:none}
+ .nx-home-card .nx-card-top time{font-size:12px}
+ .nx-recent{grid-template-columns:80px minmax(0,1fr) minmax(0,1fr) 120px 64px 48px}
+ .nx-recent-model{min-width:0;display:flex}.nx-recent-model .nx-model-badge{max-width:100%}
+ .nx-recent>small:empty{visibility:hidden}
+ .nx-recent time,.nx-recent small{font-size:12px}
+}
+@container(max-width:900px){.nx-recent{grid-template-columns:72px minmax(0,1fr) 48px}.nx-recent-context,.nx-recent-model,.nx-recent>small{display:none}}
+@media(prefers-reduced-motion:reduce){.nx-orbit-detail,.nx-orbit-core::before{animation:none!important}.nx-orbit-core[data-state=needs]::before,.nx-orbit-core[data-state=working]::before{opacity:.6}}

@@ -1,0 +1,53 @@
+/* A single conversation on desktop and phone. */
+.fh-subtitle,.fh-latest{font-size:13px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.fh-subtitle{color:var(--text)}.fh-latest b{font-weight:500;color:var(--accent);margin-right:5px}
+.focus:not([data-tab=chat]) .fh-subtitle,.focus:not([data-tab=chat]) .fh-latest{display:none}
+.focus[data-tab=chat] #focusInsights,.focus[data-tab=chat] .pulse,.focus[data-tab=chat] .fh-context{display:none!important}
+.fh-tabs button[data-tab=chat]{order:-1}.fh-tabs button[data-tab=term]{color:var(--dim)}
+.chat-view{overflow:auto;overscroll-behavior:contain;overflow-anchor:none;min-height:0}
+#chatMessages{max-width:900px;margin:0 auto}#chatPending,#chatConnection{max-width:900px;margin:0 auto}
+#chatMessages .md,#chatMessages .bubble{font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+#chatMessages .md pre{max-width:100%;overflow:auto}#chatMessages .md table{display:block;overflow:auto}
+.nx-long-reply>summary{list-style:none;cursor:pointer;font-size:12px;color:var(--dim);min-height:28px}.nx-long-reply[open]>summary span:last-child,.nx-long-reply:not([open])>summary span:first-child,.nx-long-reply[open]+.nx-reply-preview{display:none}
+.apsis .chat-tools summary.nx-steps{display:block;line-height:1.5}.nx-steps b{display:block;font-weight:500;margin-bottom:2px}.nx-steps span{display:block;overflow-wrap:anywhere;color:var(--muted-foreground)}.nx-steps .nx-step-error{color:var(--destructive,#e66)}
+.nx-chat-images{display:flex;flex-wrap:wrap;gap:8px}.nx-chat-image{padding:0;border:1px solid var(--hairline);border-radius:12px;overflow:hidden;background:none;cursor:zoom-in;line-height:0;max-width:min(320px,100%)}.nx-chat-image img{display:block;max-width:100%;max-height:240px}.nx-chat-image-full{display:block;max-width:100%;max-height:75dvh;margin:0 auto 12px}
+.chat-thinking{margin:8px 0 12px;border-left:2px solid var(--line-hi);color:var(--dim);font-size:13px}
+.chat-thinking summary{padding:9px 12px;cursor:pointer;min-height:36px}.chat-thinking time{font-size:11px;margin-left:8px}
+.chat-thinking>div{white-space:pre-wrap;overflow-wrap:anywhere;padding:0 12px 12px;line-height:1.6}
+.chat-live-state{font-size:13px;color:var(--accent);padding:10px 0 6px}
+.permission-context{font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;margin:8px 0 12px}
+.delivery-starting .bubble,.delivery-pending .bubble,.delivery-queued .bubble{opacity:.65;border-style:dashed}
+.delivery-note{color:var(--dim);font-size:13px;line-height:1.5;margin:6px 0}
+.delivery-failed .bubble{border-color:#edb0a0}.delivery-failed .ev-label,.delivery-error{color:#edb0a0;font-size:13px;line-height:1.5}
+.delivery-error .btn{margin-left:6px}.chat-new{flex:none;align-self:center;background:oklch(0.355 calc(0.05 * var(--cs, 1)) calc(var(--ah, 214) + 28.4));color:var(--text);border:1px solid var(--line-hi);border-radius:20px;padding:6px 16px;margin:4px;font:13px var(--ui);min-height:32px;cursor:pointer}
+.focus:not([data-tab=chat])>.chat-new{display:none}
+.apsis .focus[data-tab=chat]>.steer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;flex:none}
+.focus[data-tab=chat] #steerIn{grid-column:1;min-height:52px;max-height:120px}
+.focus[data-tab=chat] .steer-buttons{grid-column:2;align-items:center}.steer-buttons .chip-btn{min-width:40px;min-height:40px}
+.focus[data-tab=chat] .attachment-area{grid-column:1/-1}.chat-tools summary{font-size:13px}
+@media(max-width:700px){
+  /* WebKit standalone: the document never scrolls or uses innerHeight for the
+     closed-keyboard shell. All scrolling happens in children of #app. */
+  html,body.apsis{position:static;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8))}
+  body.apsis #app,body.apsis #app[data-view=focus]{position:fixed;inset:0;width:100%;height:100dvh;max-height:100dvh;overflow:clip;transform:none}
+  #mobileDock{position:absolute;inset:auto 0 0;background:oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8))}
+  #boot{position:fixed;inset:0;height:100dvh;background:oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8))}
+  #overview,#projectPage,#wall{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  body.apsis.keyboard-open #app,body.apsis.keyboard-open #app[data-view=focus]{inset:var(--viewport-top,0px) 0 auto;height:var(--visible-height);max-height:var(--visible-height);padding-bottom:0}
+  .apsis .focus-head{padding-bottom:6px;gap:3px}
+  .apsis .focus[data-tab=chat] .fh-title{font-size:17px;min-height:22px}
+  .fh-subtitle,.fh-latest{font-size:13px;line-height:19px}
+  .apsis .fh-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 6px;margin-top:3px}
+  .apsis .fh-tabs{grid-column:1;grid-row:1;width:100%;gap:0}.apsis .session-more{grid-column:2;grid-row:1}
+  .apsis .fh-tabs button{padding:3px 6px;min-height:38px}.apsis .session-more summary{min-height:40px;padding:11px 8px}
+  .apsis .fh-actions>.recap-head-button{display:flex;grid-column:1;grid-row:2;font-size:13px;min-height:36px;justify-self:start;padding:5px 9px}
+  .apsis .fh-actions>.btn.primary{display:flex;grid-column:2;grid-row:2;min-height:36px;font-size:12px;padding:4px 8px}
+  .apsis .focus[data-tab=chat] .chat-view{padding:8px 12px}
+  #chatMessages .md,#chatMessages .bubble{font-size:14px;line-height:1.55}
+  #chatMessages .ev{margin-bottom:12px}#chatMessages .ev-label{margin-bottom:4px;font-size:11px}
+  .chat-tools{margin:8px 0}.chat-tools summary{min-height:38px;padding:9px 10px}
+  body.apsis .focus.has[data-tab=chat]>.steer:not(:empty){grid-template-columns:minmax(0,1fr) 84px;padding:7px 12px;gap:5px}
+  .apsis .focus[data-tab=chat] .steer-buttons{grid-column:1/-1;grid-row:3;gap:6px}
+  .apsis .focus[data-tab=chat] .steer-buttons>.primary{flex:2}.apsis .steer-buttons>.chip-btn{flex:0 0 40px}
+  body.keyboard-open .fh-subtitle,body.keyboard-open .fh-latest{display:none}
+}

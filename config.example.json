@@ -1,0 +1,32 @@
+{
+  "port": 4777,
+  "recentDays": 30,
+  "liveBrain": "auto",
+  "liveSilenceMs": 650,
+  "ttsIdleMinutes": 5,
+  "keepPerProject": 3,
+  "remoteHost": "",
+  "remoteUser": "",
+  "aliases": {},
+  "models": {
+    "claude": [
+      "sonnet",
+      "haiku",
+      "opus"
+    ],
+    "astra": [
+      "gpt-5.6-terra",
+      "gpt-6-astra"
+    ],
+    "copilot": [
+      "gpt-5.6-luna",
+      "gpt-6-luna",
+      "claude-haiku-5.5",
+      "claude-sonnet-5.5",
+      "gpt-5.6-terra"
+    ]
+  },
+  "copilotSummaryModel": "gpt-6-luna",
+  "sessionLabels": true,
+  "themeSorting": true
+}

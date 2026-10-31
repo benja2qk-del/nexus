@@ -1,0 +1,30 @@
+{
+  "spanishSampleSet": "neutral-es-v1",
+  "phrases": {
+    "en": [
+      "Sure, I'll pass that to Claude. Do you want me to run the tests now?",
+      "The 3 checks passed. You can keep talking while I review the changes.",
+      "I'm here. Would you like a quick update, or should I wait for you?"
+    ],
+    "es": [
+      "Claro, le paso tu pedido a Claude. ¿Quieres que ejecute las pruebas ahora?",
+      "Pasaron las tres pruebas. Puedes seguir hablando mientras reviso los cambios.",
+      "Aquí estoy. ¿Quieres un resumen de los avances o prefieres que espere?"
+    ]
+  },
+  "defaults": {"en":"kokoro-heart", "es":"piper-daniela"},
+  "voices": [
+    {"id":"kokoro-heart","engine":"kokoro","speaker":"af_heart","lang":"en","name":"Heart","description":"Warm feminine voice","license":"Apache-2.0","source":"https://huggingface.co/hexgrad/Kokoro-82M"},
+    {"id":"kokoro-michael","engine":"kokoro","speaker":"am_michael","lang":"en","name":"Michael","description":"Masculine voice","license":"Apache-2.0","source":"https://huggingface.co/hexgrad/Kokoro-82M"},
+    {"id":"kokoro-dora","engine":"kokoro","speaker":"ef_dora","lang":"es","name":"Dora","description":"Feminine voice","license":"Apache-2.0","source":"https://huggingface.co/hexgrad/Kokoro-82M"},
+    {"id":"kokoro-alex","engine":"kokoro","speaker":"em_alex","lang":"es","name":"Alex","description":"Masculine voice","license":"Apache-2.0","source":"https://huggingface.co/hexgrad/Kokoro-82M"},
+    {"id":"qwen-en-f","engine":"qwen","lang":"en","name":"Warm English","description":"Designed feminine voice · conversational","prompt":"A young adult female voice speaking natural American English. Warm, relaxed and conversational, clear but not announcer-like. A friendly assistant on a phone call.","seed":42,"license":"Apache-2.0","source":"https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"},
+    {"id":"qwen-en-m","engine":"qwen","lang":"en","name":"Calm English","description":"Designed masculine voice · conversational","prompt":"A young adult male voice speaking natural American English. Calm, warm, easygoing and conversational, with a medium-low pitch. A friendly assistant on a phone call.","seed":43,"license":"Apache-2.0","source":"https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"},
+    {"id":"qwen-ar-f","engine":"qwen","lang":"es","name":"Warm Spanish","description":"Designed feminine voice","prompt":"Voz femenina joven, argentina, rioplatense, cálida y natural. Acento de Buenos Aires, con yeísmo rehilado y pronunciación rioplatense; conserva las palabras del texto sin cambiar su gramática. Tono relajado y conversacional, como una amiga hablando por teléfono, sin tono de locutora.","seed":44,"license":"Apache-2.0","source":"https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"},
+    {"id":"qwen-ar-m","engine":"qwen","lang":"es","name":"Calm Spanish","description":"Designed masculine voice","prompt":"Voz masculina joven, argentina, rioplatense, cálida y natural. Acento de Buenos Aires, con yeísmo rehilado y pronunciación rioplatense; conserva las palabras del texto sin cambiar su gramática. Tono tranquilo, cercano y conversacional, de registro medio grave, sin tono de locutor.","seed":45,"license":"Apache-2.0","source":"https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"},
+    {"id":"chatterbox-en","engine":"chatterbox","lang":"en","name":"Chatterbox English","description":"Built-in voice · relaxed expression; no reference recording","exaggeration":0.35,"license":"MIT","source":"https://huggingface.co/ResembleAI/chatterbox"},
+    {"id":"chatterbox-es","engine":"chatterbox","lang":"es","name":"Chatterbox Spanish","description":"Built-in voice","exaggeration":0.35,"license":"MIT","source":"https://huggingface.co/ResembleAI/chatterbox"},
+    {"id":"piper-lj","engine":"piper","speaker":"en_US-ljspeech-high","lang":"en","name":"LJ · light voice","description":"Feminine voice, runs on the CPU","license":"Public-domain dataset; MIT model; GPL-3.0 engine","source":"https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ljspeech/high/MODEL_CARD"},
+    {"id":"piper-daniela","engine":"piper","speaker":"es_AR-daniela-high","lang":"es","name":"Daniela","description":"Feminine voice, runs on the CPU","license":"CC BY-SA 4.0 dataset; MIT repository; GPL-3.0 engine","source":"https://huggingface.co/rhasspy/piper-voices/blob/main/es/es_AR/daniela/high/MODEL_CARD"}
+  ]
+}

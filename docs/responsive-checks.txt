@@ -1,0 +1,2 @@
+PASS model lists: Copilot help parsing, Codex cache union, readable names for every provider, current defaults
+PASS session polls: full list first, then only changed sessions; unknown snapshots fall back to the full list; gzip for large bodies
