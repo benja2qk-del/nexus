@@ -41,11 +41,17 @@ function connectionLost(error) {
   $('#connection').innerHTML = `<span><b>${needsPair ? 'Pair this device again' : 'Reconnecting…'}</b><small>${needsPair ? 'This device’s pairing has expired or was revoked.' : state.lastUpdate ? 'Showing your last update from ' + clockTime(state.lastUpdate) + '. Your draft is kept.' : 'Waiting for NEXUS. We’ll reconnect automatically.'}</small></span>${needsPair ? '<a class="btn" href="/pair.html">Pair device</a>' : '<button class="chip-btn" id="retryConnection">Retry now</button>'}`;
   if ($('#retryConnection')) $('#retryConnection').onclick = refresh;
   document.body.classList.add('connection-offline');
+  // The main column moves down by the banner's height, so the banner never covers a header or the Back button, and the
+  // banner starts where the main column starts, whatever the sidebar's width (it changes with the view).
+  const root = document.documentElement.style, side = $('#nxSidebar'), fit = () => { root.setProperty('--nx-banner-h', $('#connection').offsetHeight + 'px'); if (side) root.setProperty('--nx-sidebar-w', Math.round(side.getBoundingClientRect().width) + 'px'); };
+  fit();
+  if (!connectionLost.watch && window.ResizeObserver) { connectionLost.watch = new ResizeObserver(() => { if (document.body.classList.contains('connection-offline')) fit(); }); connectionLost.watch.observe($('#connection')); if (side) connectionLost.watch.observe(side); }
 }
 function connectionRestored() {
   const recovered = deviceUI.offline;
   deviceUI.offline = false; document.body.classList.remove('connection-offline');
   $('#connection').classList.add('hidden');
+  document.documentElement.style.removeProperty('--nx-banner-h');
   if (recovered) { toast('Connected again', 'Your sessions are up to date.'); reconnectTerminals(); }
 }
 function reconnectTerminals() {

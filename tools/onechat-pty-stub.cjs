@@ -3,7 +3,7 @@
 // production command is recorded, never executed. All model spawns are blocked.
 const fs = require('fs'), path = require('path'), os = require('os'), Module = require('module');
 const root = fs.realpathSync(process.env.NEXUS_ONECHAT_FIXTURE || '');
-if (process.env.NEXUS_PORT !== '4791' || !root.toLowerCase().startsWith(fs.realpathSync(os.tmpdir()).toLowerCase() + path.sep) || !path.basename(root).startsWith('nexus-onechat-')) throw Error('Unsafe fixture preload');
+if (!['4791','4796','4797'].includes(process.env.NEXUS_PORT) || !root.toLowerCase().startsWith(fs.realpathSync(os.tmpdir()).toLowerCase() + path.sep) || !path.basename(root).startsWith('nexus-onechat-')) throw Error('Unsafe fixture preload');
 const projects = path.join(root,'claude','projects');
 const log = entry => fs.appendFileSync(path.join(root,'pty-log.jsonl'),JSON.stringify(entry)+'\n');
 const nativeLoad = Module._load;
@@ -15,7 +15,7 @@ Module._load = function(name, parent, main) {
   return { spawn(file,args,options) {
     if (!path.resolve(options.cwd).toLowerCase().startsWith(root.toLowerCase()+path.sep)) throw Error('Fixture cwd required');
     log({type:'spawn',file,args,cwd:options.cwd});
-    const id = args.at(-1), folder = path.join(projects,options.cwd.replace(/[^A-Za-z0-9]/g,'-'));
+    const id = args[args.indexOf('--resume')+1], folder = path.join(projects,options.cwd.replace(/[^A-Za-z0-9]/g,'-'));
     const transcript = path.join(folder,id+'.jsonl');
     if (!fs.existsSync(transcript)) throw Error('Unknown fixture session');
     let data = () => {}, exit = () => {}, pasted = '', question = false, ended = false, selected = 1, busy = false;

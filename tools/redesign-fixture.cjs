@@ -9,7 +9,7 @@ function fixture({review=false}={}){
  for(const folder of [path.join(claude,'projects'),path.join(claude,'sessions'),path.join(codex,'sessions'),path.join(root,'work')])fs.mkdirSync(folder,{recursive:true});
  const manifest=[];
  for(const s of data.sessions){
-  const cwd=data.projects.find(p=>p.id===s.projectId).path,kind=s.agent==='codex'?'astra':'claude';
+  const cwd=data.projects.find(p=>p.id===s.projectId).path,kind=s.agent==='codex'?'codex':'claude';
   const model=kind==='claude'?'claude-'+s.modelId.replaceAll('.','-'):s.modelId;
   const folder=kind==='claude'?path.join(claude,'projects',cwd.replace(/[^A-Za-z0-9]/g,'-')):path.join(codex,'sessions');fs.mkdirSync(folder,{recursive:true});
   const file=path.join(folder,(kind==='claude'?'':'rollout-')+s.id+'.jsonl');
@@ -27,21 +27,21 @@ function fixture({review=false}={}){
    }
   }
   if(!s.stream.some(i=>i.kind==='reply'))push('assistant',[{type:'text',text:s.sinceLast}]);
-  if(kind==='astra')records.push({type:'event_msg',payload:{type:s.status==='working'?'task_started':'task_complete'}});
+  if(kind==='codex')records.push({type:'event_msg',payload:{type:s.status==='working'?'task_started':'task_complete'}});
   const now=Date.now();records=records.map((r,i)=>({timestamp:new Date(now-Math.max(0,records.length-i)*60000).toISOString(),...r}));
   fs.writeFileSync(file,records.map(JSON.stringify).join('\n')+'\n');
   const stamp=new Date(Date.now()-s.updatedMinutes*60000);fs.utimesSync(file,stamp,stamp);
   manifest.push({...s,kind,model,cwd,file});
  }
- fs.writeFileSync(path.join(codex,'session_index.jsonl'),manifest.filter(s=>s.kind==='astra').map(s=>JSON.stringify({id:s.id,thread_name:s.title,updated_at:new Date().toISOString()})).join('\n'));
+ fs.writeFileSync(path.join(codex,'session_index.jsonl'),manifest.filter(s=>s.kind==='codex').map(s=>JSON.stringify({id:s.id,thread_name:s.title,updated_at:new Date().toISOString()})).join('\n'));
  fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify(manifest));
  fs.writeFileSync(path.join(root,'devices.json'),JSON.stringify(Object.fromEntries(['iPhone 17 Pro','iPad Air','Work laptop'].map((name,i)=>[String(i+1).repeat(64),{name,created:Date.now()-(i+1)*86400000,lastSeen:Date.now()-i*86400000}]))));
  fs.writeFileSync(path.join(claude,'nexus-usage.json'),JSON.stringify({at:Date.now(),data:{rate_limits:{five_hour:{used_percentage:34,resets_at:Date.now()/1000+3*3600},seven_day:{used_percentage:55,resets_at:Date.now()/1000+5*86400}}}}));
  if(review){
   require('./copilot-fixture.cjs').setup(root,{reportedCwd:'D:\\dev\\release-preview'});
-  const astra=manifest.find(s=>s.kind==='astra');fs.appendFileSync(astra.file,JSON.stringify({type:'event_msg',timestamp:new Date().toISOString(),payload:{type:'token_count',rate_limits:{secondary:{used_percent:27,window_minutes:10080,resets_at:Date.now()/1000+3*86400}}}})+'\n');
+  const rollout=manifest.find(s=>s.kind==='codex');fs.appendFileSync(rollout.file,JSON.stringify({type:'event_msg',timestamp:new Date().toISOString(),payload:{type:'token_count',rate_limits:{secondary:{used_percent:27,window_minutes:10080,resets_at:Date.now()/1000+3*86400}}}})+'\n');
  }
- fs.writeFileSync(path.join(root,'config.json'),JSON.stringify({remoteHost:'nexus.fixture.test',remoteUser:'owner@example.test',models:{claude:['claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5'],astra:['gpt-6-astra','gpt-5.5','gpt-5.4-mini'],copilot:['gpt-6-luna','gpt-5-mini']}}));
+ fs.writeFileSync(path.join(root,'config.json'),JSON.stringify({remoteHost:'nexus.fixture.test',remoteUser:'owner@example.test',models:{claude:['claude-opus-5-5','claude-sonnet-5-5','claude-haiku-5-5'],codex:['gpt-6-astra','gpt-5.5','gpt-5.4-mini'],copilot:['gpt-6-luna','gpt-5-mini']}}));
  const env={...process.env,NEXUS_PORT:port,NEXUS_NO_ACCOUNT_POLL:'1',NEXUS_CLAUDE_DIR:claude,CLAUDE_CONFIG_DIR:claude,NEXUS_CODEX_DIR:codex,NEXUS_COPILOT_DIR:path.join(root,'copilot'),NEXUS_CONFIG_FILE:path.join(root,'config.json'),NEXUS_STATE_FILE:path.join(root,'state.json'),NEXUS_DEVICES_FILE:path.join(root,'devices.json'),NEXUS_UPLOAD_DIR:path.join(root,'uploads'),NEXUS_REDESIGN_FIXTURE:root,LOCALAPPDATA:root};
  return{root,env};
 }

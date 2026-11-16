@@ -36,7 +36,7 @@ for(const [width,height] of [[390,844],[430,932],[1366,768],[1920,1080]]){
     assert(await b.js("getComputedStyle($('#modalCard')).opacity==='1' && getComputedStyle($('#modalCard')).filter==='none'"));await b.shot(`docs/shots/polish/${width}-reduced-motion-dialog.png`);report.push(`PASS ${width} reduced-motion dialogs remain visible and usable`);
     await b.cmd('Emulation.setEmulatedMedia',{features:[]});
     if(width<701){
-      await b.js("closeModal();window.capabilityApi=api;api=async p=>{const data=await capabilityApi(p);if(p==='/api/sessions')data.remote=true;return data};select(keyOf(state.sessions.find(s=>s.kind==='astra'&&s.brief&&s.size<500000)||state.sessions[0]));state.remote=true;renderHead();$('.session-more').open=true");await b.shot(`docs/shots/polish/${width}-session-menu.png`);
+      await b.js("closeModal();window.capabilityApi=api;api=async p=>{const data=await capabilityApi(p);if(p==='/api/sessions')data.remote=true;return data};select(keyOf(state.sessions.find(s=>s.kind==='codex'&&s.brief&&s.size<500000)||state.sessions[0]));state.remote=true;renderHead();$('.session-more').open=true");await b.shot(`docs/shots/polish/${width}-session-menu.png`);
       assert(await b.js("!$('#focusHead [data-a=popout]') && !$('#focusHead [data-a=vscode]')"));
       await b.js("$('.session-more').open=false;state.remote=true;appMenu()");await b.shot(`docs/shots/polish/${width}-app-menu.png`);
       await b.js('api=capabilityApi');

@@ -24,14 +24,14 @@ fs.writeFileSync(path.join(project,'onechat-root.jsonl'),[user('First request in
 fs.writeFileSync(path.join(project,'onechat-exit.jsonl'),[user('Check recovery after a stopped terminal.'),{type:'custom-title',customTitle:'Delivery recovery'},ai('This fixture checks that a stopped terminal keeps the message available for Retry.')].map(JSON.stringify).join('\n')+'\n');
 fs.writeFileSync(path.join(project,'onechat-trust.jsonl'),[user('Check explicit folder trust.'),{type:'custom-title',customTitle:'Folder trust fixture'},ai('A new folder needs your choice before any message is sent.')].map(JSON.stringify).join('\n')+'\n');
 fs.writeFileSync(path.join(project,'onechat-next.jsonl'),JSON.stringify({type:'custom-title',customTitle:'Continued release conversation'})+'\n');
-const rollout=path.join(codex,'sessions','rollout-onechat-astra.jsonl');
-fs.writeFileSync(rollout,[{type:'session_meta',payload:{id:'onechat-astra',cwd}},
+const rollout=path.join(codex,'sessions','rollout-onechat-codex.jsonl');
+fs.writeFileSync(rollout,[{type:'session_meta',payload:{id:'onechat-codex',cwd}},
  {type:'response_item',payload:{type:'message',role:'user',content:[{type:'input_text',text:'Review the release checks and explain the result.'}]}},
  {type:'response_item',payload:{type:'reasoning',summary:[{text:'I will inspect the recorded validation.'}]}},
- {type:'response_item',payload:{type:'function_call',name:'functions.exec_command',call_id:'astra-command',arguments:'{"cmd":"npm test"}'}},
- {type:'response_item',payload:{type:'function_call_output',call_id:'astra-command',output:'All checks passed.'}},
- {type:'event_msg',payload:{type:'agent_message',message:'**Astra validation passed.** The release is ready for review.'}},
- {type:'response_item',payload:{type:'message',role:'assistant',content:[{type:'output_text',text:'**Astra validation passed.** The release is ready for review.'}]}},
+ {type:'response_item',payload:{type:'function_call',name:'functions.exec_command',call_id:'codex-command',arguments:'{"cmd":"npm test"}'}},
+ {type:'response_item',payload:{type:'function_call_output',call_id:'codex-command',output:'All checks passed.'}},
+ {type:'event_msg',payload:{type:'agent_message',message:'**Codex validation passed.** The release is ready for review.'}},
+ {type:'response_item',payload:{type:'message',role:'assistant',content:[{type:'output_text',text:'**Codex validation passed.** The release is ready for review.'}]}},
  {type:'event_msg',payload:{type:'task_complete'}}].map(r=>JSON.stringify({timestamp:new Date().toISOString(),...r})).join('\n')+'\n');
 const out = real ? path.join(temp,'real-'+width) : path.resolve('docs/shots/onechat', baseline ? 'baseline-'+width : 'round2/'+width); fs.mkdirSync(out,{recursive:true});
 const config=JSON.parse(fs.readFileSync('config.json','utf8')),token='onechat-fixture-token-never-real-00001';
@@ -119,8 +119,8 @@ try {
   until("$('#chatMessages').textContent.includes('CONTINUED LIVE')");shot('continued-live');
   tap('#sessionRecap');until("$('#modal').classList.contains('on') && $('.recap-answer')?.textContent.includes('CONTINUED LIVE')");shot('continued-recap');tap('[data-modal-dismiss]');
   js("await refresh();oneCheck(state.sessions.filter(s=>['onechat-root','onechat-old','onechat-live','onechat-next'].includes(s.id)).length===1,'growing continuation still has one live card')");
-  js("select('astra:onechat-astra')");until("$('#chatMessages').textContent.includes('Astra validation passed')");shot('astra');
-  check("$$('#chatMessages .ev.ai').length===1 && !!$('.chat-thinking') && $('.chat-tools summary').textContent.includes('shell command')",'Astra rollout shares Chat, deduplicates mirrors and shows public reasoning/activity');
+  js("select('codex:onechat-codex')");until("$('#chatMessages').textContent.includes('Codex validation passed')");shot('codex');
+  check("$$('#chatMessages .ev.ai').length===1 && !!$('.chat-thinking') && $('.chat-tools summary').textContent.includes('shell command')",'Codex rollout shares Chat, deduplicates mirrors and shows public reasoning/activity');
   if(width<=700){
     js("$('#steerIn').focus();window.originalHeight=visualViewport.height;Object.defineProperty(visualViewport,'height',{configurable:true,value:480});Object.defineProperty(visualViewport,'offsetTop',{configurable:true,value:24});visualViewport.dispatchEvent(new Event('resize'))");shot('keyboard');
     check("document.body.classList.contains('keyboard-open') && getComputedStyle($('#mobileDock')).display==='none' && $('#steer').getBoundingClientRect().bottom<=505 && $('#chatView').scrollHeight-$('#chatView').scrollTop-$('#chatView').clientHeight<80",'keyboard geometry keeps composer and latest message visible and hides dock');

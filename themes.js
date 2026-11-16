@@ -23,7 +23,7 @@ class Themes {
     this.file=file||process.env.NEXUS_THEMES_FILE||path.join(path.dirname(stateFile),'themes.json');
     this.config=config;this.readOnly=readOnly;this.roots=roots||createRoots({aliases:config.aliases});
     this.scanner=scanner||new (background?BackgroundWorkScanner:WorkScanner)({roots:this.roots,rootOptions:{home:this.roots.home,aliases:config.aliases},readOnly,cacheFile:path.join(path.dirname(file||stateFile),'work-folders-cache.json')});this.state=blank();this.error='';this.last=[];
-    try{const s=JSON.parse(fs.readFileSync(this.file,'utf8'));if(s.version!==1||!Array.isArray(s.themes)||!s.assignments||!s.parents||!s.folders)throw Error('Unsupported themes state');this.state=s;}catch(e){if(e.code!=='ENOENT')this.loadError=this.error='Themes could not be read: '+e.message;}
+    try{const s=JSON.parse(fs.readFileSync(this.file,'utf8'));require('./legacy-names').themes(s);/* old keys written after the start-up migration */if(s.version!==1||!Array.isArray(s.themes)||!s.assignments||!s.parents||!s.folders)throw Error('Unsupported themes state');this.state=s;}catch(e){if(e.code!=='ENOENT')this.loadError=this.error='Themes could not be read: '+e.message;}
   }
   save(next) {
     if(this.loadError)throw Error(this.loadError);

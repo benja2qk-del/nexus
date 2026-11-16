@@ -26,7 +26,7 @@ module.exports = function fixtures(root) {
     tool('mcp__claude-in-chrome__navigate', { url: 'https://partner.steamgames.com/apps/cloud' }, 'chrome'), result('chrome'),
     tool('Edit', { file_path: 'C:\\fixture\\BEACON\\release-notes.md', new_string: 'FILE_CONTENT_NOT_FOR_SUMMARY' }, 'edit'), result('edit'),
     tool('Bash', { command: 'npm test' }, 'test'), result('test', 'All checks passed.'),
-    tool('Bash', { command: 'codex exec "Review the release notes"' }, 'astra'), result('astra'),
+    tool('Bash', { command: 'codex exec "Review the release notes"' }, 'codex'), result('codex'),
     text('**Steam Cloud is ready.**\n\n- Saved the public configuration.\n- Verified Windows and macOS paths.\n- Updated the release notes.\n\nPublishing needs your approval.')
   ], 'waiting');
   write('wall-edits', 'Phone layout polish', 'Make the Wall and recap easier to read on phones.', [user('Make the cards compact and show the latest work.'), text('I found the spacing rules.'), tool('Edit', { file_path: 'C:\\fixture\\public\\app.js' }, 'e1'), result('e1'), tool('Write', { file_path: 'C:\\fixture\\public\\wall.css' }, 'e2'), result('e2')], 'busy');
@@ -35,7 +35,7 @@ module.exports = function fixtures(root) {
   write('wall-long', 'Long release history', 'Audit a long publishing session and its latest checks.', [user('Summarize the latest release validation after the long history.'), tool('Bash', { command: 'npm test' }, 'l1'), result('l1', 'Error: fixture test failure', true), text('The release checks found one failing test. The configuration is saved; the test needs review.')], null, true);
   write('wall-cap', 'Extended background work', 'Review a long operation whose latest request is outside the excerpt.', [text('The background verification is still progressing. The available excerpt covers only recent work.')], null, true);
   const rollout = [
-    { type: 'session_meta', timestamp, payload: { id: 'wall-astra', cwd, timestamp } },
+    { type: 'session_meta', timestamp, payload: { id: 'wall-codex', cwd, timestamp } },
     { type: 'response_item', timestamp, payload: { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Improve phone readability for the BEACON release dashboard.' }] } },
     { type: 'event_msg', timestamp, payload: { type: 'task_started' } },
     { type: 'response_item', timestamp, payload: { type: 'custom_tool_call', name: 'apply_patch', call_id: 'a1', input: '*** Begin Patch\n*** Update File: public/phoneux.css\n+FILE_CONTENT_NOT_FOR_SUMMARY\n*** End Patch' } },
@@ -46,7 +46,7 @@ module.exports = function fixtures(root) {
     { type: 'response_item', timestamp, payload: { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Improved the phone layout and verified syntax. Ready for visual review.' }] } },
     { type: 'event_msg', timestamp, payload: { type: 'task_complete' } }
   ];
-  fs.writeFileSync(path.join(rollouts, 'wall-astra.jsonl'), rollout.map(JSON.stringify).join('\n') + '\n');
-  fs.writeFileSync(path.join(codex, 'session_index.jsonl'), JSON.stringify({ id: 'wall-astra', thread_name: 'Astra phone usability' }) + '\n');
+  fs.writeFileSync(path.join(rollouts, 'wall-codex.jsonl'), rollout.map(JSON.stringify).join('\n') + '\n');
+  fs.writeFileSync(path.join(codex, 'session_index.jsonl'), JSON.stringify({ id: 'wall-codex', thread_name: 'Codex phone usability' }) + '\n');
   return { claude, codex, steam };
 };

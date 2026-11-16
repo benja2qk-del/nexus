@@ -7,14 +7,14 @@ function nxIcon(name) {
 }
 function nxStatus(s) { const [cls,label]=statusLabel(s); return `<span class="status ${cls}"><i class="${cls==='busy'?'animate-breathe':''}"></i>${esc(label)}</span>`; }
 function nxModel(s) { return `<span class="nx-model-badge" title="${esc(s.model || '')}">${s.model ? esc(NexusDesign.modelLabel(s.model)) : ''}</span>`; }
-// Which agent runs the session: a colored dot + name (Claude warm, Astra cyan). A Claude session that
-// also started Astra runs gets a second "+ Astra" chip. 'dot' keeps only the dot where the name is already written.
+// Which agent runs the session: a colored dot + name (Claude warm, Codex cyan). A Claude session that
+// also started Codex runs gets a second "+ Codex" chip. 'dot' keeps only the dot where the name is already written.
 function nxAgent(s, mode) {
-  const astra = s.kind === 'astra', title = agentName(s.kind)+' session';
+  const codex = s.kind === 'codex', title = agentName(s.kind)+' session';
   if(['copilot','antigravity'].includes(s.kind))return mode==='dot'?`<span class="nx-agent-dot ${s.kind}" title="${title}"></span>`:`<span class="nx-agent ${s.kind}" title="${title}"><i></i>${agentName(s.kind)}</span>`;
-  if (mode === 'dot') return `<span class="nx-agent-dot ${astra ? 'astra' : 'claude'}" title="${title}"></span>`;
-  const both = !astra && (s.recentTools || []).includes('Astra') ? `<span class="nx-agent astra plus" title="This Claude session also ran Astra">+ Astra</span>` : '';
-  return `<span class="nx-agent ${astra ? 'astra' : 'claude'}" title="${title}"><i></i>${astra ? 'Astra' : 'Claude'}</span>${both}`;
+  if (mode === 'dot') return `<span class="nx-agent-dot ${codex ? 'codex' : 'claude'}" title="${title}"></span>`;
+  const both = !codex && (s.recentTools || []).includes('Codex') ? `<span class="nx-agent codex plus" title="This Claude session also ran Codex">+ Codex</span>` : '';
+  return `<span class="nx-agent ${codex ? 'codex' : 'claude'}" title="${title}"><i></i>${codex ? 'Codex' : 'Claude'}</span>${both}`;
 }
 function nxPurpose(s) { return NexusDesign.plainSummary(NexusActivity.subtitle(s) || s.firstPrompt || 'Waiting for your first message'); }
 function nxSpend(s) { return NexusDesign.usageText(s); }
@@ -90,7 +90,9 @@ function nxNavigation(){
   $$('#mobileDock [data-nav]').forEach(b=>b.setAttribute('aria-current',({overview:'home',sessions:'sessions',focus:'sessions',wall:'wall',spend:'spend',settings:'more'})[state.view]===b.dataset.nav?'page':'false'));
 }
 setView = function(view){
-  if(state.view==='focus'&&view!=='focus'){rememberViewed(state.byKey.get(state.sel),true);NexusVoice.navigation();}
+  // Leaving the session ends the visit: the next one takes a new away checkpoint and measures from its own start.
+  if(state.view==='focus'&&view!=='focus'){const s=state.byKey.get(state.sel);rememberViewed(s,true);if(s)apsis.away.delete(keyOf(s));NexusVoice.navigation();}
+  if(state.view!=='focus'&&view==='focus'&&state.sel)chatFor(state.sel).openedAt=Date.now();
   if(view==='project'){state.group=projectUI.key||'*';view='overview';}
   state.view=view;$('#app').dataset.view=view;$('#app').classList.toggle('wall-mode',view==='wall');
   $('#focus').classList.toggle('hidden',view!=='focus');$('#wall').classList.toggle('hidden',view!=='wall');
@@ -107,9 +109,9 @@ renderHead = function(){
   if(!s){updateHTML($('#focusHead'),'');return;}
   if(!['chat','term'].includes(state.tab))state.tab='chat';
   const remote=s.kind==='claude'?`<button class="rc-switch ${s.remote&&s.live?'on':''}" data-a="rc" role="switch" aria-checked="${!!(s.remote&&s.live)}"><span class="rc-track"><i></i></span>Remote</button>`:'';
-  updateHTML($('#focusHead'),`<button class="nx-phone-back" data-nx-view="sessions" aria-label="Back to sessions">${nxIcon('back')}</button><div class="nx-heading"><div class="nx-header-meta">${nxThemeLabel(s)}${nxSpend(s)?` <span>/</span> <span>${nxSpend(s)}</span>`:''}</div><div class="fh-row"><h1 class="fh-title" title="${esc(s.title)}">${esc(s.title)}</h1><span class="nx-header-status">${nxStatus(s)}<span class="nx-phone-agent"> · ${nxAgent(s)}</span></span></div><p class="nx-subtitle">${esc(nxPurpose(s))}</p></div><div class="nx-header-actions"><button class="btn nx-catchup" id="sessionRecap" data-a="recap">${nxIcon('catchup')}Catch me up</button><button class="btn nx-model-select" data-nx="model" aria-label="Change model">${nxAgent(s,innerWidth<=700?'dot':undefined)}<span><small>Model</small><b>${esc(NexusDesign.modelLabel(s.model)||'Choose model')}</b></span><span>⌃</span></button>${remote}<button class="btn nx-panel-toggle" data-nx="details" aria-label="${nx.panel?'Hide':'Show'} details panel">${nxIcon('panel')}</button><details class="session-more" data-disclosure="more"><summary aria-label="More actions">${nxIcon('more')}</summary><div class="more-menu">${state.tab === 'term' ? '<button data-nx="conversation">Back to conversation</button>' : ''}<button data-nx="session-rename">Rename session</button><button data-nx="session-settings">${nxIcon('settings')}Session settings…</button><button data-nx="raw">${nxIcon('terminal')}Raw terminal</button><button data-a="recap" id="sessionRecapMore">Catch me up</button><button data-nx="details">Session details</button>${s.kind==='claude'?'<button data-a="rc">Remote access</button><button data-a="fork">Fork session</button>':s.kind==='copilot'?'<button data-nx="copilot-fork">Fork session</button>':''}${state.remote?'':'<button data-a="folder">Open project folder</button><button data-a="vscode">Open in VS Code</button>'}${s.brief?'<button data-a="read-brief">Read brief</button>':''}<button data-copy="${esc(s.id)}">Copy session ID</button><button data-a="chat-help">Conversation help</button>${t?'<button class="danger" data-a="term-close">Close session</button>':''}</div></details></div>${statusLabel(s)[0]==='busy'?'<span class="data-stream nx-header-stream"></span>':''}`);
+  updateHTML($('#focusHead'),`<button class="nx-phone-back" data-nx-view="sessions" aria-label="Back to sessions">${nxIcon('back')}</button><div class="nx-heading"><div class="nx-header-meta">${nxThemeLabel(s)}${nxSpend(s)?` <span>/</span> <span>${nxSpend(s)}</span>`:''}</div><div class="fh-row"><h1 class="fh-title" title="${esc(s.title)}">${esc(s.title)}</h1><span class="nx-header-status">${nxStatus(s)}<span class="nx-phone-agent"> · ${nxAgent(s)}</span></span></div><p class="nx-subtitle">${esc(nxPurpose(s))}</p></div><div class="nx-header-actions"><button class="btn nx-catchup" id="sessionRecap" data-a="recap">${nxIcon('catchup')}Catch me up</button><button class="btn nx-model-select" data-nx="model" aria-label="Change model">${nxAgent(s,innerWidth<=700?'dot':undefined)}<span><small>Model</small><b>${esc(NexusDesign.modelLabel(s.model)||'Choose model')}</b></span><span>⌃</span></button>${remote}<button class="btn nx-panel-toggle" data-nx="details" aria-label="${nx.panel?'Hide':'Show'} details panel">${nxIcon('panel')}</button><details class="session-more" data-disclosure="more"><summary aria-label="More actions">${nxIcon('more')}</summary><div class="more-menu">${state.tab === 'term' ? '<button data-nx="conversation">Back to conversation</button>' : ''}<button data-nx="session-rename">Rename session</button><button data-nx="session-settings">Session settings…</button><button data-nx="raw">Raw terminal</button><button data-a="recap" id="sessionRecapMore" data-twin="#sessionRecap">Catch me up</button><button data-nx="details" data-twin=".nx-panel-toggle">Session details</button><hr class="more-sep">${s.kind==='claude'?'<button data-a="rc" data-twin=".rc-switch">Remote access</button><button data-a="fork">Fork session</button>':s.kind==='copilot'?'<button data-nx="copilot-fork">Fork session</button>':''}${state.remote?'':'<button data-a="folder">Open folder</button><button data-a="vscode">Open in VS Code</button>'}${s.brief?'<button data-a="read-brief">Read brief</button>':''}<button data-copy="${esc(s.id)}">Copy session ID</button><button data-a="chat-help">Conversation help</button>${t?'<hr class="more-sep"><button class="danger" data-a="term-close">Close session</button>':''}</div></details></div>${statusLabel(s)[0]==='busy'?'<span class="data-stream nx-header-stream"></span>':''}`);
   if(innerWidth<=700)$('#focusHead').style.setProperty('--nx-model-width',$('#focusHead .nx-model-select').offsetWidth+'px');
-  applyTab();nxDetails(s);
+  nxMenuTwins();applyTab();nxDetails(s);
 };
 applyTab = function(){
   const t=selTerm();if(state.tab==='term'&&!t)state.tab='chat';$('#focus').dataset.tab=state.tab;$('#focus').classList.toggle('tab-term',state.tab==='term');
@@ -124,14 +126,14 @@ function nxSummary(s){
 function nxDetails(s){
   const host=$('#nxDetails');if(!host)return;host.hidden=!nx.panel;$('#focus').classList.toggle('nx-panel-open',nx.panel);
   if(!nx.panel)return;
-  if(nx.panelMode==='catchup'&&nx.recapKey===keyOf(s))return;
+  if(nx.panelMode==='catchup'&&nx.recapKey===keyOf(s)&&host.querySelector('#recapContent'))return;
   nx.panelMode='details';host.onclick=null;
   const events=chats.get(state.sel)?.events||[], results=new Map(events.filter(e=>e.t==='result').map(e=>[e.id,e])), edits=events.filter(e=>e.detail?.files?.length&&(e.t!=='tool'||results.get(e.id)&&!results.get(e.id).err)), files=new Map();
   for(const e of edits)for(const f of e.detail.files){const entry=files.get(f.path)||{path:f.path,diff:[],add:0,del:0};entry.diff.push(...(f.diff||[]));entry.add+=f.add||0;entry.del+=f.del||0;files.set(f.path,entry);}
   nx.files=[...files.values()];
   const commands=events.filter(e=>e.detail?.command).slice(-6).reverse();
   const pct=Number.isFinite(s.ctx)&&s.ctxMax>0?Math.min(100,Math.round(s.ctx/s.ctxMax*100)):null,spend=NexusDesign.spendText(s);
-  updateHTML(host,`<div class="nx-panel-head"><button data-nx-panel="catchup">${nxIcon('catchup')}Catch up</button><b>${nxIcon('panel')}Details</b><button data-nx="details" aria-label="Close panel">${nxIcon('close')}</button></div><div class="nx-panel-body">${s.cwd||s.branch?`<section><h3>Workspace</h3><dl>${s.cwd?`<div><dt>${nxIcon('folder')}Folder</dt><dd title="${esc(s.cwd)}">${esc(s.cwd)}</dd></div>`:''}${s.branch?`<div><dt>${nxIcon('branch')}Branch</dt><dd>${esc(s.branch)}</dd></div>`:''}</dl></section>`:''}${spend||pct!==null?`<section>${spend?`<h3>Spend this session</h3><p class="nx-spend-detail">${esc(spend)}</p>`:''}${pct!==null?`<div class="nx-context"><span>Context window</span><b>${pct}%</b></div><div class="nx-meter"><i style="width:${pct}%"></i></div>`:''}</section>`:''}${nx.files.length?`<section><h3>Files <span>${files.size}</span></h3>${nx.files.map((f,i)=>`<button class="nx-file" data-nx-diff="${i}"><span title="${esc(f.path)}">${esc(f.path.replace(/.*[\\/]/,''))}</span><b>+${f.add}</b><em>−${f.del}</em></button>`).join('')}</section>`:'<p class="nx-empty-detail">Files · No edits</p>'}${commands.length?`<section><h3>Recent commands</h3>${commands.map(e=>`<div class="nx-command"><code title="${esc(e.detail.command)}">${esc(e.detail.command)}</code><small>${e.ts?clockTime(e.ts):''}</small></div>`).join('')}</section>`:'<p class="nx-empty-detail">Commands · No commands</p>'}</div>`);
+  updateHTML(host,`<div class="nx-panel-head"><button data-nx-panel="catchup">${nxIcon('catchup')}Catch me up</button><b>${nxIcon('panel')}Details</b><button data-nx="details" aria-label="Close panel">${nxIcon('close')}</button></div><div class="nx-panel-body">${s.cwd||s.branch?`<section><h3>Workspace</h3><dl>${s.cwd?`<div><dt>${nxIcon('folder')}Folder</dt><dd title="${esc(s.cwd)}">${esc(s.cwd)}</dd></div>`:''}${s.branch?`<div><dt>${nxIcon('branch')}Branch</dt><dd>${esc(s.branch)}</dd></div>`:''}</dl></section>`:''}${spend||pct!==null?`<section>${spend?`<h3>Spend this session</h3><p class="nx-spend-detail">${esc(spend)}</p>`:''}${pct!==null?`<div class="nx-context"><span>Context window</span><b>${pct}%</b></div><div class="nx-meter"><i style="width:${pct}%"></i></div>`:''}</section>`:''}${nx.files.length?`<section><h3>Files <span>${files.size}</span></h3>${nx.files.map((f,i)=>`<button class="nx-file" data-nx-diff="${i}"><span title="${esc(f.path)}">${esc(f.path.replace(/.*[\\/]/,''))}</span><b>+${f.add}</b><em>−${f.del}</em></button>`).join('')}</section>`:'<p class="nx-empty-detail">Files · No edits</p>'}${commands.length?`<section><h3>Recent commands</h3>${commands.map(e=>`<div class="nx-command"><code title="${esc(e.detail.command)}">${esc(e.detail.command)}</code><small>${e.ts?clockTime(e.ts):''}</small></div>`).join('')}</section>`:'<p class="nx-empty-detail">Commands · No commands</p>'}</div>`);
 }
 const nxBaseBlock=blockHTML;
 blockHTML=function(b,s,compact){
@@ -142,21 +144,23 @@ const nxBaseMarkdown=md;
 md=function(src){return nxBaseMarkdown(src).replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g,(_,code)=>`<figure class="nx-code"><figcaption>Code<button data-nx-copy-code>Copy</button></figcaption><pre><code>${code}</code></pre></figure>`);};
 const nxBaseComposer=renderSteer;
 renderSteer=function(s){nxBaseComposer(s);const input=$('#steerIn');if(!input)return;input.placeholder=`Message ${agentName(s?.kind)}…`;const send=$('[data-steer="send"]'),talk=$('[data-steer="talk"]');if(send&&!send.dataset.nx){send.innerHTML=nxIcon('arrow')+'<span>Send</span>';send.dataset.nx='send-icon';talk.innerHTML=nxIcon('voice')+'Talk';const hint=document.createElement('span');hint.className='nx-compose-hint';hint.textContent='Enter to send · Shift+Enter for new line';$('.steer-buttons').prepend(hint);}nxComposerState();};
-function nxComposerState(){const input=$('#steerIn'),send=$('[data-steer="send"]');if(!input||!send)return;const queued=typeof queueShouldQueue==='function'&&queueShouldQueue(chatFor(),state.sel);send.disabled=!input.value.trim()||chatSending(state.sel)||attachments.blocked(state.sel);send.title=queued?'Queue this message until the session is ready':!input.value.trim()?'Write a message to send':'';const label=send.querySelector('span');if(label)label.textContent=queued?'Queue':'Send';input.style.height='auto';input.style.height=Math.min(120,Math.max(44,input.scrollHeight))+'px';}
+function nxComposerState(){const input=$('#steerIn'),send=$('[data-steer="send"]');if(!input||!send)return;const unhosted=nxUnhosted(),queued=!unhosted&&typeof queueShouldQueue==='function'&&queueShouldQueue(chatFor(),state.sel);send.disabled=unhosted||!input.value.trim()||chatSending(state.sel)||attachments.blocked(state.sel);/* The same reason voice.js gives, so the title does not flicker. */const held=nxComposerNotice()||(attachments.failed(state.sel)?'Remove the attachment that failed, then send.':attachments.blocked(state.sel)?'Wait for the attachment to finish.':'');send.title=held||(queued?'Queue this message until the session is ready':!input.value.trim()?'Write a message to send':'');const label=send.querySelector('span');if(label)label.textContent=queued?'Queue':'Send';nxRenderComposerNotice();input.style.height='auto';input.style.height=Math.min(120,Math.max(44,input.scrollHeight))+'px';if(typeof nxPlaceChatNew==='function')nxPlaceChatNew();}
 function nxClick(e){
   const panelTab=e.target.closest('[data-nx-panel]');if(panelTab){const s=state.byKey.get(state.sel);if(!s)return;if(panelTab.dataset.nxPanel==='catchup')recapDialog(s);else{nx.panelMode='details';nxDetails(s);}return;}
   if(e.target.closest('[data-nx-earlier]')){nxEarlier();return;}
   const view=e.target.closest('[data-nx-view]');if(view){setView(view.dataset.nxView);return;}
   const filter=e.target.closest('[data-nx-filter]');if(filter){state.filter=filter.dataset.nxFilter;renderCards();return;}
   const copy=e.target.closest('[data-nx-copy-code]');if(copy){copyText(copy.closest('figure').querySelector('code').textContent);return;}
-  const diff=e.target.closest('[data-nx-diff]');if(diff){const f=nx.files[Number(diff.dataset.nxDiff)];modal(`<h2>${esc(f.path)}</h2>${nxDiff(f.diff)}`);return;}
+  const diff=e.target.closest('[data-nx-diff]');if(diff){const f=nx.files[Number(diff.dataset.nxDiff)];{const parts=String(f.path).split(/[\\/]/),name=parts.pop();modal(`<h2 title="${esc(f.path)}">${esc(name)}</h2>${parts.length?`<p class="nx-muted nx-file-folder">${esc(parts.join(f.path.includes('\\')?'\\':'/'))}</p>`:''}${nxDiff(f.diff)}`);};return;}
   const button=e.target.closest('[data-nx]');if(!button)return;
   switch(button.dataset.nx){case 'copilot-fork':postNexus('/api/action',{action:'term-fork-copilot',key:state.sel}).then(async r=>{await refresh();select(r.result.key);}).catch(e=>toast('Fork unavailable',e.message,'bad'));break;case 'new':newSessionModal();break;case 'refresh':refreshNow();break;case 'clear':nxClearFilters();break;case 'details':nx.panel=!nx.panel;renderHead();break;case 'raw':nxOpenRaw();break;case 'session-settings':nxSessionSettings();break;case 'session-rename':nxSessionSettings().then(()=>$('#nxSessionName')?.focus());break;case 'conversation':nxCloseRaw();state.tab='chat';renderHead();break;case 'palette':if(typeof nxPalette==='function')nxPalette();break;case 'model':if(typeof nxModelMenu==='function')nxModelMenu();break;}
 }
+// Each click reaches further back, up to the most /api/transcript reads (64 MB); the button stays while there is more.
 async function nxEarlier(){
-  const key=state.sel,chat=chatFor(key),host=$('#chatView'),height=host.scrollHeight,top=host.scrollTop;
-  try{const response=await api('/api/transcript?key='+encodeURIComponent(key)+'&bytes=12000000&limit=2400');if(state.sel!==key)return;
-    chat.earlierEvents=response.events;const merged=[...chat.earlierEvents,...chat.events],seen=new Set();chat.events=merged.filter(e=>{const id=JSON.stringify([e.t,e.id,e.ts,e.text]);if(seen.has(id))return false;seen.add(id);return true;});chat.earlier=true;renderReadableChat();host.scrollTop=top+host.scrollHeight-height;
+  const key=state.sel,chat=chatFor(key),host=$('#chatView'),height=host.scrollHeight,top=host.scrollTop,e=chat.earlier;
+  const ask=e?{bytes:Math.min(e.bytes*4,64e6),limit:Math.min(e.limit*2,10000)}:{bytes:12e6,limit:2400};
+  try{const response=await api('/api/transcript?key='+encodeURIComponent(key)+'&bytes='+ask.bytes+'&limit='+ask.limit);if(state.sel!==key)return;
+    chat.events=nxJoin(response.events,chat.events);chat.earlier={...ask,truncated:!!response.truncated};renderReadableChat();host.scrollTop=top+host.scrollHeight-height;
   }catch(error){toast('Could not load earlier messages',error.message,'bad');}
 }
 function nxDiff(lines){return `<figure class="nx-code"><figcaption>Diff<button data-nx-copy-code>Copy</button></figcaption><pre><code>${lines.map(l=>`<span class="${l.startsWith('+')?'nx-add':l.startsWith('-')?'nx-del':''}">${esc(l)}\n</span>`).join('')}</code></pre></figure>`;}
@@ -165,3 +169,17 @@ renderApsis=function(){if(!$('#nxHome'))return;updateHTML($('#nxHome'),`<header 
 
 // A header menu closes once one of its actions is chosen, so it does not stay open behind that action's dialog.
 document.addEventListener('click',e=>{const item=e.target.closest('.session-more button');if(item)item.closest('details').open=false;});
+// The More menu leaves out an action while the same action shows as a button in the header (Catch me up, the details
+// panel, Remote). Where the header hides that button (phone, narrow windows) the menu keeps it, so nothing becomes
+// unreachable.
+function nxMenuTwins(){const head=$('#focusHead');if(!head)return;for(const item of head.querySelectorAll('.more-menu [data-twin]')){const twin=head.querySelector(item.dataset.twin);item.hidden=!!twin&&twin.getClientRects().length>0&&getComputedStyle(twin).visibility!=='hidden';}}
+(typeof window!=='undefined'?window:document).addEventListener('resize',()=>nxMenuTwins());
+document.addEventListener('toggle',e=>{if(e.target.matches?.('.session-more')&&e.target.open)nxMenuTwins();},true);
+// A press outside an open menu or popover closes it and goes no further, so the tap that closes the menu does not also
+// press whatever sat under it. The header menu does this for every pointer; the row, theme, model and path menus do it
+// for touch (nxSwallowTap), where a finger cannot see what it is about to press.
+let nxSwallow=null;
+function nxSwallowTap(e){e.preventDefault();nxSwallow={at:Date.now(),target:e.target,event:e};}
+document.addEventListener('pointerdown',e=>{if(nxSwallow&&nxSwallow.event!==e)nxSwallow=null;const m=document.querySelector('.session-more[open]');if(!m||m.contains(e.target))return;m.open=false;nxSwallowTap(e);},true);
+document.addEventListener('click',e=>{const w=nxSwallow;nxSwallow=null;if(w&&Date.now()-w.at<1500&&(w.target===e.target||w.target.contains?.(e.target)||e.target.contains?.(w.target))){e.preventDefault();e.stopImmediatePropagation();}},true);
+(typeof window!=='undefined'?window:document).addEventListener('keydown',e=>{const m=document.querySelector('.session-more[open]');if(e.key!=='Escape'||!m)return;e.preventDefault();e.stopImmediatePropagation();m.open=false;m.querySelector('summary')?.focus();},true);

@@ -1,6 +1,6 @@
 # NEXUS
 
-A local Windows session deck for **GitHub Copilot CLI**, Claude Code, and Codex (shown as Astra). Read conversations, catch up, inspect recorded usage, and continue work in an embedded terminal. A PC with only Copilot installed is supported.
+A local Windows session deck for **GitHub Copilot CLI**, Claude Code, and Codex. Read conversations, catch up, inspect recorded usage, and continue work in an embedded terminal. A PC with only Copilot installed is supported.
 
 ## Install
 
@@ -23,7 +23,7 @@ Requirements: **Windows 10/11, Node.js 24 LTS (with npm), Git**, a current Chrom
    | Agent | Install and first sign-in |
    | --- | --- |
    | Claude Code | Follow the [official Windows setup](https://code.claude.com/docs/en/quickstart), run `claude` in a project folder, then follow its login prompts. Use `/login` to sign in again. |
-   | Codex (Astra in NEXUS) | Follow the [Codex CLI installation guide](https://learn.chatgpt.com/docs/codex/cli), run `codex`, and choose **Sign in with ChatGPT** or your approved provider. |
+   | Codex | Follow the [Codex CLI installation guide](https://learn.chatgpt.com/docs/codex/cli), run `codex`, and choose **Sign in with ChatGPT** or your approved provider. |
    | Antigravity CLI | Follow [Google's install page](https://antigravity.google/cli), then run `agy` and sign in. Sessions start from New and run in the terminal; Chat reading is not built yet. See [ADD_GEMINI.md](ADD_GEMINI.md). |
    | GitHub Copilot CLI | Run `npm install -g @github/copilot`, then `copilot` and `/login`. Follow the browser prompts. [Official setup](https://docs.github.com/en/copilot/get-started/cli-quickstart). |
 
@@ -110,7 +110,7 @@ NEXUS reads `~/.copilot/session-state/<id>/workspace.yaml` and `events.jsonl`. `
 
 ### Session labels
 
-After a turn finishes, NEXUS asks the lightest model you have installed for a few words about it: **Claude Haiku**, otherwise **Codex Luna** (the newest Luna your account lists), otherwise **Haiku through Copilot**. It sends one small request per finished turn (your last message and the agent's reply, clipped), one at a time, only for sessions used in the last week. Tools are off, Claude and Codex keep nothing, and Copilot's saved label sessions are hidden from the list. A failed agent (for example at its usage limit) is skipped for 30 minutes. When a newer CLI no longer knows an option NEXUS turns something off with (Copilot CLI 1.0.104 removed `--no-remote`), NEXUS leaves it out and runs the request again. Labels are stored in `%LOCALAPPDATA%NexusDecklabels.json`. Each request uses your plan; on Copilot it counts toward premium requests. Set `"sessionLabels": false` in `config.json` to turn labels off.
+After a turn finishes, NEXUS asks the lightest model you have installed for a few words about it: **Claude Haiku**, otherwise **Codex Luna** (the newest Luna your account lists), otherwise **Haiku through Copilot**. It sends one small request per finished turn (your last message and the agent's reply, clipped), one at a time, only for sessions used in the last week. Tools are off, Claude and Codex keep nothing, and Copilot's saved label sessions are hidden from the list. A failed agent (for example at its usage limit) is skipped for 30 minutes. When a newer CLI no longer knows an option NEXUS turns something off with (Copilot CLI 1.0.104 removed `--no-remote`), NEXUS leaves it out and runs the request again. Labels are stored in `%LOCALAPPDATA%\NexusDeck\labels.json`. Each request uses your plan; on Copilot it counts toward premium requests. Set `"sessionLabels": false` in `config.json` to turn labels off.
 
 The default Copilot summarizer comes from the observed CLI catalog and [GitHub's model pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing). Verify your work account's policies and pricing. See [verification notes](docs/COPILOT_VERIFICATION.md) for tested capabilities and limitations.
 

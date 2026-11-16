@@ -4,18 +4,44 @@
 .nx-pwall-theme>header{display:flex;align-items:center;gap:8px;margin:0 0 8px}
 .nx-pwall-theme>header>button{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:4px 0;border:0;background:none;color:var(--foreground);font-size:15px;text-align:left}
 .nx-pwall-theme>header>button b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.nx-pwall-theme>header>small{font-size:11px;color:var(--muted-foreground);white-space:nowrap}
+.nx-pwall-chevron{display:inline-block;width:12px;flex:none;color:var(--muted-foreground);font-size:17px;line-height:1;transform:rotate(90deg);transition:transform .18s ease}
+.nx-pwall-theme.folded .nx-pwall-chevron,.nx-pwall-quiet:not([open])>summary .nx-pwall-chevron{transform:none}
+.nx-pwall-theme.folded>header{margin-bottom:0}
+@media(prefers-reduced-motion:reduce){.nx-pwall-chevron{transition:none}}
+.nx-pwall-theme>header>button{min-height:44px}
+.nx-pwall-theme>header>small{font-size:12px;color:var(--muted-foreground);white-space:nowrap}
 .nx-pwall-list .nx-board-tile{margin-bottom:8px}
 .nx-pwall-quiet{border:1px solid var(--hairline);border-radius:10px;background:var(--card)}
-.nx-pwall-quiet>summary{display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;list-style:none}
+.nx-pwall-quiet>summary{min-height:44px;display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:14px;font-weight:600;cursor:pointer;list-style:none}
 .nx-pwall-quiet>summary::-webkit-details-marker{display:none}
 .nx-pwall-quiet>summary small{color:var(--muted-foreground);font-weight:400}
 .nx-pwall-quiet>button{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:10px 14px;border:0;border-top:1px solid var(--hairline);background:none;color:var(--foreground);font-size:13px;text-align:left}
 .nx-pwall-quiet>button span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nx-pwall-quiet>button small{font-size:11px;color:var(--muted-foreground)}
+.nx-pwall-quiet>button small{font-size:12px;color:var(--muted-foreground)}
 .nx-pwall-empty{margin:8px 0;color:var(--muted-foreground);font-size:14px}
 
 /* The phone bar holds Wall where New used to be, so New sits in the Home header, after Recent. */
-.nx-phone-home-new{order:1;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px}
+.nx-phone-home-title{display:flex;flex-direction:column;gap:2px;min-width:0;flex:0 1 auto}
+.nx-phone-home-title>h1{line-height:1.15}
+.nx-phone-home-title>span{font-size:12px;line-height:1.3;color:var(--muted-foreground)}.nx-phone-home-title>span>span{white-space:nowrap}
+/* Header items sit 8px apart so the count fits beside Recent and New; at 360px it breaks at the dot, never mid-phrase. */
+body.redesign .nx-phone-home-head{gap:8px}
+body.redesign .nx-phone-home-head .nx-phone-home-new{order:1;display:inline-flex;align-items:center;gap:6px;height:44px;min-height:44px;padding:0 12px}
 .nx-phone-home-new svg{width:16px;height:16px}
-@media(min-width:701px){.nx-phone-home-new{display:none}}
+@media(min-width:701px){body.redesign .nx-phone-home-head .nx-phone-home-new{display:none}}
+@media(max-width:700px){
+ /* When status, theme and model do not fit, the model badge gives way first and the theme keeps at least 8ch, never a bare ellipsis. */
+ .nx-phone-row .nx-row-meta>.nx-muted{display:flex;align-items:center;gap:4px;flex:1 1 auto;min-width:8ch}
+ .nx-phone-row .nx-row-meta>.nx-muted>.nx-theme-label{flex:1;min-width:0}
+ /* A row that also counts sub-agents has four items: theme and model always start a second line (no leading dot) rather than cut a count. */
+ .nx-phone-row .nx-row-meta:has(>.nx-subagent-count){flex-wrap:wrap;row-gap:1px}
+ .nx-phone-row .nx-row-meta:has(>.nx-subagent-count)::after{content:"";flex-basis:100%;order:1}
+ .nx-phone-row .nx-row-meta:has(>.nx-subagent-count)>.nx-muted,.nx-phone-row .nx-row-meta:has(>.nx-subagent-count)>.nx-model-badge{order:2}
+ .nx-phone-row .nx-row-meta:has(>.nx-subagent-count)>.nx-muted>.nx-row-sep{display:none}
+ /* The model badge keeps its whole name up to 13 characters (Sonnet 5.5, GPT-5.4 mini); the theme takes the ellipsis first. */
+ .nx-phone-row .nx-row-meta .nx-model-badge{flex:0 0 auto;max-width:calc(13ch + 12px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .nx-pwall .nx-board-tile>.nx-call-entry{width:44px;height:44px;min-width:44px;min-height:44px;right:4px;bottom:4px;border-radius:50%}
+ .nx-pwall .nx-board-tile>.nx-call-entry svg{width:17px;height:17px}
+ .nx-pwall .nx-board-open>strong,.nx-pwall .nx-board-latest{padding-right:48px}
+ .nx-pwall .nx-board-open .nx-card-top,.nx-pwall .nx-board-open .nx-card-top time{font-size:12px}
+}

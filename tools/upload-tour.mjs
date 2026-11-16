@@ -15,12 +15,12 @@ try {
   await b.cmd('Page.addScriptToEvaluateOnNewDocument', { source: `
     window.uploadFixture = {now:Date.now(),home:${JSON.stringify(server.dir)},sessions:[],terms:[],usage:{},briefing:null};
     const nativeFetch = window.fetch;
-    window.fetch = (url, options) => String(url).startsWith('/api/sessions') ? Promise.resolve(new Response(JSON.stringify(uploadFixture))) : String(url).startsWith('/api/transcript') ? Promise.resolve(new Response(JSON.stringify({size:0,events:[],capturedAt:Date.now()}))) : String(url)==='/api/action' ? Promise.reject(Error('Fixture refuses session actions')) : nativeFetch(url,options);
+    window.fetch = (url, options) => String(url).startsWith('/api/sessions') ? Promise.resolve(new Response(JSON.stringify(uploadFixture))) : String(url).startsWith('/api/transcript') ? Promise.resolve(new Response(JSON.stringify({size:0,events:[],capturedAt:Date.now()}))) : String(url)==='/api/action' ? (JSON.parse(options?.body||'{}').action==='term-send' && window.sent ? new Promise(r=>setTimeout(()=>{sent.push(JSON.parse(options.body).text);r(new Response(JSON.stringify({result:{submittedAt:Date.now()}})));},400)) : Promise.reject(Error('Fixture refuses session actions'))) : nativeFetch(url,options);
   ` });
   await b.navigate(); await b.until('state.booted'); await sleep(400);
   await b.js(`
     refresh = async () => {}; act = async action => {if(action==='viewed')return true;throw Error('No session mutation allowed')};
-    window.fixtureTerms = ['claude','astra'].map(kind=>({id:'upload-'+kind,kind,title:'Attachment review · browser fixture',cwd:${JSON.stringify(server.dir)},exited:null}));
+    window.fixtureTerms = ['claude','codex'].map(kind=>({id:'upload-'+kind,kind,title:'Attachment review · browser fixture',cwd:${JSON.stringify(server.dir)},exited:null}));
     state.terms = fixtureTerms; uploadFixture.terms = fixtureTerms;
     window.sent = []; termSend = (v,text) => {sent.push(text);return true};
     for (const t of fixtureTerms) termViews.set(t.id, {id:t.id,el:document.createElement('div'),ws:{readyState:1},xt:{buffer:{active:{length:4,getLine:n=>({translateToString:()=>['NEXUS attachment tour','Browser fixture · no agent is connected.','','Attach files, review your message, then Send.'][n]})}}}});
@@ -38,13 +38,15 @@ try {
   await b.js("$('#toasts').innerHTML=''"); await sleep(900); await shot('chat-uploading');
   await b.until("$$('#steer .done').length===3", 25000);
   await b.cmd('Network.emulateNetworkConditions', {offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
-  await check("$('#steerIn').value.startsWith('Please review') && ($('#steerIn').value.match(/@\"/g)||[]).length===3", 'Claude references append without replacing typed text');
+  await check("$('#steerIn').value.startsWith('Please review') && ($('#steerIn').value.match(/\\n\\[[^\\]\\n]+\\]/g)||[]).length===3 && !$('#steerIn').value.includes(':\\\\')", 'each file shows as its [name] after the typed text, with no path in the box');
+  await check("($('#steerIn').value.match(/\\[(Project brief\\.txt|Desk photo\\.HEIC|Reference notes\\.md)\\]/g)||[]).length===3", 'the names say which file is which');
+  await check("(attachments.expand(state.sel,$('#steerIn').value).match(/@\"/g)||[]).length===3", 'Claude references go in the sent text in place of the names');
   await check("$$('#steer .done').some(x=>x.textContent.includes('Photo') && x.textContent.includes('HEIC'))", 'HEIC remains unchanged and is labeled Photo');
-  const text = await b.js("$('#steerIn').value");
+  const text = await b.js("attachments.expand(state.sel,$('#steerIn').value)");
   for (const match of text.matchAll(/@"([^"]+)"/g)) assert(fs.existsSync(match[1]) && match[1].startsWith(server.env.NEXUS_UPLOAD_DIR));
   report.push('PASS every displayed reference points to a real file in TEMP');
   await shot('chat-done');
-  await b.js("choose('astra')"); await check("!$('#steerIn').value && !$('#steer .attachment-chip')", 'session switch isolates the draft and chips');
+  await b.js("choose('codex')"); await check("!$('#steerIn').value && !$('#steer .attachment-chip')", 'session switch isolates the draft and chips');
   await b.js("choose('claude')"); await check("$$('#steer .done').length===3 && $('#steerIn').value.includes('Project brief.txt')", 'returning to session restores attachments');
   await b.js("$('#steer .attachment-remove').click()"); await check("$$('#steer .done').length===2 && !$('#steerIn').value.includes('Project brief.txt') && $('#steerIn').value.includes('Please review')", 'remove deletes only the selected reference and keeps user text');
   await b.js("window.NativeXHR = XMLHttpRequest; window.pendingXHR=[]; XMLHttpRequest=class {constructor(){this.upload={};pendingXHR.push(this)} open(){} setRequestHeader(){} send(){} abort(){this.onabort?.()}};");
@@ -58,48 +60,52 @@ try {
   await shot('chat-error');
   await b.js("$('#steer .error .attachment-remove').click();window.longFile=new File(['tiny'],'Long video.mov',{type:'video/quicktime'});Object.defineProperty(longFile,'size',{value:50*1024*1024+1});window.bigDT=new DataTransfer();bigDT.items.add(longFile);window.bigInput=$('#steer [data-file-picker=file]');bigInput.files=bigDT.files;bigInput.dispatchEvent(new Event('change',{bubbles:true}))");
   await check("$('#steer .error').textContent.includes('shorter video under 50 MB')", 'oversized video gets a friendly local refusal');
-  await b.js("$('#steer .error .attachment-remove').click();window.submitted=$('#steerIn').value;steer('send');choose('astra');choose('claude')");
-  await check("$('#steerIn').disabled", 'session switch while sending preserves the sending guard');
-  await sleep(180);
-  await check("!$('#steerIn').value && !$('#steer .attachment-chip') && sent.length===2 && sent[0].includes(submitted) && sent[1]==='\\r'", 'successful send clears matching draft and chips exactly once');
-  await b.js("choose('astra')"); await pick('#steer [data-file-picker=photo]', [{name:'Astra photo.HEIC',type:'image/heic'}]);
+  await b.js("$('#steer .error .attachment-remove').click();window.submitted=attachments.expand(state.sel,$('#steerIn').value).trim();steer('send');choose('codex');choose('claude')");
+  // The box itself stays enabled while a message sends (since the responsiveness rework); the guard is a disabled Send
+  // and attach buttons.
+  await check("$('#steer [data-steer=send]').disabled && $('#steer [data-pick=file]').disabled", 'session switch while sending preserves the sending guard');
+  await b.until('sent.length>0', 5000); await sleep(300);
+  // The agent receives the full paths, exactly the text the box would have held before it showed [names].
+  await check("!$('#steerIn').value && !$('#steer .attachment-chip') && sent.length===1 && sent[0]===submitted && sent[0].startsWith('Please review') && (sent[0].match(/@\"[^\"]+\"/g)||[]).length===2 && !/\\[(Desk photo\\.HEIC|Reference notes\\.md)\\]/.test(sent[0])", 'successful send carries the full paths and clears matching draft and chips exactly once');
+  await b.js("choose('codex')"); await pick('#steer [data-file-picker=photo]', [{name:'Codex photo.HEIC',type:'image/heic'}]);
   await b.until("!!$('#steer .done')");
-  await check("!$('#steerIn').value.includes('@\"') && /^[A-Za-z]:\\\\/.test($('#steerIn').value)", 'Astra gets a plain absolute path');
-  await shot('astra-reference');
+  await check("$('#steerIn').value==='[Codex photo.HEIC]' && !attachments.expand(state.sel,$('#steerIn').value).includes('@\"') && /^[A-Za-z]:\\\\/.test(attachments.expand(state.sel,$('#steerIn').value))", 'Codex gets a plain absolute path');
+  await shot('codex-reference');
   if (width > 700) {
     await b.js("window.drop=new DataTransfer();drop.items.add(new File(['desktop drop'],'Dropped diagram.svg',{type:'image/svg+xml'}));$('#steerIn').dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:drop}))");
     await check("$('#steer').classList.contains('attachment-drag')", 'desktop drag shows a drop target'); await shot('desktop-drag-target');
     await b.js("$('#steerIn').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:drop}))");
-    await b.until("$$('#steer .done').length===2"); await check("$('#steerIn').value.includes('Dropped diagram.svg') && !$('#steer').classList.contains('attachment-drag')", 'desktop drop uploads and inserts its path');
+    // A drop never uploads (tools/drop-path-tour.mjs covers a file found on this PC); this one exists only in the browser.
+    await b.until("$('#toasts').textContent.includes('Path not found')"); await check("$$('#steer .attachment-chip').length===1 && $('#steerIn').value==='[Codex photo.HEIC]' && !$('#steer').classList.contains('attachment-drag')", 'a desktop drop of a file not on this PC is reported and changes nothing');
     await shot('desktop-drop-done');
   }
   if (width < 701) {
-    await check("$$('#steer .btn, #steer .attachment-remove').every(x=>x.getBoundingClientRect().height>=44)", 'phone controls have 44px touch targets');
+    await check("$$('#steer .btn, #steer .attachment-remove').filter(x=>x.getClientRects().length).every(x=>x.getBoundingClientRect().height>=44)", 'phone controls have 44px touch targets');
     await check("parseFloat(getComputedStyle($('#steerIn')).fontSize)>=16", 'phone composer avoids input zoom');
     await b.js("document.body.classList.add('keyboard-open');document.documentElement.style.setProperty('--visible-height','520px')");
     await check("$('#steer [data-steer=send]').getBoundingClientRect().bottom<=520", 'keyboard-height fixture keeps Send visible');
     await shot('keyboard-fixture'); await b.js("document.body.classList.remove('keyboard-open')");
   }
-  await b.js("newSessionModal({kind:'claude'});$('#newMessage').value='Review this before we begin.';$('#newMessage').dispatchEvent(new Event('input'))");
+  await b.js("state.agents={claude:{installed:true},codex:{installed:true}};await newSessionModal({kind:'claude'});$('#newMessage').value='Review this before we begin.';$('#newMessage').dispatchEvent(new Event('input'))");
   await pick('#newAttachments [data-file-picker=file]', [{name:'Starting brief.md'}]); await b.until("!!$('#newAttachments .done')");
-  await check("$('#newMessage').value.includes('@\"')", 'new-session attachments populate the optional first message');
-  await b.js("$('#modalCard [value=astra]').click()"); await check("!$('#newMessage').value.includes('@\"') && $('#newMessage').value.includes('Starting brief.md')", 'changing agent updates attachment reference format');
+  await check("$('#newMessage').value.endsWith('\\n[Starting brief.md]') && attachments.expand('new:'+modalVersion,$('#newMessage').value).includes('@\"')", 'new-session attachments populate the optional first message');
+  await b.js("($('#modalCard [value=codex]')||$('#modalCard [data-new-agent=codex]')).click()"); await check("!attachments.expand('new:'+modalVersion,$('#newMessage').value).includes('@\"') && $('#newMessage').value.includes('[Starting brief.md]')", 'changing agent updates attachment reference format');
   await shot('new-session-attachment');
   await b.js("window.launches=0;window.originalOpen=openInApp;openInApp=async()=>{launches++;return false};$('#startSession').click()");
   await b.until("$('#startSession').textContent==='Try again'");
   await check("$('#newMessage').value.includes('Starting brief.md') && !!$('#newAttachments .done')", 'failed launch preserves message and attachment');
-  await b.js("window.newText=$('#newMessage').value;openInApp=async()=>{choose('astra');return true};$('#startSession').click()");
+  await b.js("window.newText=$('#newMessage').value;openInApp=async()=>{choose('codex');return true};$('#startSession').click()");
   await b.until("!$('#modal').classList.contains('on')");
-  await check("$('#steerIn').value===newText && $$('#steer .done').length===1 && state.tab==='chat' && sent.length===2", 'new-session handoff opens Chat with draft ready for review, without sending');
+  await check("$('#steerIn').value===newText && $$('#steer .done').length===1 && state.tab==='chat' && sent.length===1", 'new-session handoff opens Chat with draft ready for review, without sending');
   await shot('new-session-handoff');
   // Exercise the real refresh migration used when a new terminal learns its session id.
   await b.js("XMLHttpRequest=class {constructor(){this.upload={};window.lateUpload=this} open(){} setRequestHeader(){} send(){} abort(){this.onabort?.()}};");
   await pick('#steer [data-file-picker=file]', [{name:'Late reference.md'}]);
-  await b.js("choose('claude');window.linked={kind:'astra',id:'linked-fixture',title:'Attached draft after session discovery',cwd:state.home,group:'Scratch',groupLabel:'Scratch',status:'idle',updated:Date.now(),size:0,term:'upload-astra'};uploadFixture.sessions=[linked];uploadFixture.terms=fixtureTerms.map(t=>t.kind==='astra'?{...t,sessionKey:keyOf(linked)}:t);await refreshData();lateUpload.status=200;window.latePath=newText.split('\\n').at(-1);lateUpload.responseText=JSON.stringify({path:latePath,name:'Late reference.md',size:24});lateUpload.onload();XMLHttpRequest=NativeXHR;select(keyOf(linked),{tab:'chat'})");
-  await check("state.sel==='astra:linked-fixture' && $('#steerIn').value===newText+'\\n'+latePath && $$('#steer .done').length===2", 'background upload and draft follow new terminal to its discovered session key');
+  await b.js("choose('claude');window.linked={kind:'codex',id:'linked-fixture',title:'Attached draft after session discovery',cwd:state.home,group:'Scratch',groupLabel:'Scratch',status:'idle',updated:Date.now(),size:0,term:'upload-codex'};uploadFixture.sessions=[linked];uploadFixture.terms=fixtureTerms.map(t=>t.kind==='codex'?{...t,sessionKey:keyOf(linked)}:t);await refreshData();lateUpload.status=200;window.latePath='[Late reference.md]';lateUpload.responseText=JSON.stringify({path:state.home+'\\\\Late reference.md',name:'Late reference.md',size:24});lateUpload.onload();XMLHttpRequest=NativeXHR;select(keyOf(linked),{tab:'chat'})");
+  await check("state.sel==='codex:linked-fixture' && $('#steerIn').value===newText+'\\n'+latePath && $$('#steer .done').length===2", 'background upload and draft follow new terminal to its discovered session key');
   await b.js("$('#steerIn').value+='\\nKeep this edit.';$('#steerIn').dispatchEvent(new Event('input'));await refreshData()");
   await check("$('#steerIn').value.endsWith('Keep this edit.')", 'later polls cannot restore a pre-migration draft');
-  await b.js("openInApp=originalOpen;newSessionModal();XMLHttpRequest=class {constructor(){this.upload={};window.modalXHR=this} open(){} setRequestHeader(){} send(){} abort(){window.modalUploadCanceled=true;this.onabort?.()}};");
+  await b.js("openInApp=originalOpen;await newSessionModal();XMLHttpRequest=class {constructor(){this.upload={};window.modalXHR=this} open(){} setRequestHeader(){} send(){} abort(){window.modalUploadCanceled=true;this.onabort?.()}};");
   await pick('#newAttachments [data-file-picker=file]', [{name:'Pending draft.txt'}]);
   await b.js("window.focusedFolder=$('#folderOptions button');focusedFolder.focus();modalXHR.upload.onprogress({lengthComputable:true,loaded:1,total:24})");
   await check('document.activeElement===focusedFolder && focusedFolder.isConnected', 'upload progress preserves keyboard focus in the folder picker');

@@ -15,7 +15,7 @@ const kill=()=>server?.kill();process.on('exit',kill);
 let b;const report=[];
 try{
   await start();b=await browser(430,932);await b.navigate();await b.until('state.booted && state.sessions.length>0');
-  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='astra')||state.sessions[0]),{tab:'thinking'})");await b.until('!!state.transcript');
+  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='codex')||state.sessions[0]),{tab:'thinking'})");await b.until('!!state.transcript');
   const key=await b.js('state.sel');
   await stop();await b.until("!$('#connection').classList.contains('hidden')",15000);await b.shot('docs/shots/polish/430-server-stopped.png');
   assert.equal(await b.js('state.sel'),key);report.push('PASS actual server shutdown preserves selected session and last reading');

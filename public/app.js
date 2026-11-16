@@ -1,5 +1,5 @@
 'use strict';
-function agentName(kind) { return ({claude:'Claude',astra:'Astra',copilot:'Copilot',antigravity:'Antigravity'})[kind] || 'Agent'; }
+function agentName(kind) { return ({claude:'Claude',codex:'Codex',copilot:'Copilot',antigravity:'Antigravity'})[kind] || 'Agent'; }
 // NEXUS session deck — client.
 
 const $ = s => document.querySelector(s);
@@ -70,7 +70,8 @@ function md(src) {
   const out = [];
   let list = null, para = [];
   const flushPara = () => { if (para.length) { out.push('<p>' + para.map(inline).join('<br>') + '</p>'); para = []; } };
-  const flushList = () => { if (list) { out.push('<' + list.tag + '>' + list.items.map(i => '<li>' + inline(i) + '</li>').join('') + '</' + list.tag + '>'); list = null; } };
+  // A list broken by a continuation line or a code block resumes at its written number, not at 1.
+  const flushList = () => { if (list) { out.push('<' + list.tag + (list.start != null && list.start !== 1 ? ' start="' + list.start + '"' : '') + '>' + list.items.map(i => '<li>' + inline(i) + '</li>').join('') + '</' + list.tag + '>'); list = null; } };
   const lines = s.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -78,7 +79,7 @@ function md(src) {
     if (/^\u0000\d+\u0000$/.test(line.trim())) { flushPara(); flushList(); out.push(line.trim()); continue; }
     if ((m = line.match(/^(#{1,4})\s+(.*)/))) { flushPara(); flushList(); out.push('<h' + m[1].length + '>' + inline(m[2]) + '</h' + m[1].length + '>'); continue; }
     if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { flushPara(); if (!list || list.tag !== 'ul') { flushList(); list = { tag: 'ul', items: [] }; } list.items.push(m[1]); continue; }
-    if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { flushPara(); if (!list || list.tag !== 'ol') { flushList(); list = { tag: 'ol', items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^\s*(\d+)[.)]\s+(.*)/))) { flushPara(); if (!list || list.tag !== 'ol') { flushList(); list = { tag: 'ol', items: [], start: +m[1] }; } list.items.push(m[2]); continue; }
     if ((m = line.match(/^&gt;\s?(.*)/))) { flushPara(); flushList(); out.push('<blockquote>' + inline(m[1]) + '</blockquote>'); continue; }
     if (/^\|.*\|\s*$/.test(line)) {
       flushPara(); flushList();
@@ -105,9 +106,10 @@ function toast(title, body, kind, onClick) {
   el.className = 'toast ' + (kind || '');
   el.innerHTML = '<b>' + esc(title) + '</b>' + esc(body || '');
   el.onclick = () => { if (onClick) onClick(); dismiss(); };
-  const dismiss = () => { el.classList.add('bye'); setTimeout(() => el.remove(), document.body.classList.contains('redesign') ? 400 : 300); };
+  const dismiss = () => { el.classList.add('bye'); setTimeout(() => el.remove(), document.body.classList.contains('redesign') ? 150 : 300); };
   let host = $('#toasts');
-  if ($('#modal').classList.contains('on')) {
+  const card = $('#modalCard'), page = card.classList.contains('nx-phone-new-card') && card.isConnected && card.getClientRects().length > 0;
+  if ($('#modal').classList.contains('on') || page) {
     host = $('#modalNotices');
     if (!host) {
       host = document.createElement('div'); host.id = 'modalNotices'; host.setAttribute('role', 'status');
@@ -115,16 +117,19 @@ function toast(title, body, kind, onClick) {
     }
   }
   const maximum = matchMedia('(max-width: 700px)').matches ? 1 : 3;
-  while (host.children.length >= maximum) host.firstElementChild.remove();
+  // A pending Undo is not a plain toast: it stays until it times out or is used.
+  while (host.querySelectorAll(':scope > .toast').length >= maximum) host.querySelector(':scope > .toast').remove();
   host.appendChild(el);
+  if (host.id === 'modalNotices') el.scrollIntoView({ block: 'nearest' });
   setTimeout(dismiss, kind === 'good' ? 9000 : 5000);
 }
 
-let modalReturn = null, modalReturnSelector = null, modalVersion = 0;
+let modalReturn = null, modalReturnSelector = null, modalVersion = 0, modalTouched = false;
 function modal(html) {
-  $('#toasts').replaceChildren();
+  $('#toasts').querySelectorAll('.toast').forEach(t => t.remove());
   attachments.discardNew();
   modalVersion++;
+  modalTouched = false;
   if (!$('#modal').classList.contains('on')) {
     modalReturn = document.activeElement;
     const attr = ['id', 'data-a', 'data-k', 'data-g', 'data-tab'].find(a => modalReturn.hasAttribute(a));
@@ -136,13 +141,21 @@ function modal(html) {
   $('#modalCard').onclick = null;
   $('#modal').classList.add('on');
   $('#app').inert = true;
-  const initialFocus = matchMedia('(max-width: 700px)').matches ? $('#modalCard [data-modal-dismiss]') : ($('#modalCard [autofocus]') || $('#modalCard button:not([data-modal-dismiss])') || $('#modalCard'));
+  if (heading) heading.tabIndex = -1;
+  const initialFocus = matchMedia('(max-width: 700px)').matches ? ($('#modalCard [autofocus]') || heading || $('#modalCard [data-modal-dismiss]')) : ($('#modalCard [autofocus]') || $('#modalCard button:not([data-modal-dismiss])') || $('#modalCard'));
   initialFocus.focus({ preventScroll: true });
+  nxModalFit.disconnect(); for (const child of $('#modalCard').children) nxModalFit.observe(child);
+  requestAnimationFrame(nxModalScrolls);
 }
+// A dialog that scrolls gets a hairline above its pinned buttons.
+function nxModalScrolls() { const card = $('#modalCard'); card.classList.toggle('nx-scrolls', card.scrollHeight > card.clientHeight + 1); }
+const nxModalFit = new ResizeObserver(() => nxModalScrolls());
+addEventListener('resize', () => { if ($('#modal').classList.contains('on')) nxModalScrolls(); });
 function closeModal() {
   attachments.discardNew();
   modalVersion++;
   $('#modal').classList.remove('on');
+  nxModalFit.disconnect();
   $('#app').inert = false;
   const target = modalReturn?.isConnected ? modalReturn : (modalReturnSelector && $(modalReturnSelector)) || $('#newBtn');
   target.focus({ preventScroll: true });
@@ -158,10 +171,23 @@ document.addEventListener('keydown', e => {
   else if (!e.shiftKey && (document.activeElement === last || !$('#modalCard').contains(document.activeElement))) { e.preventDefault(); first.focus(); }
 }, true);
 
-$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
+// A click on the backdrop closes a dialog only while nothing in it was typed or changed, so typed text is never lost
+// to a stray click; Esc, Cancel and × still close it. A field typed back to its starting value counts as unchanged.
+$('#modalCard').addEventListener('input', () => { modalTouched = true; });
+$('#modalCard').addEventListener('change', () => { modalTouched = true; });
+function modalHasChanges() {
+  const card = $('#modalCard');
+  if (card.querySelector('.attachment-chip')) return true;
+  if (!modalTouched) return false;
+  return [...card.querySelectorAll('input, textarea, select')].some(f => f.type === 'checkbox' || f.type === 'radio' ? f.checked !== f.defaultChecked
+    : f.tagName === 'SELECT' ? [...f.options].some(o => o.selected !== o.defaultSelected) : f.value !== f.defaultValue);
+}
+$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal' && !modalHasChanges()) closeModal(); });
 $('#modal').addEventListener('click', e => { if (e.target.closest('[data-modal-dismiss]')) closeModal(); });
 
 // ---------------- data ----------------
+
+const termOrigins = new Map();
 
 async function refresh() {
   if (deviceUI.refreshing) return deviceUI.refreshing;
@@ -208,7 +234,7 @@ async function refreshData() {
         if (!selected || document.hidden) state.ready.add(k);
         if (!document.body.classList.contains('redesign') && !voiceActive && (!selected || state.tab !== 'chat')) toast('Waiting for you', s.title, 'good', () => select(k));
       }
-      if (pref.get('completion','on')!=='off' && !voiceActive && s.kind === 'astra' && was === 'busy' && s.runState === 'complete' && (!selected || state.tab !== 'chat')) toast('Astra turn complete', s.title, 'good', () => select(k));
+      if (pref.get('completion','on')!=='off' && !voiceActive && s.kind === 'codex' && was === 'busy' && s.runState === 'complete' && (!selected || state.tab !== 'chat')) toast('Codex turn complete', s.title, 'good', () => select(k));
       if (!voiceActive && was === 'offline' && s.live && (!selected || state.tab !== 'chat')) toast('Session online', s.title, '', () => select(k));
     }
     state.prev.set(k, s.status);
@@ -222,7 +248,27 @@ async function refreshData() {
   }
   state.usage = data.usage;
   state.briefing = data.briefing;
+  // The terminal serving the open chat. Claude's process can move to another conversation (/clear, /resume); the chat
+  // then follows it, or the next Send would resume the conversation it left in a second terminal. (A Copilot fork moves
+  // its terminal on purpose, and its own flow selects the fork.)
+  const selRow = state.byKey.get(state.sel), served = state.sel && !state.sel.startsWith('term:') && state.terms.find(t => t.kind === 'claude' && !t.exited && t.sessionKey && (t.sessionKey === state.sel || selRow && state.byKey.get(t.sessionKey) === selRow));
   state.terms = data.terms || [];
+  for (const id of termOrigins.keys()) if (!state.terms.some(t => t.id === id)) termOrigins.delete(id);
+  for (const t of state.terms) {
+    if (!termOrigins.has(t.id)) termOrigins.set(t.id, t.sessionKey);
+    const from = termOrigins.get(t.id), row = state.byKey.get(t.sessionKey), folder = String(t.cwd || '').split(/[\\/]/).filter(Boolean).at(-1);
+    // A terminal is titled after the conversation it was opened for, which is not its conversation once it moved.
+    // Claude continuing that conversation under a new id keeps one row, with the old id as an alias.
+    if (t.kind === 'claude' && from && t.sessionKey !== from && !(row && row === state.byKey.get(from))) t.title = row ? row.title : 'New conversation' + (folder ? ' · ' + folder : '');
+  }
+  const moved = served && state.terms.find(t => t.id === served.id && !t.exited && t.sessionKey && t.sessionKey !== served.sessionKey);
+  const movedRow = moved && state.byKey.get(moved.sessionKey);
+  if (moved && !(movedRow && movedRow === state.byKey.get(served.sessionKey))) {
+    // Without a row yet, the chat shows the terminal; the follow below moves it on to the row once it is listed.
+    state.sel = movedRow ? moved.sessionKey : 'term:' + moved.id; state.feedSize = -1; state.feedBlocks = 0;
+    if (!movedRow) termDraftKeys.delete(moved.id);
+    toast('This terminal moved to another conversation', movedRow ? movedRow.title : 'The conversation you left is saved.');
+  }
   for (const [id, v] of termViews) {
     if (!state.terms.some(t => t.id === id)) {
       v.closed = true; clearTimeout(v.retryTimer); v.ws?.close(); v.xt.dispose(); v.el.remove(); termViews.delete(id);
@@ -270,7 +316,7 @@ function visible() {
     if (state.group !== '*' && s.group !== state.group) return false;
     if (state.filter === 'live' && !s.live) return false;
     if (state.filter === 'claude' && s.kind !== 'claude') return false;
-    if (state.filter === 'astra' && s.kind !== 'astra') return false;
+    if (state.filter === 'codex' && s.kind !== 'codex') return false;
     if (q) {
       const hay = sessionSearchText(s);
       if (!hay.includes(q)) return false;
@@ -293,10 +339,10 @@ function render() {
 function renderStats() {
   const live = state.sessions.filter(s => s.live).length;
   const busy = state.sessions.filter(s => s.status === 'busy').length;
-  const astra = state.sessions.filter(s => s.kind === 'astra' && s.live).length;
+  const codex = state.sessions.filter(s => s.kind === 'codex' && s.live).length;
   const today = state.sessions.filter(s => Date.now() - s.updated < 864e5).length;
   updateHTML($('#stats'), `<div class="stat live"><b>${live}</b><span>live</span></div><div class="stat busy"><b>${busy}</b><span>working</span></div>` +
-    `<div class="stat astra"><b>${astra}</b><span>Astra active</span></div><div class="stat"><b>${today}</b><span>updated 24h</span></div>`);
+    `<div class="stat codex"><b>${codex}</b><span>Codex active</span></div><div class="stat"><b>${today}</b><span>updated 24h</span></div>`);
 }
 
 function renderGroups() {
@@ -327,7 +373,10 @@ function bucketOf(s) {
 
 function statusLabel(s) {
   if(s.error)return ['error',s.errorType==='quota'?'Quota exceeded':'Error'];
-  const liveChat = typeof chats !== 'undefined' ? chats.get(keyOf(s))?.terminal : null;
+  // A chat's terminal state is refreshed only while that chat is on screen (loadChat's own guard); a chat left
+  // behind keeps its last screen, so the list poll's status is the fresher one then.
+  const chat = typeof chats !== 'undefined' ? chats.get(keyOf(s)) : null;
+  const liveChat = chat && !document.hidden && state.view === 'focus' && state.tab === 'chat' && chats.get(state.sel) === chat ? chat.terminal : null;
   // Session discovery keeps polling after we leave a chat. Its fresh question
   // must win over that chat's cached ready/busy screen for call invitations.
   if (s.needsInput || (s.term && termViews.get(s.term)?.pendingPrompt) || (s.live && ['waiting', 'waiting_permission', 'needs_input'].includes(s.status))) return ['ready', 'Needs you'];
@@ -409,10 +458,10 @@ function renderLimits() {
     if (c.fiveHour) html += limitHTML('claude', '5-hour', c.fiveHour, c.at);
     if (c.week) html += limitHTML('claude', 'weekly', c.week, c.at);
   } else html += '<div class="lim-none">Claude limits appear after any Claude session refreshes its status line.</div>';
-  const a = u.astra;
+  const a = u.codex;
   if (a && (a.primary || a.secondary)) {
-    for (const w of [a.primary, a.secondary]) if (w) html += limitHTML('astra', windowLabel(w.minutes), w, a.at);
-  } else html += '<div class="lim-none">Astra limits appear after the next Astra run.</div>';
+    for (const w of [a.primary, a.secondary]) if (w) html += limitHTML('codex', windowLabel(w.minutes), w, a.at);
+  } else html += '<div class="lim-none">Codex limits appear after the next Codex run.</div>';
   $('#limits').innerHTML = html;
   $('#overviewLimits').innerHTML = html;
 }
@@ -470,7 +519,7 @@ function renderHead() {
   $('#backOverview').textContent = projectUI.key && state.byKey.get(state.sel)?.group === projectUI.key ? '← Project' : '← Home';
   const f = $('#focus'), t = selTerm(), s = state.byKey.get(state.sel);
   f.classList.toggle('has', !!(s || t));
-  f.classList.toggle('astra-view', (s || t)?.kind === 'astra');
+  f.classList.toggle('codex-view', (s || t)?.kind === 'codex');
   if (!s && !t) { updateHTML($('#focusHead'), ''); applyTab(); renderPulse(); return; }
   if (!s) {
     if (!['term', 'chat'].includes(state.tab)) state.tab = 'chat';
@@ -482,10 +531,10 @@ function renderHead() {
   const [cls, label] = statusLabel(s);
   const term = t && !t.exited;
   const primary = term ? '' : `<button class="btn primary" data-a="resume">Open</button>`;
-  let utilities = (s.kind === 'claude' ? '<button data-a="rc">Remote Control</button>' : '') + (s.brief ? '<button data-a="read-brief">Read brief</button>' : '') + (s.kind === 'claude' ? '<button data-a="fork">Fork conversation</button><button data-a="new">New Claude here</button><button data-a="vscode">Open in VS Code</button>' : '<button data-a="new-astra">New Astra here</button>') +
+  let utilities = (s.kind === 'claude' ? '<button data-a="rc">Remote Control</button>' : '') + (s.brief ? '<button data-a="read-brief">Read brief</button>' : '') + (s.kind === 'claude' ? '<button data-a="fork">Fork conversation</button><button data-a="new">New Claude here</button><button data-a="vscode">Open in VS Code</button>' : '<button data-a="new-codex">New Codex here</button>') +
     '<button data-a="popout">Open in Windows Terminal</button><button data-a="folder">Open folder</button>' +
     (s.brief ? '<button data-a="open-brief">Open brief in default app</button>' : '') +
-    (s.kind === 'astra' ? '<button data-a="vscode">Open in VS Code</button>' : '') +
+    (s.kind === 'codex' ? '<button data-a="vscode">Open in VS Code</button>' : '') +
     (t ? '<button class="danger" data-a="term-close">Close terminal</button>' : '');
   if (state.remote) utilities = utilities.replace(/<button data-a="(?:popout|folder|vscode|open-brief)"[^>]*>.*?<\/button>/g, '');
   const details = `<details class="session-more" data-disclosure="more"><summary>More <span aria-hidden="true">⌄</span></summary><div class="more-menu"><button id="sessionRecapMore" data-a="recap">Since my last message</button><button data-a="chat-help">Chat controls</button>${utilities}<div class="session-details">` +
@@ -546,8 +595,8 @@ async function toggleRemote(s) {
   }
   if (s.live) {
     modal(`<h2>${on ? 'Remote Control is on' : 'Turn on Remote Control'}</h2>
-      <p>“${esc(s.title)}” is running in another terminal (pid ${s.pid}), which NEXUS can't type into. In that terminal, type <code>/rc</code>${on ? ' and choose disconnect' : ''}. Or fork the conversation into NEXUS with Remote Control on.</p>
-      <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button>${on ? '' : '<button class="btn primary" data-m="fork">Fork here with Remote Control</button>'}</div>`);
+      <p title="Process ${esc(String(s.pid))}">“${esc(s.title)}” is running in another terminal on your PC, which NEXUS can't type into. In that terminal, type <code>/rc</code>${on ? ' and choose disconnect' : ''}. Or fork the conversation into NEXUS: Fork here starts the copy with Remote Control on.</p>
+      <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button>${on ? '' : '<button class="btn primary" data-m="fork">Fork here</button>'}</div>`);
     $('#modalCard').onclick = e => {
       const m = e.target.closest('[data-m]'); if (!m) return;
       closeModal();
@@ -567,20 +616,20 @@ async function runAction(a, s) {
   if (a === 'show-term') { state.tab = 'term'; renderHead(); return; }
   if (a === 'resume' && s.kind === 'claude' && s.live && !s.inNexus && !s.term) {
     modal(`<h2>This session is already running</h2>
-      <p>“${esc(s.title)}” is open in another terminal (pid ${s.pid}). Opening it here too makes two windows write to the same conversation. A fork copies the conversation into a new session you can chat with here.</p>
-      <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button><button class="btn" data-m="anyway">Open here anyway</button><button class="btn primary" data-m="fork">⑂ Fork it here</button></div>`);
+      <p title="Process ${esc(String(s.pid))}">“${esc(s.title)}” is open in another terminal on your PC. Open here opens it anyway, so two windows write to the same conversation. Fork here copies the conversation into a new session you can chat with here.</p>
+      <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button><button class="btn lead" data-m="anyway">Open here</button><button class="btn primary" data-m="fork">Fork here</button></div>`);
     $('#modalCard').onclick = async e => {
       const m = e.target.closest('[data-m]'); if (!m) return;
       closeModal();
       if (m.dataset.m === 'fork') runAction('fork', s);
-      if (m.dataset.m === 'anyway') openInApp('term-resume', { key }, 'Opened in NEXUS');
+      if (m.dataset.m === 'anyway') openInApp('term-resume', { key, force: true }, 'Opened in NEXUS');
     };
     return;
   }
   if (a === 'resume') return openInApp('term-resume', { key }, 'Opened in NEXUS');
   if (a === 'fork') return openInApp('term-fork', { key }, 'Forked into NEXUS');
   if (a === 'new') return openInApp('term-new', { cwd: s.cwd }, 'New Claude session');
-  if (a === 'new-astra') return openInApp('term-new-astra', { cwd: s.cwd }, 'New Astra session');
+  if (a === 'new-codex') return openInApp('term-new-codex', { cwd: s.cwd }, 'New Codex session');
   if (a === 'popout') { if (await act('resume', { key })) toast('Opening', s.title + ' in Windows Terminal'); return; }
   const label = { vscode: 'Opening VS Code', folder: 'Opening folder', 'open-brief': 'Opening brief' }[a] || a;
   if (await act(a, { key, cwd: s.cwd })) toast(label, s.title);
@@ -664,7 +713,7 @@ function buildBlocks(events) {
   let run = null;
   for (const e of events) {
     if (e.t === 'result') continue;
-    if (e.t === 'tool' && !e.astra && !DISPATCH_TOOLS.has(e.name)) {
+    if (e.t === 'tool' && !e.codex && !DISPATCH_TOOLS.has(e.name)) {
       e.res = results.get(e.id);
       if (!run) { run = { t: 'tools', items: [] }; blocks.push(run); }
       run.items.push(e);
@@ -686,14 +735,17 @@ function toolHTML(e) {
     (open ? `<div class="tool-body"><pre>${esc(e.text)}</pre>${e.res ? `<pre class="res ${err ? 'err' : ''}">${esc(e.res.text || '(no output)')}</pre>` : ''}</div>` : '') + '</div>';
 }
 
+// A sent message shows [file name] where a file went; hovering the bubble shows what the agent received.
+const nxShort = text => typeof attachments === 'undefined' ? String(text ?? '') : attachments.short(text);
+const nxShortTitle = text => nxShort(text) === String(text ?? '') ? '' : ` title="${esc(text)}"`;
 function blockHTML(b, s, compact) {
   const time = b.ts ? `<time>${clockTime(b.ts)}</time>` : '';
-  const astraView = s && s.kind === 'astra';
+  const codexView = s && s.kind === 'codex';
   switch (b.t) {
     case 'user':
-      return `<div class="ev user"><div class="ev-label">${astraView ? 'Request to <span class="nx-agent-name astra">Astra</span>' : 'You'} ${time}</div><div class="bubble">${esc(compact ? b.text.slice(0, 500) : b.text)}</div></div>`;
+      return `<div class="ev user"><div class="ev-label">${codexView ? 'Request to <span class="nx-agent-name codex">Codex</span>' : 'You'} ${time}</div><div class="bubble"${nxShortTitle(b.text)}>${esc(compact ? nxShort(b.text).slice(0, 500) : nxShort(b.text))}</div></div>`;
     case 'ai':
-      return `<div class="ev ai"><div class="ev-label">${astraView ? 'Astra' : 'Claude'} ${time}</div><div class="md">${md(compact ? b.text.slice(0, 700) : b.text)}</div></div>`;
+      return `<div class="ev ai"><div class="ev-label">${codexView ? 'Codex' : 'Claude'} ${time}</div><div class="md">${md(compact ? b.text.slice(0, 700) : b.text)}</div></div>`;
     case 'tools': {
       if (compact) return b.items.slice(-3).map(toolHTML).join('');
       const k = 'run:' + b.items[0].id;
@@ -705,9 +757,9 @@ function blockHTML(b, s, compact) {
         (open ? b.items.map(toolHTML).join('') : '') + '</div>';
     }
     case 'tool': {
-      const toAstra = b.astra;
-      const head = toAstra ? '⟶ Dispatch to Astra' : b.name === 'SendMessage' ? '⟶ Message to session' : '⟶ Subagent';
-      return `<div class="dispatch ${toAstra ? '' : 'sub'}"><div class="d-head">${head} ${time}</div><pre>${esc(compact ? b.text.slice(0, 400) : b.text)}</pre>` +
+      const toCodex = b.codex;
+      const head = toCodex ? '⟶ Dispatch to Codex' : b.name === 'SendMessage' ? '⟶ Message to session' : '⟶ Subagent';
+      return `<div class="dispatch ${toCodex ? '' : 'sub'}"><div class="d-head">${head} ${time}</div><pre>${esc(compact ? b.text.slice(0, 400) : b.text)}</pre>` +
         (b.res && !compact ? `<div class="d-res">${esc(b.res.text.slice(0, 1200))}</div>` : '') + '</div>';
     }
     case 'brief': {
@@ -721,7 +773,7 @@ function blockHTML(b, s, compact) {
       const k = 'think:' + b.ts + ':' + b.text.length, open = state.expanded.has(k);
       return `<div class="ev think ${open ? 'open' : ''}" data-x="${esc(k)}" role="button" tabindex="0" aria-expanded="${open}"><div class="ev-label">Thinking ${time}</div><div class="ttext">${esc(b.text)}</div></div>`;
     }
-    case 'note': return `<div class="note ${b.err?'agent-error':''}" ${b.err?'role="alert"':''}>${esc(b.text)} ${b.ts ? '· ' + clockTime(b.ts) : ''}</div>`;
+    case 'note': { const text = b.err && typeof nxPlainAgentError === 'function' ? nxPlainAgentError(b.text) : b.text; return `<div class="note ${b.err?'agent-error':''}" ${b.err?`role="alert" title="${esc(b.text)}"`:''}>${esc(text)} ${b.ts ? '· ' + clockTime(b.ts) : ''}</div>`; }
     case 'cmd': return `<div class="cmdev">❯ ${esc(b.text)}</div>`;
   }
   return '';
@@ -807,12 +859,12 @@ function renderPulse() {
 function renderSteer(s) {
   const box = $('#steer'), t = selTerm();
   const sig = state.sel + ':composer';
-  if (box.dataset.sig === sig) return;
+  if (box.dataset.sig === sig) { nxRenderComposerNotice(); return; }
   const old = $('#steerIn');
   if (old && box.dataset.key) steerDrafts.set(box.dataset.key, old.value);
   box.dataset.sig = sig; box.dataset.key = state.sel;
   if (s) {
-    box.innerHTML = `<div class="attachment-area" id="steerAttachments"></div><label class="sr-only" for="steerIn">Message ${agentName(s.kind)}</label><textarea id="steerIn" rows="2" placeholder="Message ${agentName(s.kind)}…" autocomplete="off"></textarea>` +
+    box.innerHTML = `<div id="steerNotice" class="nx-compose-notice pu-muted" role="status" aria-live="polite" hidden></div><div class="attachment-area" id="steerAttachments"></div><label class="sr-only" for="steerIn">Message ${agentName(s.kind)}</label><textarea id="steerIn" rows="2" placeholder="Message ${agentName(s.kind)}…" autocomplete="off"></textarea>` +
       '<div class="steer-buttons"><button class="btn" data-steer="talk" aria-pressed="false">Talk</button><button class="btn" data-steer="esc" title="Interrupt the current turn">Interrupt</button><button class="chip-btn" data-steer="help" aria-label="Chat help">?</button><button class="btn primary" data-steer="send">Send</button></div>';
     $('#steerIn').value = steerDrafts.get(state.sel) || '';
     const key = state.sel;
@@ -822,9 +874,10 @@ function renderSteer(s) {
       read: () => currentInput()?.value ?? steerDrafts.get(key) ?? '',
       write: text => { steerDrafts.set(key, text); const input = currentInput(); if (input) input.value = text; },
       canEdit: () => !chatSending(key),
-      change: () => { if (box.dataset.key === key) { const send = box.querySelector('[data-steer="send"]'); if (send) send.disabled = attachments.blocked(key) || chatSending(key); } }
+      change: () => { if (box.dataset.key === key) { const send = box.querySelector('[data-steer="send"]'); if (send) send.disabled = nxUnhosted(key) || attachments.blocked(key) || chatSending(key); } }
     });
   } else box.innerHTML = `<span class="pu-muted">${t?.exited ? 'Terminal ended. Close it to return to your sessions.' : 'Open this session here to send a direction.'}</span>`;
+  nxRenderComposerNotice();
 }
 const steerDrafts = new Map();
 const termDraftKeys = new Set();
@@ -956,7 +1009,7 @@ async function closeTerm(t) {
   if (!t) return;
   if (!await act('term-close', { term: t.id })) return;
   const key=t.sessionKey||'term:'+t.id,chat=chats.get(key);
-  if(chat){chat.closedTerm=t.id;chat.terminal=null;chat.ended=true;for(const message of chat.pending)if(!['failed','confirmed'].includes(message.status))deliveryFailure(chat,message,'The session ended. Your text is kept.',key);}
+  if(chat){chat.closedTerm=t.id;chat.closedPid=t.pid;chat.terminal=null;chat.ended=true;for(const message of chat.pending)if(!['failed','confirmed','retried'].includes(message.status)&&!nxServerHolds(chat,message))deliveryFailure(chat,message,'The session ended. Your text is kept.',key);}
   const v = termViews.get(t.id);
   if (v) { v.closed = true; clearTimeout(v.retryTimer); try { v.ws.close(); } catch { } v.xt.dispose(); v.el.remove(); termViews.delete(t.id); }
   if (shownTerm === t.id) shownTerm = null;
@@ -1047,11 +1100,11 @@ function newSessionModal(options = {}) {
   for (const s of [...state.sessions].sort((a, b) => b.updated - a.updated)) if (s.cwd && !seen.has(s.cwd.toLowerCase()) && (group ? s.group === group : s.group !== 'ibagent runs' && s.group !== 'Scratch')) seen.set(s.cwd.toLowerCase(), s);
   const folders = [...seen.values()];
   if (!folders.length && state.home && !group) folders.push({ cwd: state.home, groupLabel: 'Home' });
-  let picked = (group ? folders[0]?.cwd : state.byKey.get(state.sel)?.cwd) || folders[0]?.cwd || '', kind = options.kind === 'astra' ? 'astra' : 'claude';
+  let picked = (group ? folders[0]?.cwd : state.byKey.get(state.sel)?.cwd) || folders[0]?.cwd || '', kind = options.kind === 'codex' ? 'codex' : 'claude';
   let starting = false;
   if (!folders.some(s => s.cwd === picked)) picked = folders[0]?.cwd || '';
   modal(`${group ? '<div class="sheet-kicker">NEW SESSION HERE · ' + esc(folders[0]?.groupLabel || group) + '</div>' : ''}<h2>Start a session</h2><p>${group ? 'Choose a folder in this project.' : 'Choose an agent and a folder.'} Your conversation opens here in NEXUS.</p>
-    <fieldset class="agent-choice"><legend>Agent</legend><label><input type="radio" name="agent" value="claude" ${kind === 'claude' ? 'checked' : ''}> Claude</label><label><input type="radio" name="agent" value="astra" ${kind === 'astra' ? 'checked' : ''}> Astra <small>· Codex</small></label></fieldset>
+    <fieldset class="agent-choice"><legend>Agent</legend><label><input type="radio" name="agent" value="claude" ${kind === 'claude' ? 'checked' : ''}> Claude</label><label><input type="radio" name="agent" value="codex" ${kind === 'codex' ? 'checked' : ''}> Codex</label></fieldset>
     <label class="picker-label" for="folderSearch">Project folder</label><input class="picker-search" id="folderSearch" placeholder="Find a project or folder…" autocomplete="off" autofocus>
     <div class="folder-options" id="folderOptions"></div><div class="picker-path" id="pickedPath"></div>
     <div class="new-message-area" id="newMessageArea"><label class="picker-label" for="newMessage">First message <small>· optional</small></label><textarea id="newMessage" class="new-message" placeholder="What would you like to work on?"></textarea><div class="attachment-area" id="newAttachments"></div><p class="new-attachment-note">Your message and files will be ready in Chat. Review them there, then Send.</p></div>
@@ -1064,7 +1117,7 @@ function newSessionModal(options = {}) {
     $('#folderOptions').innerHTML = matches.map(s => `<button class="folder-option" data-cwd="${esc(s.cwd)}" aria-pressed="${picked === s.cwd}"><strong>${esc(s.groupLabel)}</strong><span>${esc(s.cwd)}</span></button>`).join('') || '<div class="nores">No matching folders. Try a project name.</div>';
     $('#pickedPath').textContent = picked ? 'Selected: ' + picked : 'Choose a folder above.';
     $('#startSession').disabled = !picked || starting || attachments.blocked(attachmentKey);
-    $('#startSession').textContent = 'Start ' + (kind === 'claude' ? 'Claude' : 'Astra') + ' session';
+    $('#startSession').textContent = 'Start ' + (kind === 'claude' ? 'Claude' : 'Codex') + ' session';
   };
   $('#folderSearch').oninput = paint;
   for (const radio of $$('#modalCard [name="agent"]')) radio.onchange = () => { kind = radio.value; attachments.setKind(attachmentKey, kind); paint(); };
@@ -1089,7 +1142,7 @@ function newSessionModal(options = {}) {
     $$('#modalCard [name="agent"]').forEach(r => r.disabled = true);
     attachments.refresh(attachmentKey);
     button.disabled=true; button.textContent='Opening session…';
-    const opened=await openInApp(kind === 'claude' ? 'term-new' : 'term-new-astra', {cwd:picked}, 'New session');
+    const opened=await openInApp(kind === 'claude' ? 'term-new' : 'term-new-codex', {cwd:picked}, 'New session');
     if(version!==modalVersion)return;
     if(opened){
       if(message.trim()){
@@ -1146,8 +1199,8 @@ $('#exitBtn').onclick = () => {
   const running = state.terms.filter(t => !t.exited);
   if (!running.length) return shutdown();
   modal(`<h2>${running.length} terminal${running.length > 1 ? 's are' : ' is'} still running</h2>
-    <p>Exiting stops ${running.length > 1 ? 'them' : 'it'}; the conversation${running.length > 1 ? 's are' : ' is'} saved and can be resumed later. Or close only the window: the terminals keep working and reopening NEXUS reconnects to them.</p>
-    <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button><button class="btn" data-m="window">Close window only</button><button class="btn danger" data-m="all">Exit and stop all</button></div>`);
+    <p>Stop all exits NEXUS and stops ${running.length > 1 ? 'them' : 'it'}; the conversation${running.length > 1 ? 's are' : ' is'} saved and can be resumed later. Close window closes only the window: the terminals keep working and reopening NEXUS reconnects to them.</p>
+    <div class="modal-actions"><button class="btn" data-m="cancel">Cancel</button><button class="btn danger lead" data-m="all">Stop all</button><button class="btn primary" data-m="window">Close window</button></div>`);
   $('#modalCard').onclick = e => {
     const m = e.target.closest('[data-m]'); if (!m) return;
     closeModal();
@@ -1230,7 +1283,7 @@ async function boot() {
   await wait(240);
   line('indexing transcripts', data ? S.filter(s => s.kind === 'claude').length + ' sessions' : 'pending'); bar.style.width = '62%';
   await wait(240);
-  line('linking Astra', data ? S.filter(s => s.kind === 'astra').length + ' runs' : 'pending'); bar.style.width = '82%';
+  line('linking Codex', data ? S.filter(s => s.kind === 'codex').length + ' runs' : 'pending'); bar.style.width = '82%';
   await wait(240);
   line('mapping projects', data ? new Set(S.map(s => s.group)).size + ' found' : 'pending'); bar.style.width = '100%';
   await wait(380);

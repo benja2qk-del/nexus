@@ -57,7 +57,7 @@ if(process.argv.includes('--after-restart')){
   check(req('/api/pair/new',{method:'POST',headers,body:{}}).status===403,'paired remote cannot issue pairing codes');
   check(req('/api/devices',{headers}).status===403,'paired remote cannot list devices');
   check(req('/api/devices/revoke',{method:'POST',headers,body:{id:'000000000000'}}).status===403,'paired remote cannot revoke devices');
-  for(const action of ['quit','popout','resume','fork','new','new-astra','vscode','folder','open-brief'])check(req('/api/action',{method:'POST',headers,body:{action}}).status===403,'PC-only action rejected remotely: '+action);
+  for(const action of ['quit','popout','resume','fork','new','new-codex','vscode','folder','open-brief'])check(req('/api/action',{method:'POST',headers,body:{action}}).status===403,'PC-only action rejected remotely: '+action);
   check(localPost('/api/action',{action:'check-focus',key:'none'}).status===400,'test mode refuses all model checks');
   const s=sessions.sessions[0],key=s.kind+':'+s.id,at=Date.now();
   check(req('/api/action',{method:'POST',headers,body:{action:'viewed',key,at}}).status===200,'phone can mark a successfully opened session seen');

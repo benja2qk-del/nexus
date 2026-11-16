@@ -6,15 +6,15 @@ const entries=catalogs.claude.commands.map(e=>core.decorate(e,'claude'));
 assert.equal(core.rank(entries,'cmpct')[0].name,'compact');assert.equal(core.rank(entries,'model')[0].name,'model');
 assert.equal(core.category({name:'alien',source:'built-in'}),'custom');assert.equal(core.category({name:'model',source:'plugin'}),'custom');
 for(const [name,category] of [['compact','context'],['review','code'],['mcp','tools'],['usage','account'],['clear','session'],['plan','model']])assert.equal(core.category({name,source:'built-in'}),category);
-let usage=core.recordUsage({},'claude',{name:'compact'},100);usage=core.recordUsage(usage,'claude',{name:'model'},200);usage=core.recordUsage(usage,'astra',{name:'review'},300);
+let usage=core.recordUsage({},'claude',{name:'compact'},100);usage=core.recordUsage(usage,'claude',{name:'model'},200);usage=core.recordUsage(usage,'codex',{name:'review'},300);
 assert.equal(usage.claude.compact.count,1);assert.equal(core.groups(entries,'',usage,'claude')[0].items[0].name,'model');assert(!core.groups(entries,'',usage,'copilot').some(g=>g.id==='recent'));
 assert.equal(new Set(core.groups(entries,'',usage,'claude').flatMap(g=>g.items.map(e=>e.name))).size,entries.length);
 assert(core.groups(entries,'',usage,'claude','context').every(g=>g.id==='context'));
-assert.equal(core.decorate({name:'clear'},'claude').behavior,'confirm');assert.equal(core.decorate({name:'model',native:'model'},'astra').behavior,'control');
+assert.equal(core.decorate({name:'clear'},'claude').behavior,'confirm');assert.equal(core.decorate({name:'model',native:'model'},'codex').behavior,'control');
 const frequent={claude:{compact:{count:100,at:100},model:{count:1,at:200}}};assert.equal(core.rank(entries,'',frequent,'claude')[0].name,'compact','frequency participates in ranking');
 console.log('PASS fuzzy ranking, per-agent persistent usage, categories, deduplicated recents and behavior mapping');
 async function run(){
- for(const kind of ['claude','astra','copilot']){
+ for(const kind of ['claude','codex','copilot']){
   let now=100000,terminal={id:kind,ready:false,busy:true,prompt:null,menu:false},events=[],writes=[],persisted={},failSave=false,failSend=false,notSentOnce=false;
   const key=kind+':fixture',file=path.join(root,kind+'.json');
   const config={now:()=>now,load:()=>persisted,save:async data=>{if(failSave)throw Error('disk full');persisted=JSON.parse(JSON.stringify(data));fs.writeFileSync(file,JSON.stringify(data));},inspect:()=>({kind,terminal,events}),send:async(id,text,options)=>{if(notSentOnce){notSentOnce=false;throw Object.assign(Error('The screen moved before typing.'),{notSent:true});}writes.push({text,options});if(options.answer==='esc'){terminal.busy=false;terminal.ready=true;return {};}
@@ -37,7 +37,11 @@ async function run(){
   await q.add(key,{id:'clear-yes',text:'/clear'});await q.tick();await q.change(key,'confirm',{id:'clear-yes',confirmed:true,expectedText:'/clear'});assert.equal(writes.at(-1).options.commandConfirmation,'/clear');
   // Crash after dispatch is an uncertain result, never an automatic retry.
   q=new MessageQueue({...config,load:()=>JSON.parse(fs.readFileSync(file))});terminal.busy=false;terminal.ready=true;await q.tick();assert.match(q.view(key).reason,/restart/);assert.equal(writes.length,3);
-  await q.change(key,'remove',{id:'clear-yes'});await q.change(key,'resume');
+  await q.change(key,'remove',{id:'clear-yes'});assert(!q.view(key).hold,'removing the unconfirmed message releases the queue');
+  // A restart during a turn the session already received leaves nothing in doubt; a pause saved by an older build lets go.
+  const noPause=load=>new MessageQueue({...config,load}).view(key);
+  let healed=noPause(()=>({[key]:{items:[],history:[],hold:'',active:{id:'seen',text:'Seen',received:true}}}));assert(!healed.hold);assert(!healed.active&&!healed.items.length);assert.equal(healed.history.at(-1).status,'confirmed');
+  healed=noPause(()=>({[key]:{items:[{id:'later',text:'Later',status:'queued'}],history:[],active:null,hold:'Delivery interrupted by a NEXUS restart. Check the conversation before retrying.'}}));assert(!healed.hold,'an old restart pause does not block later messages');
   terminal.busy=true;terminal.ready=false;await q.add(key,{id:'urgent',text:'Urgent'});await assert.rejects(q.change(key,'send-now',{id:'urgent'}),/Confirm/);assert.equal(writes.length,3);
   terminal.prompt={question:'Permission?'};await assert.rejects(q.change(key,'send-now',{id:'urgent',confirmed:true,expectedText:'Urgent'}),/question/);assert.equal(writes.length,3);terminal.prompt=null;
   await q.change(key,'send-now',{id:'urgent',confirmed:true,expectedText:'Urgent'});assert.equal(writes[3].options.answer,'esc');assert.equal(writes[4].text,'Urgent');

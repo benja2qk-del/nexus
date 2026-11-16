@@ -11,22 +11,22 @@ const CHAT=['NEXUS: the owner reads and answers this session in NEXUS, a dashboa
   '- To show a page (a chart, a mockup, a report), write a self-contained .html file inside the session folder and give its full path in the reply. NEXUS adds a Preview button that shows the page inside the chat, scripts included. When the owner asks for HTML in the chat, do this; do not say it cannot be shown.'
 ].join('\n');
 const SKIP_PROMPTS={claude:'--dangerously-skip-permissions',copilot:'--yolo'};
-const NAMES={claude:'Claude Code',astra:'Codex (called Astra in NEXUS)',copilot:'GitHub Copilot CLI'};
+const NAMES={claude:'Claude Code',codex:'Codex',copilot:'GitHub Copilot CLI'};
 const CALLS={
-  astra:'codex exec --sandbox workspace-write -C "<worktree>" - < "<brief.md>" > "<log>" 2>&1   (use --sandbox danger-full-access only if the owner allows it)',
+  codex:'codex exec --sandbox workspace-write -C "<worktree>" - < "<brief.md>" > "<log>" 2>&1   (use --sandbox danger-full-access only if the owner allows it)',
   claude:'cd "<worktree>" && claude -p --permission-mode auto < "<brief.md>" > "<log>" 2>&1',
   copilot:'cd "<worktree>" && copilot -p "Read <brief.md> and do what it says." --allow-all-tools --add-dir "<folder of brief.md>" -s < /dev/null > "<log>" 2>&1   (each run uses Copilot premium requests)'
 };
 // The guide for one agent, naming only the other agents installed on this PC; '' when there is nobody to call.
 function guide(self,installed){
-  const others=['astra','claude','copilot'].filter(k=>k!==self&&installed[k]?.installed);
+  const others=['codex','claude','copilot'].filter(k=>k!==self&&installed[k]?.installed);
   if(!others.length)return '';
   return ['NEXUS: agents can hand work to each other (the owner turned this on).',
     'You may give a task to another coding agent on this PC, but only when the owner asks you to, or agrees after you suggest it. You stay responsible for the result.',
     '',
     'Agents you can call from your shell, in the background and without opening a window:',
     ...others.map(k=>'- '+NAMES[k]+': '+CALLS[k]),
-    'In PowerShell, pipe instead of redirecting stdin: '+others.map(k=>({astra:'Get-Content "<brief.md>" -Raw | codex exec ... -',claude:'Get-Content "<brief.md>" -Raw | claude -p ...',copilot:'$null | copilot -p ...'})[k]).join('   or   '),
+    'In PowerShell, pipe instead of redirecting stdin: '+others.map(k=>({codex:'Get-Content "<brief.md>" -Raw | codex exec ... -',claude:'Get-Content "<brief.md>" -Raw | claude -p ...',copilot:'$null | copilot -p ...'})[k]).join('   or   '),
     '',
     'How to delegate well:',
     '1. One git worktree per helper (git worktree add ../<repo>-<helper> -b <helper>/<topic>). Never let two agents edit the same folder, and never the owner\'s main checkout.',
@@ -62,7 +62,7 @@ function createHandoff({dir=stateDir(),installed=()=>({}),codexHome=process.env.
       if(at>=0&&at+1<args.length)args[at+1]+='\n\n'+text;else args.push('--append-system-prompt',text);
       return {...spec,claudeArgs:args};
     }
-    if(spec.kind==='astra'){
+    if(spec.kind==='codex'){
       if(codexHasOwn())return spec;
       return {...spec,codexArgs:['-c','developer_instructions='+JSON.stringify(text),...(spec.codexArgs||[])]};
     }

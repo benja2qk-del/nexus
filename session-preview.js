@@ -2,16 +2,17 @@
 // Piggybacks on the cached metadata tail scan. No additional file reads.
 // A tag means recently USED in the sampled tail, not an active connection.
 const language = require('./public/activity-language');
+const claudeRecords = require('./claude-records');
 function createPreview() { return {tools: [], latestContext: '', run: []}; }
 function text(value) { return typeof value === 'string' ? value : ''; }
-// An Astra result line opens with commit ids; the preview keeps what changed.
+// A Codex result line opens with commit ids; the preview keeps what changed.
 function shorten(value) { return require('./public/redesign-core').plainSummary(value); }
 function recordText(preview, value) { preview.latestContext = shorten(value); preview.run = []; }
 function recordTool(preview, name, input) {
   const command = typeof input === 'string' ? input : input?.command || input?.cmd || input?.code || '';
   const tags = [];
   if (/claude.in.chrome|mcp.*chrome|chrome.*mcp/i.test(name)) tags.push('Chrome');
-  if (/astra/i.test(name) || /\bcodex(?:\.cmd|\.exe)?\s+(?:exec|resume|e)\b/i.test(String(command))) tags.push('Astra');
+  if (/astra|codex/i.test(name) || /\bcodex(?:\.cmd|\.exe)?\s+(?:exec|resume|e)\b/i.test(String(command))) tags.push('Codex');
   preview.tools.push(tags);
   if (preview.tools.length > 20) preview.tools.shift();
   const item = language.tool(name, input);
@@ -21,8 +22,10 @@ function recordTool(preview, name, input) {
   preview.latestContext = language.describe(preview.run);
 }
 function observePreview(preview, record) {
-  if (!record || record.isSidechain) return;
-  if (record.type === 'user' && !record.isMeta && (typeof record.message?.content === 'string' || record.message?.content?.some(c => c.type === 'text') && !record.message?.content?.some(c => c.type === 'tool_result'))) preview.run = [];
+  if (!record || record.isSidechain || record.isCompactSummary) return;
+  if (claudeRecords.ownerPrompt(record)) preview.run = [];
+  // Claude Code's "No response requested." is not Claude's; an API error it writes is news for the card.
+  if (claudeRecords.machineReply(record)) { if (record.isApiErrorMessage) recordText(preview, claudeRecords.note(record).text); return; }
   if (record.type === 'assistant' && Array.isArray(record.message?.content)) {
     for (const item of record.message.content) {
       if (item.type === 'text' && text(item.text).trim()) recordText(preview, item.text);

@@ -1,5 +1,6 @@
 (function(root) {
   'use strict';
+  const language=typeof module==='object'?require('./activity-language'):root.NexusActivity;
   const labels = { 'gpt-5.5':'GPT-5.5', 'gpt-5.5-codex':'GPT-5.5 Codex', 'gpt-5.4-mini':'GPT-5.4 mini', 'gpt-6-astra':'GPT-6 Astra', 'claude-opus-5-5':'Opus 5.5', 'claude-sonnet-5-5':'Sonnet 5.5', 'claude-haiku-5-5':'Haiku 5.5', 'claude-haiku-4-5-20251001':'Haiku 4.5', 'claude-fable-5':'Fable 5', 'claude-fable-5-1':'Fable 5.1' };
   function modelLabel(id) {
     if(!id)return '';
@@ -18,12 +19,13 @@
     return boundary.trimEnd()+'…';
   }
   function plainSummary(markdown,max=140) {
-    const lines=String(markdown||'').replace(/^ASTRA RESULT:\s*[^|]+\|\s*([^|\n]+).*$/im,'$1').replace(/(?:```|~~~)[\s\S]*?(?:(?:```|~~~)|$)/g,'\n').split(/\r?\n/),table=new Set();
+    const lines=String(markdown||'').replace(/^(?:ASTRA|CODEX) RESULT:\s*[^|]+\|\s*([^|\n]+).*$/im,'$1').replace(/(?:```|~~~)[\s\S]*?(?:(?:```|~~~)|$)/g,'\n').split(/\r?\n/),table=new Set();
     for(let i=1;i<lines.length;i++)if(/^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[i])){table.add(i-1);table.add(i);for(let j=i+1;j<lines.length&&lines[j].includes('|');j++)table.add(j);}
-    const text=lines.filter((line,i)=>!table.has(i)&&!/^\s*(?:#{1,6}\s|\||>|(?:[-*_=]\s*){3,}$)/.test(line)&&!/^\s*(?:={3,}|-{3,})\s*$/.test(lines[i+1]||''))
+    // Tags go, a lone < or > (ratio < 0.5) stays; names keep their underscores.
+    const text=language.unmark(lines.filter((line,i)=>!table.has(i)&&!/^\s*(?:#{1,6}\s|\||>|(?:[-*_=]\s*){3,}$)/.test(line)&&!/^\s*(?:={3,}|-{3,})\s*$/.test(lines[i+1]||''))
       .map(line=>line.replace(/^\s*(?:[-*+•]|\d+[.)])\s+(?:\[[ xX]\]\s*)?/,''))
       .join(' ').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')
-      .replace(/<[^>]+>/g,'').replace(/(?:\*\*|__|~~|[*`_])/g,'').replace(/\s+/g,' ').trim();
+      .replace(/<\/?[A-Za-z][^<>]*>/g,'')).replace(/\s+/g,' ').trim();
     const first=text.match(/^.+?[.!?](?=\s|$)/)?.[0]||text;
     return wordLimit(first,max);
   }
@@ -42,7 +44,8 @@
     const a=typeof previous?.ts==='number'?previous.ts:Date.parse(previous?.ts),b=typeof current?.ts==='number'?current.ts:Date.parse(current?.ts);
     return previous?.t==='user'&&current?.t==='user'&&!!messageText(current.text)&&messageText(previous.text)===messageText(current.text)&&Number.isFinite(a)&&Number.isFinite(b)&&b>=a&&b-a<=120000;
   }
-  function dedupeUsers(events){let previous;return events.filter(e=>{if(e.t!=='user')return true;const duplicate=duplicateUser(previous,e);previous=e;return !duplicate;});}
+  // Only back-to-back copies are one delivery; the same words again after anything in between were sent again.
+  function dedupeUsers(events){let previous;return events.filter(e=>{if(e.t!=='user'){previous=null;return true;}const duplicate=duplicateUser(previous,e);previous=e;return !duplicate;});}
   function dedupeMirrors(events){
     const responses=new Map();for(const e of events)if(!e.mirror){const key=e.t+':'+messageText(e.text);if(!responses.has(key))responses.set(key,[]);responses.get(key).push(e);}
     return events.filter(e=>!e.mirror||!(responses.get(e.t+':'+messageText(e.text))||[]).some(r=>{const a=Date.parse(e.ts),b=Date.parse(r.ts);return Number.isFinite(a)&&Number.isFinite(b)?Math.abs(a-b)<=120000:e.ts===r.ts;}));

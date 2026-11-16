@@ -63,7 +63,7 @@ async function tour(width, height) {
     await check(`agentName('antigravity')==='Antigravity'&&nxThemeAgent({kind:'antigravity'}).includes('Antigravity')&&getComputedStyle(document.body).getPropertyValue('--agent-antigravity').trim()!==''`, 'Antigravity has its own label and colour');
     await check(`(()=>{const sent=[];restoreTermHeight({rows:12,cols:120,xt:{resize(){}},ws:{readyState:1,send:x=>sent.push(x)}});restoreTermHeight({rows:40,cols:120,xt:{resize(){}},ws:{readyState:1,send:x=>sent.push(x)}});return sent.length===1&&JSON.parse(sent[0]).r===36;})()`, 'a session left short by the Raw drawer goes back to full height');
     await b.js(`setView('settings');true`); await b.until(`!!document.querySelector('[data-nx-full-access]')`);
-    await check(`document.querySelector('[data-nx-full-access]').checked&&document.querySelector('#nxSetting-agents').textContent.includes('--yolo')`, 'Settings shows the resume switch, on by default');
+    await check(`document.querySelector('[data-nx-full-access]').checked&&!!document.querySelector('#nxSetting-agents [title*="--yolo"]')`, 'Settings shows the resume switch, on by default');
     await check(`document.documentElement.scrollWidth<=innerWidth`, 'Settings has no sideways scroll');
     assert.deepEqual(b.exceptions, [], 'page exceptions');
     return report;

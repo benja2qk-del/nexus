@@ -6,11 +6,15 @@ const { Worker } = require('worker_threads');
 const { spawn } = require('child_process');
 const statePath = process.env.NEXUS_STATE_FILE || path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'NexusDeck', 'state.json');
 let state = { version: 1, viewed: {}, models:{}, titles:{} }, write = Promise.resolve(), stateError = '';
-try { const saved = JSON.parse(fs.readFileSync(statePath, 'utf8')); if (saved.viewed && typeof saved.viewed === 'object') state.viewed = saved.viewed; if(saved.models&&typeof saved.models==='object')state.models=saved.models; }
+// legacy.state: a state.json the old server wrote after the start-up migration (hand-over) still loads under the new keys.
+let savedState = null;
+try { savedState = JSON.parse(fs.readFileSync(statePath, 'utf8')); require('./legacy-names').state(savedState); } catch {}
+try { const saved = savedState || JSON.parse(fs.readFileSync(statePath, 'utf8')); if (saved.viewed && typeof saved.viewed === 'object') state.viewed = saved.viewed; if(saved.models&&typeof saved.models==='object')state.models=saved.models; }
 catch (e) { if (e.code !== 'ENOENT') stateError = 'View history could not be read: ' + e.message; }
-try { state.titles=JSON.parse(fs.readFileSync(statePath,'utf8')).titles||{}; } catch {}
-try { state.voices=JSON.parse(fs.readFileSync(statePath,'utf8')).voices||{}; } catch { state.voices={}; }
-try { state.messageQueues=JSON.parse(fs.readFileSync(statePath,'utf8')).messageQueues||{}; } catch { state.messageQueues={}; }
+try { state.titles=(savedState||JSON.parse(fs.readFileSync(statePath,'utf8'))).titles||{}; } catch {}
+try { state.voices=(savedState||JSON.parse(fs.readFileSync(statePath,'utf8'))).voices||{}; } catch { state.voices={}; }
+try { state.messageQueues=(savedState||JSON.parse(fs.readFileSync(statePath,'utf8'))).messageQueues||{}; } catch { state.messageQueues={}; }
+savedState = null;
 function messageQueues(){return JSON.parse(JSON.stringify(state.messageQueues));}
 async function saveMessageQueues(queues){state.messageQueues=queues;await saveState();}
 const snapshots = new Map(), checks = new Map(), running = new Map();
@@ -19,7 +23,8 @@ worker.unref();
 let workerError = '';
 worker.on('message', m => snapshots.set(m.key, m));
 worker.on('error', e => { workerError = e.message; });
-function sync(sessions) { if (!workerError) worker.postMessage({ sessions: sessions.map(s => ({ key: s.kind + ':' + s.id, file: s.file, kind: s.kind })), viewed: state.viewed }); }
+// A helper thread's rollout opens with a copy of its parent's history: telemetry counts only what follows it.
+function sync(sessions) { if (!workerError) worker.postMessage({ sessions: sessions.map(s => ({ key: s.kind + ':' + s.id, file: s.file, kind: s.kind, after: s.forkedUntil || 0 })), viewed: state.viewed }); }
 async function viewed(key, at = Date.now()) {
   // Checkpoints only advance, including when multiple browser requests arrive out of order.
   state.viewed[key] = Math.max(Number(state.viewed[key]) || 0, Math.min(Date.now(), Number(at) || Date.now()));
@@ -64,7 +69,7 @@ function briefing(sessions) {
   const updates = sessions.filter(s => s.insights?.digest?.since && (s.insights.digest.turns || s.insights.digest.commits.length || s.insights.digest.tools));
   const snippets = updates.slice(0, 3).map(s => {
     const d = s.insights.digest, commits = d.commits.filter(c => c.confirmed).reduce((n, c) => n + c.hashes.length, 0);
-    return `${s.kind === 'astra' ? 'Astra' : 'Claude'} ${commits ? `recorded ${commits} commit${commits === 1 ? '' : 's'}` : d.turns ? `started ${d.turns} turn${d.turns === 1 ? '' : 's'} with ${d.tools} tool calls` : `continued work with ${d.tools} tool calls`} on ${s.groupLabel}`;
+    return `${s.kind === 'codex' ? 'Codex' : 'Claude'} ${commits ? `recorded ${commits} commit${commits === 1 ? '' : 's'}` : d.turns ? `started ${d.turns} turn${d.turns === 1 ? '' : 's'} with ${d.tools} tool calls` : `continued work with ${d.tools} tool calls`} on ${s.groupLabel}`;
   });
   return { working, waiting, measured: known.length, sessions: sessions.length,
     tokens: known.reduce((n, s) => n + s.insights.spend.total, 0),

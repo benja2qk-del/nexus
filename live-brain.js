@@ -39,7 +39,7 @@ class Brain extends EventEmitter {
     try{
       this.isolation=(this.options.isolate||isolated)(this.kind,this.options.root);
       const args=this.kind==='claude'?['-p','--input-format','stream-json','--output-format','stream-json','--verbose','--include-partial-messages','--model','claude-haiku-5-5','--tools','','--allowedTools','','--no-session-persistence','--safe-mode','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--setting-sources','','--system-prompt',protocol.prompt(title)]:['app-server','--listen','stdio://'];
-      const launch=(this.options.launch||agents.launch)(this.kind==='codex'?'astra':'claude',args);
+      const launch=(this.options.launch||agents.launch)(this.kind,args);
       this.child=(this.options.spawn||spawn)(launch.file,launch.args,{cwd:this.isolation.work,env:this.isolation.env,windowsHide:true,stdio:['pipe','pipe','pipe']});
       this.child.stdin.on('error',()=>this.fail());this.child.on('error',()=>this.fail());
       this.child.on('close',()=>{this.closed=true;this.fail();this.dispose();});this.child.stderr.on('data',()=>{});

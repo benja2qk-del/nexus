@@ -17,10 +17,10 @@ function appendRecord(file,record,codex=false){
 }
 // Claude Code /rename records verified read-only in installed CLI transcripts.
 function rename(session, title, codexIndex) {
-  if (!session || !['claude','astra'].includes(session.kind)) throw Error('Unknown conversation.');
+  if (!session || !['claude','codex'].includes(session.kind)) throw Error('Unknown conversation.');
   if (typeof title !== 'string' || !title.trim() || title.trim().length > 200 || /[\x00-\x1f\x7f]/.test(title)) throw Error('Use a name of 1 to 200 characters on one line.');
   const customTitle = title.trim();
-  if(session.kind==='astra'){
+  if(session.kind==='codex'){
     if(!codexIndex)throw Error('Codex session index is unavailable.');
     appendRecord(codexIndex,{id:session.id,thread_name:customTitle,updated_at:new Date().toISOString()},true);
     return {title:customTitle};

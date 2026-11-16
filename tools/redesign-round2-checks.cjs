@@ -6,8 +6,8 @@ const titles=require('../session-title'),session={kind:'claude',id:'fixture-sess
 assert.deepEqual(titles.rename(session,'  Name with "quotes" and unicode ☑  '),{title:'Name with "quotes" and unicode ☑'});
 const lines=fs.readFileSync(file,'utf8').trim().split('\n');assert.equal(lines[0]+'\n',original);assert.deepEqual(JSON.parse(lines[1]),{type:'custom-title',customTitle:'Name with "quotes" and unicode ☑',sessionId:'fixture-session'});
 for(const title of ['', ' ', 'a\nb', 'a\x00b', 'x'.repeat(201), {}, null])assert.throws(()=>titles.rename(session,title),/one line/);
-const index=path.join(root,'session_index.jsonl');titles.rename({...session,kind:'astra'},'Astra name',index);const codexRecord=JSON.parse(fs.readFileSync(index,'utf8'));assert.equal(codexRecord.thread_name,'Astra name');assert.equal(codexRecord.id,session.id);assert(Number.isFinite(Date.parse(codexRecord.updated_at)));
-fs.writeFileSync(index,JSON.stringify(codexRecord));titles.rename({...session,kind:'astra'},'Second Astra name',index);assert.equal(fs.readFileSync(index,'utf8').trim().split('\n').map(JSON.parse).at(-1).thread_name,'Second Astra name');
+const index=path.join(root,'session_index.jsonl');titles.rename({...session,kind:'codex'},'Codex name',index);const codexRecord=JSON.parse(fs.readFileSync(index,'utf8'));assert.equal(codexRecord.thread_name,'Codex name');assert.equal(codexRecord.id,session.id);assert(Number.isFinite(Date.parse(codexRecord.updated_at)));
+fs.writeFileSync(index,JSON.stringify(codexRecord));titles.rename({...session,kind:'codex'},'Second Codex name',index);assert.equal(fs.readFileSync(index,'utf8').trim().split('\n').map(JSON.parse).at(-1).thread_name,'Second Codex name');
 fs.writeFileSync(file,'{"partial":');assert.throws(()=>titles.rename(session,'Name'),/being written/);assert.equal(fs.readFileSync(file,'utf8'),'{"partial":');
 let now=Date.now();class Clock extends Date{static now(){return now;}}const mod={exports:{}};
 vm.runInNewContext(fs.readFileSync('auth.js','utf8'),{require,process:{env:{NEXUS_DEVICES_FILE:path.join(root,'devices.json')},pid:process.pid},module:mod,Date:Clock});

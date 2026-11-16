@@ -17,13 +17,14 @@ async function nxModelMenu(){
   catch(error){menu.querySelector('[role=status]').textContent=error.message;menu.querySelectorAll('[data-model-id]').forEach(x=>x.disabled=false);}
  };
 }
-document.addEventListener('pointerdown',e=>{if($('#nxModelMenu')&&!e.target.closest('#nxModelMenu,[data-nx=model]'))nxCloseModel();});
+// On touch a tap outside the picker only closes it; a mouse click outside still lands.
+document.addEventListener('pointerdown',e=>{if(!$('#nxModelMenu')||e.target.closest('#nxModelMenu'))return;if(e.pointerType==='mouse'){if(!e.target.closest('[data-nx=model]'))nxCloseModel();return;}nxCloseModel();nxSwallowTap(e);});
 function nxCommands(){
  const actions=[['Home','overview','home'],['Wall','wall','wall'],['Spend','spend','spend'],['Settings','settings','settings']].map(([label,v,icon])=>({label:'Go to '+label,group:'Navigate',hint:label,icon,run:()=>setView(v)}));
  actions.push({label:'New session',group:'Actions',hint:'N',icon:'plus',run:newSessionModal},{label:'Refresh sessions',group:'Actions',icon:'refresh',run:refreshNow});
  if(state.sel)actions.push({label:'Catch me up',group:'This session',icon:'catchup',run:()=>$('#sessionRecap')?.click()},{label:'Change model',group:'This session',icon:'sessions',run:nxModelMenu},{label:'Session details',group:'This session',icon:'panel',run:()=>{nx.panel=true;setView('focus');renderHead();}});
  if(selTerm())actions.push({label:'Raw terminal',group:'This session',icon:'terminal',run:()=>{state.tab='term';setView('focus');}});
- actions.push({label:state.settings?.handoff?'Turn off hand-off between agents':'Turn on hand-off between agents',group:'Actions',icon:'sessions',search:'handoff hand off delegate agents astra codex copilot claude',run:()=>nxSetHandoff()});
+ actions.push({label:state.settings?.handoff?'Turn off hand-off between agents':'Turn on hand-off between agents',group:'Actions',icon:'sessions',search:'handoff hand off delegate agents codex copilot claude',run:()=>nxSetHandoff()});
  actions.push({label:'Voice check',group:'Actions',icon:'voice',run:()=>NexusVoice.check()},{label:'Pair a phone',group:'Actions',icon:'settings',run:pairPhone});
  return [actions.find(a=>a.label==='New session'),...actions.filter(a=>a.group==='Navigate'),...state.sessions.map(s=>({label:s.title,hint:s.theme?.name||'Unsorted',group:'Sessions',icon:'sessions',search:[sessionSearchText(s),s.kind,s.model,s.cwd,nxPurpose(s),sessionPreview(s),statusLabel(s)[1]].join(' '),session:s,run:()=>select(keyOf(s))})),...actions.filter(a=>a.group!=='Navigate'&&a.label!=='New session')];
 }

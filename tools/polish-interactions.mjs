@@ -11,7 +11,7 @@ try{
   await b.js("apsis.phoneCount=8;renderApsis();$('#phoneSessions [data-phone-more]')?.click()");
   await check("state.sessions.length<=8 || $$('#phoneSessions .mission-card').length===16",'many sessions expand in batches on the phone');
   await b.js(`window.normalApi=api;window.normalAct=act;window.requests=[];window.viewed=[];state.transcriptKey=null;state.transcript=null;
-    window.a=state.sessions.find(s=>s.kind==='astra'&&s.insights?.digest);window.z=state.sessions.find(s=>s!==window.a&&s.insights?.digest);
+    window.a=state.sessions.find(s=>s.kind==='codex'&&s.insights?.digest);window.z=state.sessions.find(s=>s!==window.a&&s.insights?.digest);
     api=p=>p.startsWith('/api/transcript')?new Promise((resolve,reject)=>window.requests.push({key:new URL(p,location).searchParams.get('key'),resolve,reject})):normalApi(p);
     act=async(action,extra)=>{if(action!=='viewed')throw Error('Unexpected mutation '+action);viewed.push(extra);return {at:extra.at}};
     apsis.viewedAt.clear();select(keyOf(a));select(keyOf(z));
@@ -28,7 +28,7 @@ try{
   await b.js("$('#startSession').focus();$('#startSession').dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true}))");
   await check("document.activeElement.matches('[data-modal-dismiss]')",'Tab wraps to the first visible dialog control');
   await b.js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}))");await check("document.activeElement.id==='startSession'",'Shift-Tab wraps to the last control');
-  await b.js("window.normalOpen=openInApp;window.opens=0;openInApp=()=>{opens++;return new Promise(r=>window.finishOpen=r)};$('#startSession').click();$('#modalCard [value=astra]').click();$('#startSession').click()");
+  await b.js("window.normalOpen=openInApp;window.opens=0;openInApp=()=>{opens++;return new Promise(r=>window.finishOpen=r)};$('#startSession').click();$('#modalCard [value=codex]').click();$('#startSession').click()");
   await check('opens===1','new-session submission cannot duplicate while pending');
   await b.js('finishOpen(false)');await sleep(50);await check("$('#modal').classList.contains('on') && $('#startSession').textContent==='Try again'",'failed launch keeps the folder and offers retry');
   await b.shot('docs/shots/polish/390-new-session-error.png');await b.js('openInApp=normalOpen;closeModal()');

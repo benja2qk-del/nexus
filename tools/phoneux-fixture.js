@@ -3,12 +3,12 @@
 (() => {
   const now = Date.now(), ts = new Date(now).toISOString();
   const sessions = Array.from({length: 12}, (_, n) => ({
-    kind: n === 2 ? 'astra' : 'claude', id: 'phoneux-fixture-' + n,
+    kind: n === 2 ? 'codex' : 'claude', id: 'phoneux-fixture-' + n,
     title: ['Steam Cloud publishing', 'Beacon build validation', 'Beacon phone usability', 'Steam store copy review'][n % 4],
     group: n < 9 ? 'Beacon' : 'Atlas', groupLabel: n < 9 ? 'Beacon' : 'Atlas',
     cwd: 'C:\\fixture\\' + (n < 9 ? 'Beacon' : 'Atlas'), firstPrompt: 'Review the release and report the result.',
     lastPrompt: 'Please finish the publishing checks.', lastText: n === 0 ? 'Unticked the developers-only box on Steam Cloud. The public configuration is saved; publishing is ready for your approval.' : 'Validated the latest build and checked the release notes. All recorded checks passed.',
-    recentTools: n === 0 ? ['Chrome', 'Astra'] : [], live: n < 3, remote: n === 0,
+    recentTools: n === 0 ? ['Chrome', 'Codex'] : [], live: n < 3, remote: n === 0,
     status: n === 1 || n === 2 ? 'busy' : n === 0 ? 'idle' : 'offline', runState: n === 2 ? 'active' : 'complete',
     term: n === 0 ? 'phoneux-fixture' : null, updated: now - n * 60000, size: 123456 + n, model: 'claude-opus',
     insights: { objective: {title: 'Prepare the Beacon release', request: 'Verify Steam Cloud and publish the configuration.'},
@@ -22,7 +22,7 @@
     {t:'ai',text:'I found the developers-only setting and checked the public configuration.',ts},
     {t:'tool',name:'mcp__claude-in-chrome__computer',id:'tool-1',text:'Click the developers-only checkbox',ts},
     {t:'result',id:'tool-1',text:'Checkbox cleared',ts},
-    {t:'tool',name:'Bash',id:'tool-2',text:'codex exec "Review the release notes"',astra:true,ts},
+    {t:'tool',name:'Bash',id:'tool-2',text:'codex exec "Review the release notes"',codex:true,ts},
     {t:'ai',text:'**Steam Cloud is ready.**\n\nUnticked the developers-only box. The public configuration is saved.\n\n- Windows and macOS paths are verified.\n- The release notes match this build.\n\nPublishing needs your approval below.',ts}
   ];
   const terminal = 'Saved.Nowpublishingit.\r\n\r\nDo you want to publish the Steam Cloud configuration?\r\n  1. Yes, publish this configuration\r\n  2. Yes, allow publishing for this session\r\n  3. No, keep the saved draft\r\nEsc to cancel';

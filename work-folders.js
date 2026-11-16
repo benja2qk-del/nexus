@@ -231,7 +231,7 @@ function toolPaths(name, raw, cwd, home) {
 function parentMarker(kind, r) {
   // parentUuid is a message link, not a session relationship.
   if (kind === 'claude' && r.type === 'fork-context-ref') return r.parentSessionId;
-  if (kind === 'astra' && r.type === 'session_meta') return r.payload?.forked_from;
+  if (kind === 'codex' && r.type === 'session_meta') return r.payload?.forked_from;
   return null;
 }
 class WorkScanner {
@@ -241,7 +241,7 @@ class WorkScanner {
     // Only compact aggregates and a record-boundary checkpoint survive restart.
     // Read-only probes neither load nor write the owner's persistent cache.
     if(cacheFile&&!readOnly)try{
-      const saved=JSON.parse(fs.readFileSync(cacheFile,'utf8'));
+      const saved=JSON.parse(fs.readFileSync(cacheFile,'utf8'));require('./legacy-names').cache(saved); // old kinds written after the start-up migration
       if(saved.version===2&&saved.rootsKey===roots.cacheKey)for(const [file,v] of saved.files){
         if(!Number.isSafeInteger(v.offset)||v.offset<0||v.offset>v.size||!Array.isArray(v.roots)||!Array.isArray(v.basenames)||!Array.isArray(v.ids))continue;
         this.cache.set(file,{...v,roots:new Map(v.roots.map(r=>[identity(r.path),r])),names:new Set(v.basenames),ids:new Set(v.ids),fragments:[],carryBytes:0});
@@ -323,11 +323,11 @@ class WorkScanner {
   status(){return {pending:this.pending.size,files:this.cache.size,bytesRead:this.bytesRead,revision:this.revision,elapsedMs:Math.round(this.elapsedMs),peakRssBytes:this.peakRss};}
   record(s,kind,r) {
     const p=r.payload||r.data||{};
-    const cwd=kind==='claude'?r.cwd:kind==='astra'&&['session_meta','turn_context'].includes(r.type)?p.cwd:kind==='copilot'&&['session.start','session.resume'].includes(r.type)?p.context?.cwd:null;
+    const cwd=kind==='claude'?r.cwd:kind==='codex'&&['session_meta','turn_context'].includes(r.type)?p.cwd:kind==='copilot'&&['session.start','session.resume'].includes(r.type)?p.context?.cwd:null;
     if(typeof cwd==='string'&&cwd){s.cwd=cwd;s.hasCwd=true;}
     const parent=parentMarker(kind,r);if(typeof parent==='string'&&/^[\w-]{1,128}$/.test(parent))s.parent={key:kind+':'+parent,relation:'fork'};
     const calls=kind==='claude'&&r.type==='assistant'&&!r.isSidechain?(r.message?.content||[]).filter(t=>t.type==='tool_use'):
-      kind==='astra'&&r.type==='response_item'&&['function_call','custom_tool_call'].includes(p.type)?[p]:
+      kind==='codex'&&r.type==='response_item'&&['function_call','custom_tool_call'].includes(p.type)?[p]:
       kind==='copilot'&&r.type==='assistant.message'?p.toolRequests||[]:
       kind==='copilot'&&/^tool\.execution_/.test(r.type)&&p.arguments?[p]:[];
     for(const t of calls){

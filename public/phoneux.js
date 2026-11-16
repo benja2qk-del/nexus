@@ -1,15 +1,17 @@
 'use strict';
+// iOS Safari applies :active (the pressed look) only when the page listens for touches.
+if (typeof document !== 'undefined') document.addEventListener('touchstart', () => {}, { passive: true });
 
 function sessionPreview(s) {
   // A finished exchange shows its label ("Playtester kit update"); a working session shows what it is doing.
   if (s.label && statusLabel(s)[0] !== 'busy') return s.label;
-  return [s.latestContext,s.lastText,s.kind==='astra'&&(s.commission||s.briefSummary),s.lastPrompt,s.firstPrompt].filter(Boolean).map(text=>NexusDesign.plainSummary(/^you are\b/i.test(text)?NexusActivity.briefTitle(text).summary:text)).find(Boolean)||'';
+  return [s.latestContext,s.lastText,s.kind==='codex'&&(s.commission||s.briefSummary),s.lastPrompt,s.firstPrompt].filter(Boolean).map(text=>NexusDesign.plainSummary(/^you are\b/i.test(text)?NexusActivity.briefTitle(text).summary:text)).find(Boolean)||'';
 }
 function sessionTags(s) {
-  return [...new Set([...(s.recentTools || []), ...(s.kind === 'astra' ? ['Astra'] : []), ...(s.live && s.remote ? ['Remote'] : []), ...(s.term || s.inNexus ? ['IN NEXUS'] : [])])];
+  return [...new Set([...(s.recentTools || []), ...(s.kind === 'codex' ? ['Codex'] : []), ...(s.live && s.remote ? ['Remote'] : []), ...(s.term || s.inNexus ? ['IN NEXUS'] : [])])];
 }
 function sessionTagsHTML(s) {
-  return '<span class="session-tags">' + sessionTags(s).map(tag => `<span title="${tag === 'Chrome' || tag === 'Astra' ? 'Recently used in this conversation' : esc(tag)}">${esc(tag)}</span>`).join('') + '</span>';
+  return '<span class="session-tags">' + sessionTags(s).map(tag => `<span title="${tag === 'Chrome' || tag === 'Codex' ? 'Recently used in this conversation' : esc(tag)}">${esc(tag)}</span>`).join('') + '</span>';
 }
 function sessionSearchText(s) {
   return [s.title,s.firstPrompt,s.lastPrompt,s.lastText,s.latestContext,s.cwd,s.groupLabel,s.briefTitle,s.id,s.theme?.name,s.searchText,...(s.workFolders||[]).map(f=>f.path),...(s.touchedFiles||[]),...sessionTags(s)].join(' ').toLowerCase();
@@ -62,5 +64,5 @@ function currentTerminalPrompt(v) {
   return NexusConversation.pendingPrompt(lines.map(l => l.trimEnd()).join('\n'));
 }
 function chatHelp() {
-  modal('<h2>One conversation</h2><p>Send starts a saved session and delivers your message when it is ready. Your message stays marked Sending until it appears in the conversation.</p><p>Expand Thinking or an activity row for details. Answer questions using their buttons. Interrupt stops the current turn. Terminal is the advanced, raw screen.</p><p>Attach files or photos up to 50 MB each. On a phone, Return adds a new line.</p><p>Tap Talk for a hands-free conversation. Pause to send, or use Send now. Tap the Talk panel during speech to interrupt. End stops voice. Voice check in More tests the microphone and playback.</p>');
+  modal('<h2>Conversation help</h2><p>Send delivers your message. A saved session is resumed first, and your message says Sending until it appears in the conversation. While the agent works, new messages wait in the queue; Send now delivers one at once.</p><p>Tap Thinking or a step to see its details. Answer the agent\'s questions with their buttons. Stop ends the current turn. Raw terminal, in the ⋯ menu, shows the session\'s own screen.</p><p>Attach files or photos up to 50 MB each. On a phone, Return adds a new line.</p><p>Call starts a spoken conversation with the agent.</p>');
 }

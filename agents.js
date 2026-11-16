@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs'), path = require('path');
-const names = { claude: 'claude', astra: 'codex', copilot: 'copilot', antigravity: 'agy' };
+const names = { claude: 'claude', codex: 'codex', copilot: 'copilot', antigravity: 'agy' };
 function detect({ env = process.env, platform = process.platform, exists = file => { try { return fs.statSync(file).isFile(); } catch { return false; } } } = {}) {
   const windows = platform === 'win32', entries = String(env.PATH || env.Path || '').split(windows ? ';' : ':').filter(Boolean);
   const extensions = windows ? ['.exe', '.cmd', '.bat'] : [''];
@@ -44,10 +44,14 @@ function launch(kind, args = []) {
   }
   return { file: agent.executable, args };
 }
+// A session that lives in WSL runs that distro's own CLI (wsl.js); the Windows install is not needed for it.
+function launchIn(where, kind, args = [], env = {}) {
+  return require('./wsl').launch(names[kind] || kind, args.filter(arg => !unknownFlags.has(kind + ' ' + arg)), where, env);
+}
 function summaryProvider(status = publicStatus()) {
   if (status.claude?.installed) return { kind: 'claude', model: 'haiku', note: 'One Haiku request using your Claude account. Runs only when you press Summarize.' };
   if (status.copilot?.installed) return { kind: 'copilot', model: summaryModel, note: 'One Copilot '+summaryModel+' request. Your plan determines credits or premium requests. Runs only when you press Summarize; Copilot saves the summary session.' };
-  if (status.astra?.installed) return {kind:'astra',model:'gpt-5.6-terra',note:'One Astra request using your Codex account. Runs only when you press Summarize.'};
+  if (status.codex?.installed) return {kind:'codex',model:'gpt-5.6-terra',note:'One request using your Codex account. Runs only when you press Summarize.'};
   return { kind: null, note: 'Summarize requires Claude, Codex or Copilot on PATH. The instant recap is available without a model.' };
 }
-module.exports = { detect, refresh, publicStatus, launch, unsupported, summaryProvider, configure };
+module.exports = { detect, refresh, publicStatus, launch, launchIn, unsupported, summaryProvider, configure };

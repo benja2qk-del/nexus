@@ -14,6 +14,7 @@ const { WebSocketServer } = require('ws');
 const { randomBytes } = require('crypto');
 const models = require('./models');
 const agents = require('./agents');
+const wsl = require('./wsl');
 
 const MAX_SCROLLBACK = 2e6; // characters kept for replay on reattach
 const terms = new Map();
@@ -34,8 +35,10 @@ function cleanEnv() {
   return env;
 }
 
-function create({ kind, title, cwd, sessionKey, file, args, env: overrides }) {
-  if (!cwd || !fs.existsSync(cwd)) cwd = os.homedir();
+// where: the session's folder is in WSL; the CLI runs there (wsl.exe), so the process itself starts in the home folder.
+function create({ kind, title, cwd, sessionKey, file, args, env: overrides, where = null }) {
+  const folder = cwd;
+  if (where || !cwd || !fs.existsSync(cwd)) cwd = os.homedir();
   const env = { ...cleanEnv(), ...overrides };
   // Headless verification owns only new terminals in TEMP and isolates all CLI state.
   if (process.env.NEXUS_TEST_TERMINALS === '1') {
@@ -46,7 +49,7 @@ function create({ kind, title, cwd, sessionKey, file, args, env: overrides }) {
     fs.mkdirSync(env.CLAUDE_CONFIG_DIR, { recursive: true }); fs.mkdirSync(env.CODEX_HOME, { recursive: true });
   }
   const p = pty.spawn(file, args, { name: 'xterm-256color', cols: 120, rows: 36, cwd, env, useConptyDll: false });
-  const t = { id: 't' + instance + '-' + (++seq), kind, title, cwd, sessionKey: sessionKey || null, pid: p.pid, started: Date.now(), exited: null, buf: '', clients: new Set(), display: new TerminalScreen(), pty: p, lastOut: Date.now(), remote: (args || []).includes('--remote-control') };
+  const t = { id: 't' + instance + '-' + (++seq), kind, title, cwd: where ? folder : cwd, ...(where ? { wsl: where.distro || 'WSL' } : {}), sessionKey: sessionKey || null, pid: p.pid, started: Date.now(), exited: null, buf: '', clients: new Set(), display: new TerminalScreen(), pty: p, lastOut: Date.now(), remote: (args || []).includes('--remote-control') };
   p.onData(d => {
     t.outputRevision=(t.outputRevision||0)+1;
     t.display.write(d);
@@ -58,7 +61,10 @@ function create({ kind, title, cwd, sessionKey, file, args, env: overrides }) {
     for (const ws of t.clients) if (ws.readyState === 1) ws.send(msg);
   });
   p.onExit(e => {
-    t.exited = { code: e.exitCode, at: Date.now() };
+    // A CLI that stops before its input box ever showed did not run the session; its last lines say why (no such
+    // session for that CLI, a missing folder, a CLI that is not installed in WSL).
+    const last = String(screen(t) || '').split(/\r?\n/).map(l => l.trimEnd()).filter(l => l.trim()).slice(-3).join('\n').slice(-400);
+    t.exited = { code: e.exitCode, at: Date.now(), early: !t.seenInput, last };
     const msg = JSON.stringify({ t: 'x', code: e.exitCode });
     for (const ws of t.clients) if (ws.readyState === 1) ws.send(msg);
   });
@@ -76,10 +82,12 @@ function open(spec) {
     for (const t of terms.values()) if (t.sessionKey === spec.sessionKey && !t.exited) return t;
   }
   spec = decorate(spec);
-  let cliArgs = spec.kind === 'copilot' ? [...(spec.copilotArgs||[])] : spec.kind === 'astra' ? spec.codexArgs||[] : spec.kind === 'antigravity' ? spec.antigravityArgs||[] : spec.claudeArgs||[];
+  let cliArgs = spec.kind === 'copilot' ? [...(spec.copilotArgs||[])] : spec.kind === 'codex' ? spec.codexArgs||[] : spec.kind === 'antigravity' ? spec.antigravityArgs||[] : spec.claudeArgs||[];
   if(spec.kind==='copilot'&&spec.fresh){const id=require('crypto').randomUUID();cliArgs.push('--session-id',id);spec={...spec,sessionKey:'copilot:'+id};}
-  const {file,args}=agents.launch(spec.kind,cliArgs);
-  const t = create({ kind: spec.kind, title: spec.title, cwd: spec.cwd, sessionKey: spec.sessionKey, file, args, env:spec.env });
+  // A folder in WSL (a Linux path or \\wsl.localhost\...) is a session of that distro: its own CLI resumes it.
+  const where = wsl.locate(spec.cwd, spec.distro);
+  const {file,args}=where?agents.launchIn(where,spec.kind,cliArgs,spec.env||{}):agents.launch(spec.kind,cliArgs);
+  const t = create({ kind: spec.kind, title: spec.title, cwd: spec.cwd, sessionKey: spec.sessionKey, file, args, env:spec.env, where });
   const at = cliArgs.findIndex(a => a === '--model' || a === '-m');
   if (at >= 0 && cliArgs[at + 1] && !cliArgs.includes('--resume') && !cliArgs.includes('resume')) { t.model = cliArgs[at + 1]; t.modelAt = Date.now(); }
   return t;
@@ -113,12 +121,13 @@ async function forkCopilot(id) {
 }
 
 function list() {
-  return [...terms.values()].map(t => ({ id: t.id, kind: t.kind, title: t.title, cwd: t.cwd, sessionKey: t.sessionKey, pid: t.pid, started: t.started, exited: t.exited, lastOut: t.lastOut, remote: t.remote, themeMethod:t.themeMethod, model:t.model||'', modelAt:t.modelAt||0, waiting: !t.exited && waitingFor(t) }));
+  return [...terms.values()].map(t => ({ id: t.id, kind: t.kind, title: t.shownTitle || t.title, cwd: t.cwd, ...(t.wsl ? { wsl: t.wsl } : {}), sessionKey: t.sessionKey, pid: t.pid, started: t.started, exited: t.exited, lastOut: t.lastOut, remote: t.remote, themeMethod:t.themeMethod, model:t.model||'', modelAt:t.modelAt||0, waiting: !t.exited && waitingFor(t) }));
 }
 
 // Plain text of the last screenful, without escape sequences.
 function screen(t) { return t.display ? t.display.text() : t.buf; }
 function waitingFor(t) { return !!pendingPrompt(screen(t)); }
+function screenOf(id) { const t = terms.get(id); if (!t) throw Error('Terminal unavailable'); return screen(t); }
 function readyFor(t) {
   return inputShown(t) && Date.now() - t.lastOut >= 600;
 }
@@ -128,6 +137,21 @@ function inputShown(t) {
   return !t.exited && !inputBusy(screen(t)) && !t.display.synchronized && !t.display.pending && inputReady(screen(t), {seenInput:t.kind==='copilot'?false:t.seenInput});
 }
 const notSent = message => Object.assign(Error(message), { notSent: true });
+// What the bottom message box holds: the lines between its rules (Claude, Copilot; a narrow Claude puts its prompt at
+// the end of a titled top rule), or from Codex's › to its footer.
+const RULE = /[─━╌]{3,}/;
+function boxText(t) {
+  const lines = String(screen(t)).replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').split('\n').map(l => l.replace(/^\s*│ ?/, '').replace(/ ?│\s*$/, ''));
+  const bottom = lines.findLastIndex(l => RULE.test(l)), top = lines.slice(0, Math.max(0, bottom)).findLastIndex(l => RULE.test(l));
+  const inline = top >= 0 && /[❯›]\s?(.*)$/.exec(lines[top]);
+  let box = inline ? [inline[1], ...lines.slice(top + 1, bottom)] : top >= 0 && /^\s*[❯›>]/.test(lines[top + 1]) ? lines.slice(top + 1, bottom) : null;
+  if (!box) { const at = lines.findLastIndex(l => /^\s*›(\s|$)/.test(l)), end = lines.findIndex((l, i) => i > at && (!l.trim() || /\? for shortcuts|\d+% context left/i.test(l))); box = at < 0 ? [] : lines.slice(at, end < 0 ? undefined : end); }
+  return box.join('\n').replace(/^\s*[❯›>]/, '');
+}
+// A long paste shows as a placeholder; wrapping (any width) only adds spaces.
+const bare = s => String(s).replace(/\s+/g, '');
+function stillTyped(t, text) { const box = bare(boxText(t)); return !!box && (box.startsWith(bare(text).slice(0, 30)) || /^\[Pasted(?:text|Content)/i.test(box)); }
+const LEFT_TYPED = 'Your message is still typed in the session\'s box: Retry sends it as typed, or send or clear it in Terminal.';
 function state(id, events) {
   const t = terms.get(id);
   if (!t) throw Error('Terminal unavailable');
@@ -152,8 +176,9 @@ async function send(id, text, { answer, signature, modelCommand=false, commandId
   const commandRisk=slash.core.risk(command);
   if(commandRisk&&commandConfirmation!==text)throw Error('Confirm '+('/'+command.name)+' in NEXUS before sending it.');
   if (!t || t.exited) throw Error('Terminal ended. Your message was not delivered.');
-  if (t.sending) throw Error('A message is already being sent.');
-  if(t.switching&&!modelCommand)throw Error('Wait for the model change to finish.');
+  // Nothing is typed before these two refusals, so the queue may retry them by itself.
+  if (t.sending) throw notSent('A message is already being sent.');
+  if(t.switching&&!modelCommand)throw notSent('Wait for the model change to finish.');
   if (answer !== undefined) {
     t.sending = true;
     try {
@@ -213,15 +238,20 @@ async function send(id, text, { answer, signature, modelCommand=false, commandId
       if (Date.now() >= deadline) throw notSent('The session is not ready for input. Your message was not delivered; check Terminal.');
       await pause(100);
     }
+    // An earlier paste whose Enter was refused is still in the box: Retry presses Enter on it as it stands, and any
+    // other text would be typed onto it and arrive as one message.
+    const left = !!t.unsent && stillTyped(t, t.unsent.text);
+    if (left && t.unsent.text !== text) throw notSent('Your earlier message is still typed in the session\'s box. Send or clear it in Terminal first.');
+    t.unsent = null;
     const queued = t.kind === 'claude' && inputBusy(screen(t));
-    t.pty.write('\x1b[200~' + text.replace(/\r\n/g, '\n') + '\x1b[201~');
-    await pause(120);
+    if (!left) { t.pty.write('\x1b[200~' + text.replace(/\r\n/g, '\n') + '\x1b[201~'); await pause(120); }
     // Let a redraw that is mid-frame finish before judging the screen.
     for (const until = Date.now() + 1500; (t.display.synchronized || t.display.pending) && !t.exited && Date.now() < until;) await pause(40);
     if (t.exited) throw Error('Terminal ended. Your message was not delivered.');
-    if (waitingFor(t) || inputMenu(screen(t))) throw Error('The question or screen changed before Enter. Your message was not delivered; check Terminal.');
-    if(modelCommand&&inputBusy(screen(t)))throw Error('The session started working before Enter. Model change not confirmed.');
-    if(!midTurn&&inputBusy(screen(t)))throw Error('The session started working before Enter. Check Terminal before retrying.');
+    const refused = message => { t.unsent = { text }; return Error(message); };
+    if (waitingFor(t) || inputMenu(screen(t))) throw refused('The question or screen changed before Enter. ' + LEFT_TYPED);
+    if(modelCommand&&inputBusy(screen(t)))throw refused('The session started working before Enter. Model change not confirmed; the command is still typed in the session\'s box.');
+    if(!midTurn&&inputBusy(screen(t)))throw refused('The session started working before Enter. ' + LEFT_TYPED);
     const receipt=command&&!modelCommand?commandReceipts.begin(t,text,commandId||randomBytes(12).toString('hex'),slash.builtin(t.kind,text),screen(t)):null;
     const submittedAt=receipt?.submittedAt||Date.now();
     t.pty.write('\r');
@@ -288,7 +318,22 @@ function anyRunning() { for (const t of terms.values()) if (!t.exited) return tr
 function linkSessions(registry) {
   for (const t of terms.values()) {
     if (t.kind !== 'claude' || t.exited) continue;
-    for (const r of registry.values()) if (r.pid === t.pid) t.sessionKey = 'claude:' + r.sessionId;
+    for (const r of registry.values()) if (r.pid === t.pid) {
+      const key = 'claude:' + r.sessionId;
+      // /clear or /resume moves Claude's process to another conversation; t.title still names the one it was opened for.
+      if (t.sessionKey && t.sessionKey !== key && !t.openedFor) t.openedFor = t.sessionKey;
+      t.sessionKey = key;
+    }
+  }
+}
+// A terminal that moved is titled after the conversation it serves now, on every page, also one loaded after the move.
+// rowOf(key) is the listed row for a key (aliases resolved) or null. Claude continuing one conversation under a new id
+// resolves both keys to one row, and the terminal keeps its title.
+function retitle(rowOf) {
+  for (const t of terms.values()) {
+    if (!t.openedFor) continue;
+    const now = rowOf(t.sessionKey), was = rowOf(t.openedFor), folder = String(t.cwd || '').split(/[\\/]/).filter(Boolean).at(-1);
+    t.shownTitle = now && now === was ? '' : now ? now.title : 'New conversation' + (folder ? ' · ' + folder : '');
   }
 }
 
@@ -324,4 +369,4 @@ function attach(server, port, opts = {}) {
   });
 }
 
-module.exports = { agentBusy, setLaunchDecorator, NESTED_VARS, send, forkCopilot, changeModel, state, screen, waitingFor, remoteOn, open, close, closeAll, list, anyRunning, linkSessions, linkSession, byPid, attach, revalidateClients: () => revalidateClients() };
+module.exports = { agentBusy, setLaunchDecorator, NESTED_VARS, send, forkCopilot, changeModel, state, screen, screenOf, waitingFor, remoteOn, open, close, closeAll, list, anyRunning, linkSessions, retitle, linkSession, byPid, attach, revalidateClients: () => revalidateClients() };

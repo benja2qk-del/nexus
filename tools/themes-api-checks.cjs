@@ -8,7 +8,7 @@ const user={type:'user',cwd,message:{content:'Fix the alpha repo parser and veri
 const edit={type:'assistant',cwd,message:{content:[{type:'tool_use',id:'x',name:'Edit',input:{file_path:path.join(repo,'parser.js'),old_string:'before',new_string:'after'}}]}};
 write(path.join(claude,'parent.jsonl'),[user,edit,{type:'continued-in',continuedInSessionId:'continued'}]);
 write(path.join(claude,'continued.jsonl'),[user,edit]);write(path.join(claude,'unsorted.jsonl'),[{...user,cwd:require('os').homedir(),message:{content:user.message.content.repeat(2)}}]);
-write(path.join(codex,'rollout-fixture.jsonl'),[{type:'session_meta',payload:{id:'astra-fixture',cwd}},{type:'response_item',payload:{type:'function_call',name:'exec_command',call_id:'x',arguments:JSON.stringify({cmd:'pwd',workdir:repo})}}]);
+write(path.join(codex,'rollout-fixture.jsonl'),[{type:'session_meta',payload:{id:'codex-fixture',cwd}},{type:'response_item',payload:{type:'function_call',name:'exec_command',call_id:'x',arguments:JSON.stringify({cmd:'pwd',workdir:repo})}}]);
 const cpId='11111111-1111-4111-8111-111111111111',cp=path.join(copilot,cpId);fs.mkdirSync(cp);fs.writeFileSync(path.join(cp,'workspace.yaml'),'id: '+cpId+'\ncwd: '+JSON.stringify(cwd)+'\nname: Alpha repo Copilot\n');write(path.join(cp,'events.jsonl'),[{type:'session.start',data:{sessionId:cpId,context:{cwd}}},{type:'tool.execution_start',data:{toolName:'edit',toolCallId:'edit',arguments:{path:path.join(repo,'cp.js')}}}]);
 const config={remoteHost:'themes.example.test',remoteUser:'owner@example.test'};fs.writeFileSync(path.join(root,'config.json'),JSON.stringify(config));
 const port=process.env.NEXUS_TEST_PORT||'4791';
@@ -30,7 +30,7 @@ async function main(){try{
   const pairing=await json('/api/pair/new',{});const paired=await fetch(base+'/api/pair',{method:'POST',headers:remote,body:JSON.stringify({code:pairing.code,name:'Themes fixture phone'})});assert.equal(paired.status,200);const phone={...remote,Cookie:paired.headers.get('set-cookie').split(';')[0],Origin:'https://'+config.remoteHost};
   assert.equal((await json('/api/themes',undefined,phone)).status,200);
   const created=await json('/api/themes',{op:'create',name:'Phone Theme',color:'#123456'},phone);assert.equal(created.status,200);const id=created.result.id;
-  const assigned=await json('/api/themes/assign',{keys:['claude:parent','astra:astra-fixture'],themeId:id},phone);assert.equal(assigned.result.assigned,2);
+  const assigned=await json('/api/themes/assign',{keys:['claude:parent','codex:codex-fixture'],themeId:id},phone);assert.equal(assigned.result.assigned,2);
   result=await json('/api/sessions');assert.equal(result.sessions.find(s=>s.id==='continued').theme.id,id);assert.equal(result.sessions.find(s=>s.id==='continued').theme.source,'owner');
   assert.equal((await json('/api/themes/assign',{keys:['claude:continued','no-such-key'],themeId:null})).status,400);assert.equal((await json('/api/sessions')).sessions.find(s=>s.id==='continued').theme.id,id,'batch failure is atomic');
   const accepted=await json('/api/themes/accept',{keys:['claude:unsorted']},phone);assert.equal(accepted.result.assigned,1);

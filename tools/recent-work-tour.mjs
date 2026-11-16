@@ -42,6 +42,7 @@ async function tour(width, height) {
       await b.js(`setView('overview');true`); await sleep(300);
       await b.js(`document.querySelector('.nx-phone-home-head [data-recent-work]').click()`);
       await check(`rows().length===10&&document.documentElement.scrollWidth<=innerWidth`, 'phone Home opens Recent work without sideways scroll');
+      await check(`document.querySelector('#modal [data-recent-close]').offsetHeight>=44`, 'phone Recent work ends with a 44px Close button');
       await b.shot(`${out}/${width}-recent.png`);
       return report;
     }
@@ -57,10 +58,15 @@ async function tour(width, height) {
     await check(`(()=>{const t=document.querySelector('.nx-rw-summary').textContent;return t.startsWith('In the last 24 hours you worked in Unsorted.')&&t.includes('1 needs you')&&t.includes('1 working')&&t.includes('7 on Windows, 3 in WSL');})()`, 'summary says where you worked, what needs you, what works, and Windows vs WSL');
     await check(`(()=>{const r=row('w1');return r.querySelector('.nx-rw-result').textContent==='Edited 2 files in src/'&&r.querySelector('.nx-rw-files').textContent==='login.tsx, server.js'&&!r.textContent.includes('Make the login button work on mobile');})()`, 'a row shows the result and real file names, not your raw message');
     await check(`row('l1').querySelector('.nx-rw-result').textContent.includes('The SSH key path was wrong')&&!row('g1').querySelector('.nx-rw-result')`, 'the agent reply is the result; your own message never poses as one');
+    await check(`(()=>{const c=document.querySelector('#modal .nx-rw-catch').getBoundingClientRect(),t=document.querySelector('#modal .nx-rw-theme h3>small').getBoundingClientRect();return Math.abs(c.right-t.right)<=1&&!/Summarize/.test(document.querySelector('#modal .nx-rw-ai-note')?.textContent||'');})()`, 'Catch up ends on the time column and the note names no missing Summarize button');
+    await check(`document.querySelector('#modal .modal-actions [data-recent-close]').textContent==='Close'`, 'Recent work ends with a Close button');
     await check(`document.querySelectorAll('#modal .nx-rw-theme').length===1&&document.querySelector('#modal .nx-rw-theme h3').textContent.startsWith('Unsorted')`, 'rows are grouped under their theme');
     await b.shot(`${out}/${width}-recent.png`);
     await b.js(`document.querySelector('[data-recent-more]').click()`);
     await check(`rows().length===13&&!document.querySelector('[data-recent-more]')`, 'Show 10 more lists the rest');
+    await b.js(`document.querySelector('[data-recent-close]').click()`);
+    await check(`!document.querySelector('#modal').classList.contains('on')`, 'Close closes Recent work');
+    await b.js(`document.querySelector('.nx-sidebar-foot [data-recent-work],.nx-quick [data-recent-work]').click()`);
     await b.js(`row('l1').querySelector('[data-recent-open]').click()`);
     await check(`!document.querySelector('#modal').classList.contains('on')&&state.sel==='copilot:l1'`, 'a row opens its session');
     await b.js(`setView('overview');true`); await sleep(300);

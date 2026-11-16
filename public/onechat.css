@@ -1,4 +1,5 @@
 /* A single conversation on desktop and phone. */
+.nx-compose-notice{font-size:13px;line-height:1.4;padding:8px 12px 4px;overflow-wrap:anywhere}
 .fh-subtitle,.fh-latest{font-size:13px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
 .fh-subtitle{color:var(--text)}.fh-latest b{font-weight:500;color:var(--accent);margin-right:5px}
 .focus:not([data-tab=chat]) .fh-subtitle,.focus:not([data-tab=chat]) .fh-latest{display:none}
@@ -9,7 +10,7 @@
 #chatMessages .md,#chatMessages .bubble{font-size:15px;line-height:1.6;overflow-wrap:anywhere}
 #chatMessages .md pre{max-width:100%;overflow:auto}#chatMessages .md table{display:block;overflow:auto}
 .nx-long-reply>summary{list-style:none;cursor:pointer;font-size:12px;color:var(--dim);min-height:28px}.nx-long-reply[open]>summary span:last-child,.nx-long-reply:not([open])>summary span:first-child,.nx-long-reply[open]+.nx-reply-preview{display:none}
-.apsis .chat-tools summary.nx-steps{display:block;line-height:1.5}.nx-steps b{display:block;font-weight:500;margin-bottom:2px}.nx-steps span{display:block;overflow-wrap:anywhere;color:var(--muted-foreground)}.nx-steps .nx-step-error{color:var(--destructive,#e66)}
+.apsis .chat-tools summary.nx-steps{display:block;line-height:1.5}.nx-steps b{display:block;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.nx-steps span{display:block;overflow-wrap:anywhere;color:var(--muted-foreground)}.nx-steps .nx-step-error{color:var(--destructive,#e66)}
 .nx-chat-images{display:flex;flex-wrap:wrap;gap:8px}.nx-chat-image{padding:0;border:1px solid var(--hairline);border-radius:12px;overflow:hidden;background:none;cursor:zoom-in;line-height:0;max-width:min(320px,100%)}.nx-chat-image img{display:block;max-width:100%;max-height:240px}.nx-chat-image-full{display:block;max-width:100%;max-height:75dvh;margin:0 auto 12px}
 .chat-thinking{margin:8px 0 12px;border-left:2px solid var(--line-hi);color:var(--dim);font-size:13px}
 .chat-thinking summary{padding:9px 12px;cursor:pointer;min-height:36px}.chat-thinking time{font-size:11px;margin-left:8px}
@@ -51,3 +52,7 @@
   .apsis .focus[data-tab=chat] .steer-buttons>.primary{flex:2}.apsis .steer-buttons>.chip-btn{flex:0 0 40px}
   body.keyboard-open .fh-subtitle,body.keyboard-open .fh-latest{display:none}
 }
+body.redesign .chat-tools>summary.nx-steps{position:relative;padding-left:28px}
+body.redesign .chat-tools>summary.nx-steps:before{content:'›';position:absolute;left:12px;top:8px;line-height:20px;color:var(--muted-foreground)}
+body.redesign .chat-tools[open]>summary.nx-steps:before{content:'⌄'}
+#modalCard>h2+.nx-file-folder{margin:-4px 0 12px;font:12px/1.5 var(--font-mono);color:var(--muted-foreground);overflow-wrap:anywhere}

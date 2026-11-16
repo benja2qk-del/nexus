@@ -46,7 +46,7 @@ const checks = String.raw`(async () => {
   let actionCount = 0;
   act = async () => { actionCount++; return false; };
   try {
-    const expired = limitHTML('astra', '5-hour', {pct:78,resetsAt:Date.now()-60000}, Date.now()-7200000);
+    const expired = limitHTML('codex', '5-hour', {pct:78,resetsAt:Date.now()-60000}, Date.now()-7200000);
     check(expired.includes('78%*') && expired.includes('stale') && !expired.includes('<b>0%'), 'expired quota preserves the reading');
     $('#newBtn').focus(); newSessionModal();
     check(document.activeElement.id === 'folderSearch' && $('#app').inert, 'dialog starts at search and isolates the app');
@@ -119,7 +119,7 @@ const steps = [
   {js:"if (!document.querySelector('#modal').classList.contains('on')) throw new Error('Native Enter on New session failed'); closeModal(); console.log('PASS native Enter opens the picker');"}
 ];
 if (process.argv.includes('--shots')) steps.push(
-  {js:"document.querySelector('#toasts').innerHTML=''; select(keyOf(state.sessions.find(s => s.kind === 'astra' && s.brief)));"}, {wait:400}, {shot:'../../after/1366-focus'},
+  {js:"document.querySelector('#toasts').innerHTML=''; select(keyOf(state.sessions.find(s => s.kind === 'codex' && s.brief)));"}, {wait:400}, {shot:'../../after/1366-focus'},
   {js:"readBrief(state.byKey.get(state.sel))"}, {wait:200}, {shot:'../../after/1366-brief-reader'},
   {js:"window.visualApi = api; api = () => new Promise(() => {});"}, {wait:250},
   {js:"closeModal(); window.visualState = {...state, byKey:new Map(state.byKey), terms:[...state.terms]}; const fixture = {kind:'claude',id:'layout-fixture',title:'Activity and steering · layout fixture',groupLabel:'Design verification',cwd:'C:/fixture',status:'busy',live:true,size:0,term:'layout-fixture',updated:Date.now()}; state.byKey.set(keyOf(fixture), fixture); state.sel=keyOf(fixture); state.terms=[{id:'layout-fixture',kind:'claude',title:'Layout fixture',exited:null}]; state.tab='feed'; state.feedSize=0; state.activity={goal:'Make it easy to watch the agent, read the request, and send a correction from the same view.',current:{name:'Read',text:'public/style.css',running:true},tasks:[{text:'Review the baseline',status:'done'},{text:'Refine the session view',status:'active'},{text:'Verify both screen sizes',status:'todo'}],thought:{text:'This is a browser-only layout fixture. No prompt is sent and no real session is attached.',ts:new Date().toISOString()},turnStart:new Date(Date.now()-180000).toISOString(),steps:4}; renderHead(); document.querySelector('.pu-progress').open=true; updateHTML(document.querySelector('#feed'),'<div class=\"note\">Layout fixture · no terminal connected</div>');"},

@@ -7,7 +7,7 @@ const safe = id => typeof id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,95}$
 const defaults = {
   antigravity: [{id:'default',description:'Antigravity picks the model'}],
   claude: [{id:'claude-opus-5-5',description:'Complex reasoning and demanding code'},{id:'claude-sonnet-5-5',description:'Balanced everyday coding'},{id:'claude-fable-5-1',description:'Long tasks and careful reasoning'},{id:'claude-haiku-5-5',description:'Fast, lightweight tasks'}],
-  astra: [{id:'gpt-6.1-sol'},{id:'gpt-6-astra'},{id:'gpt-6-sol'},{id:'gpt-6-luna'},{id:'gpt-5.6-terra'}],
+  codex: [{id:'gpt-6.1-sol'},{id:'gpt-6-astra'},{id:'gpt-6-sol'},{id:'gpt-6-luna'},{id:'gpt-5.6-terra'}],
   copilot: [{id:'claude-opus-5.5'},{id:'claude-sonnet-5.5'},{id:'gpt-6.1-sol'},{id:'gpt-6-luna'},{id:'gpt-5.6-luna'},{id:'claude-haiku-4.5'}]
 };
 const found = { copilot: [] };
@@ -46,8 +46,8 @@ function discover(installed = require('./agents').detect()) {
   }).on('error', () => {}); } catch {} // No Copilot list: config.json and the defaults still apply.
 }
 function catalog(config) {
-  const sources = { claude: [], astra: codexModels(), copilot: found.copilot, antigravity: [] };
-  return Object.fromEntries(['claude','astra','copilot','antigravity'].map(kind=>{
+  const sources = { claude: [], codex: codexModels(), copilot: found.copilot, antigravity: [] };
+  return Object.fromEntries(['claude','codex','copilot','antigravity'].map(kind=>{
     const merged = [], add = m => { const old = merged.find(x => x.id === m.id); if (!old) merged.push({ ...m }); else for (const [k, v] of Object.entries(m)) if (old[k] === undefined || old[k] === '') old[k] = v; };
     for (const m of sources[kind]) add(m);
     for (const m of (config.models?.[kind] || []).map(m => typeof m === 'string' ? { id: m } : m).filter(m => safe(m?.id))) add(m);
@@ -56,7 +56,7 @@ function catalog(config) {
     return [kind, merged.map(m=>({id:m.id,label:require('./public/redesign-core').modelLabel(m.id),description:String(m.description||''),...(kind==='copilot'&&Number.isFinite(m.premiumMultiplier)&&m.premiumMultiplier>=0?{premiumMultiplier:m.premiumMultiplier}:{}),...(kind==='copilot'&&typeof m.longContext==='boolean'?{longContext:m.longContext}:{})}))];}));
 }
 function validate(config,kind,id){if(!catalog(config)[kind]?.some(m=>m.id===id))throw Error('Choose a model from the configured list.');return id;}
-function args(config,kind,id){if(kind==='antigravity'&&id==='default')return [];return id?[kind==='astra'?'-m':'--model',validate(config,kind,id)]:[];}
+function args(config,kind,id){if(kind==='antigravity'&&id==='default')return [];return id?[kind==='codex'?'-m':'--model',validate(config,kind,id)]:[];}
 function observed(kind,record){
   if(kind==='copilot')return record?.type==='session.model_change'?record.data?.newModel:record?.type==='assistant.message'?record.data?.model:['session.start','session.resume'].includes(record?.type)?record.data?.selectedModel:null;
   if(kind==='claude')return record?.type==='assistant'&&!record.isSidechain&&record.message?.model&&record.message.model!=='<synthetic>'?record.message.model:null;

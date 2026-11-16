@@ -52,12 +52,13 @@ function fromUpload(raw) {
   uploaded.set(target, saved);
   return saved;
 }
-// Images NEXUS attached to a message, written as @"path" in its text.
+// Images NEXUS attached to a message, written as @"path" in its text, or as a bare uploads path (glasses, Codex, Copilot).
+const BARE = new RegExp(UPLOADS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\\\/][^\\r\\n"<>|?*]+?\\.(?:png|jpe?g|gif|webp)\\b', 'gi');
 function fromText(text) {
-  const names = [];
-  for (const match of String(text || '').matchAll(/@"([^"\r\n]+)"/g)) {
-    const name = fromUpload(match[1]);
-    if (name) names.push(name);
+  const names = [], s = String(text || '');
+  for (const raw of [...[...s.matchAll(/@"([^"\r\n]+)"/g)].map(m => m[1]), ...[...s.matchAll(BARE)].map(m => m[0])]) {
+    const name = fromUpload(raw);
+    if (name && !names.includes(name)) names.push(name);
   }
   return names;
 }

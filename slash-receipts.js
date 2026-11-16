@@ -33,7 +33,8 @@ function update(t,screen,events=[]) {
     const evidence=screenReceipt(receipt,{screen,ready,menu,busy,exited:t.exited,settled,changed:(t.outputRevision||0)>receipt.revision});
     if(evidence){Object.assign(receipt,evidence);receipt.terminalDone=evidence.status==='acknowledged';}
     else if(transcript){Object.assign(receipt,transcript);receipt.terminalDone=settled&&ready;}
-    else if(t.exited||Date.now()-receipt.submittedAt>45000)receipt.status='uncertain';
+    // A command still working (a long /compact) is not in doubt until its screen stops showing work.
+    else if(t.exited||Date.now()-receipt.submittedAt>45000&&!busy)receipt.status='uncertain';
   }
   return (t.commandReceipts||[]).map(({before,revision,terminalDone,...publicReceipt})=>publicReceipt);
 }

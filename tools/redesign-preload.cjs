@@ -6,7 +6,7 @@ const sessions=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'
 const load=Module._load;let created=0;
 Module._load=function(name){if(name!=='@lydell/node-pty')return load.apply(this,arguments);return{spawn(file,args){
  let id=args.find(a=>sessions.some(s=>s.id===a)),s=sessions.find(s=>s.id===id);
- if(!s){if(args.includes('--resume')||args.includes('resume'))throw Error('Only fixture sessions may resume');id='fixture-new-'+(++created);s={id,kind:file==='claude.exe'?'claude':'astra',status:'saved',stream:[],model:args[args.indexOf(file==='claude.exe'?'--model':'-m')+1]};}
+ if(!s){if(args.includes('--resume')||args.includes('resume'))throw Error('Only fixture sessions may resume');id='fixture-new-'+(++created);s={id,kind:file==='claude.exe'?'claude':'codex',status:'saved',stream:[],model:args[args.indexOf(file==='claude.exe'?'--model':'-m')+1]};}
  fs.appendFileSync(path.join(root,'spawns.jsonl'),JSON.stringify({id,file,args})+'\n');
  let onData=()=>{},onExit=()=>{},pending='',ended=false;
  const idle='────────────────────────────────────\n❯ \n────────────────────────────────────\n? for shortcuts';

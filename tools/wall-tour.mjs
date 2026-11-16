@@ -94,9 +94,9 @@ try {
     add("closeModal();recapDialog(state.byKey.get('claude:wall-cap'))");
     steps.push({ until: "!!$('.recap-coverage')", shot: 'recap-capped' });
     check("$('.recap-coverage').textContent.includes('Showing the last part')", 'cap is explicit when the latest request is outside the excerpt');
-    add("closeModal();recapDialog(state.byKey.get('astra:wall-astra'))");
-    steps.push({ until: "!!$('.recap-counts')", shot: 'recap-astra' });
-    check("$('.recap-counts').textContent.includes('phoneux.css') && $('.recap-state').textContent.includes('complete')", 'Astra recap reads rollout edits and completion');
+    add("closeModal();recapDialog(state.byKey.get('codex:wall-codex'))");
+    steps.push({ until: "!!$('.recap-counts')", shot: 'recap-codex' });
+    check("$('.recap-counts').textContent.includes('phoneux.css') && $('.recap-state').textContent.includes('complete')", 'Codex recap reads rollout edits and completion');
     add("closeModal();setView('wall');state.byKey.get('claude:wall-steam').title='Steam Cloud publishing and cross-platform release validation with a very long session name that should remain readable on the phone';renderWall()", 'wall-long-title');
     check("document.documentElement.scrollWidth <= innerWidth", 'long session title stays within the viewport');
     // Exercise the same remote guard over loopback with TEMP paired-device state.

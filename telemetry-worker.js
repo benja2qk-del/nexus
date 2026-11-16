@@ -11,7 +11,7 @@ async function drain() {
     const batch = pending; pending = null;
     for (const session of batch.sessions) {
       let record = files.get(session.file);
-      if (!record) { record = fresh(session.file, session.kind); files.set(session.file, record); }
+      if (!record || record.after !== (session.after || 0)) { record = fresh(session.file, session.kind, session.after || 0); files.set(session.file, record); }
       const publish = () => parentPort.postMessage({ key: session.key, ...snapshot(record, batch.viewed[session.key] || 0) });
       try { await scanFile(record, publish); publish(); }
       catch (e) { parentPort.postMessage({ key: session.key, error: e.message }); }

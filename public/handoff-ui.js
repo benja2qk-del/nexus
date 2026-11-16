@@ -6,7 +6,7 @@ function nxHandoffSetting(){
   return `<div class="glass nx-notifications"><label><span><strong>Agents can hand work to each other</strong><small>Sessions started in NEXUS learn how to give tasks to your other installed agents. They only do it when you ask.</small></span><input type="checkbox" role="switch" data-nx-handoff ${on?'checked':''}></label></div><p class="nx-coverage">Applies when a session starts or resumes. You can also type /handoff in a session or use Commands.</p>`;
 }
 function nxFullAccessSetting(){
-  return `<div class="glass nx-notifications"><label><span><strong>Resume without permission prompts</strong><small>Claude resumes with --dangerously-skip-permissions and Copilot with --yolo, so they act without asking you first.</small></span><input type="checkbox" role="switch" data-nx-full-access ${state.settings?.fullAccess!==false?'checked':''}></label></div><p class="nx-coverage">Applies the next time a session resumes. An open session keeps how it started.</p>`;
+  return `<div class="glass nx-notifications"><label><span><strong>Resume without permission prompts</strong><small title="Claude resumes with --dangerously-skip-permissions and Copilot with --yolo, so they act without asking you first.">Claude and Copilot resume without asking before each action.</small></span><input type="checkbox" role="switch" data-nx-full-access ${state.settings?.fullAccess!==false?'checked':''}></label></div><p class="nx-coverage">Applies the next time a session resumes. An open session keeps how it started.</p>`;
 }
 async function nxSetFullAccess(on){
   const result=await act('full-access',{on});

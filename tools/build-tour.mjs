@@ -59,7 +59,7 @@ export function prepare(scratch, width) {
   const steps = [
     { wait: 800 }, shot('boot'), { wait: 3500 }, { js: check }, shot('overview'),
     { js: "setTheme('parallax')" }, shot('parallax'), { js: "setTheme('stratum')" }, shot('stratum'), { js: "setTheme('apsis'); finder('Nexus Deck astra')" }, shot('finder'),
-    { js: "closeModal(); select(keyOf(state.sessions.find(s=>s.kind==='astra'&&s.brief)||state.sessions[0]))" }, { wait: 800 }, shot('focus'), { js: interaction },
+    { js: "closeModal(); select(keyOf(state.sessions.find(s=>s.kind==='codex'&&s.brief)||state.sessions[0]))" }, { wait: 800 }, shot('focus'), { js: interaction },
     { js: "state.tab='thinking';renderHead()" }, shot('thinking'),
     { js: "state.tab='feed';renderHead();insightAction('digest',state.byKey.get(state.sel))" }, shot('away'),
     { js: "closeModal();insightAction('spend',state.byKey.get(state.sel))" }, shot('spend'),

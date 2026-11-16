@@ -37,12 +37,12 @@ try{
       insights:{objective:{title:'Refine the project workspace',request:'Make project activity easy to catch up on.'},alignment:{verdict:'Aligned',reason:'Work follows the request.'},waste:[],
         digest:{since:Date.now()-3600000,firstVisit:false,turns:2,tools:3,files:['src/project.js'],commits:[{confirmed:true,hashes:['abc1234'],command:'git commit',result:'Recorded commit'}],errors:0,opening:'Project navigation is ready for review.',partial:false},
         spend:{measured:true,total:1200,input:700,output:300,cacheRead:200,cacheWrite:0,turns:[{total:1200,request:'Review navigation',at:Date.now()}],partial:false}},...extra});
-    window.fixtures=Array.from({length:11},(_,i)=>makeFixture('a'+i,'Atlas',i%2?'astra':'claude',{cwd:fixtureBase+(i%2?'\\\\atlas-worktree':'\\\\atlas'),status:i===0?'busy':i===2?'idle':'offline',live:i===0||i===2}));
+    window.fixtures=Array.from({length:11},(_,i)=>makeFixture('a'+i,'Atlas',i%2?'codex':'claude',{cwd:fixtureBase+(i%2?'\\\\atlas-worktree':'\\\\atlas'),status:i===0?'busy':i===2?'idle':'offline',live:i===0||i===2}));
     fixtures[1].insights.digest={...fixtures[1].insights.digest,since:null,firstVisit:true};fixtures[2].insights.spend.partial=true;
-    fixtures.push(makeFixture('b1','Beacon','astra',{status:'busy',live:true}));
-    fixtures.push(makeFixture('q1','Quiet place','astra',{insights:{digest:{since:null,firstVisit:true,turns:5,tools:2,files:[],commits:[],errors:0,partial:false},spend:{measured:false}}}));
-    fixtures.push(makeFixture('m1','Missing folder','astra',{cwd:'',insights:{}}));
-    fixtures.push(makeFixture('x1','A very long project '+ 'identifier'.repeat(15)+' <&>','astra'));
+    fixtures.push(makeFixture('b1','Beacon','codex',{status:'busy',live:true}));
+    fixtures.push(makeFixture('q1','Quiet place','codex',{insights:{digest:{since:null,firstVisit:true,turns:5,tools:2,files:[],commits:[],errors:0,partial:false},spend:{measured:false}}}));
+    fixtures.push(makeFixture('m1','Missing folder','codex',{cwd:'',insights:{}}));
+    fixtures.push(makeFixture('x1','A very long project '+ 'identifier'.repeat(15)+' <&>','codex'));
     for(let i=0;i<12;i++)fixtures.push(makeFixture('p'+i,'Place '+String(i).padStart(2,'0')));
     window.fixtureData=()=>({now:Date.now(),home:fixtureBase,sessions:fixtures,terms:[],usage:{},briefing:{working:2,waiting:1,text:'Project tour fixture. Two agents, many places.'},remote:true});
     api=async p=>p==='/api/sessions'?fixtureData():p.startsWith('/api/transcript')?{size:10,capturedAt:Date.now(),events:[{t:'ai',text:'Project fixture transcript.'}],activity:{goal:'Project fixture',steps:0,tasks:[]}}:savedApi(p);
@@ -50,11 +50,11 @@ try{
     openInApp=async(action,extra)=>{launches.push({action,...extra});return false};
     state.sel=null;state.transcript=null;state.transcriptKey=null;projectUI.key=null;state.group='*';setView('overview');await refresh();`);
   await check("projectGroups().length===17 && $$('#projectStrip button').length===18",'many projects and both agents remain available');
-  await b.js("state.query='absent';state.filter='astra';filterProject('Atlas')");
+  await b.js("state.query='absent';state.filter='codex';filterProject('Atlas')");
   await check("visible().length===11 && state.query==='' && state.filter==='all'",'project tap clears conflicting filters');
   await check("$$('#phoneSessions .mission-card').every(el=>state.byKey.get(el.dataset.session).group==='Atlas')",'phone cards contain only the chosen project');
   await check("$('#projectStrip [data-project-filter=Atlas]').classList.contains('waiting') && $('#projectStrip [data-project-filter=Atlas]').textContent.includes('1 working · 1 waiting')",'working and waiting indicators coexist accurately');
-  await check("$$('#projectStrip [data-project-filter=Atlas] .project-agent').length===2",'Claude and Astra marks identify mixed projects');
+  await check("$$('#projectStrip [data-project-filter=Atlas] .project-agent').length===2",'Claude and Codex marks identify mixed projects');
   await b.js("$('#projectStrip [data-project-filter=Atlas]').click()");await check("state.group==='*'",'tapping the selected tile clears the project filter');
   await b.js("filterProject('Atlas');$('#projectStrip [data-project-filter=\"*\"]').click()");await check("state.group==='*'",'All projects clears the project filter');
   await b.js("filterProject('Atlas');window.strip=$('#projectStrip');strip.scrollLeft=250;$('#projectStrip [data-project-filter=Atlas]').focus({preventScroll:true});fixtures[0].status='idle';renderApsis()");
@@ -76,11 +76,11 @@ try{
   await b.js("state.query='no matching session';renderApsis();$('[data-project-clear-search]').click()");
   await check("$$('.project-session-grid .mission-card').length===11 && state.query===''",'empty search can be cleared without leaving the project');
   await b.js("$('.project-spend').scrollIntoView({block:'start'})");await shot('project-spend-summary');
-  await b.js("window.originalSel=state.sel;$('#projectPage').scrollTop=0;$('[data-project-new=astra]').click()");
-  await check("$('#modalCard [name=agent]:checked').value==='astra' && $$('.folder-option').length===2 && $$('.folder-option').every(el=>el.textContent.includes('Atlas'))",'Astra launch scopes folder choices to the aliased project');
-  await shot('project-new-astra');
+  await b.js("window.originalSel=state.sel;$('#projectPage').scrollTop=0;$('[data-project-new=codex]').click()");
+  await check("$('#modalCard [name=agent]:checked').value==='codex' && $$('.folder-option').length===2 && $$('.folder-option').every(el=>el.textContent.includes('Atlas'))",'Codex launch scopes folder choices to the aliased project');
+  await shot('project-new-codex');
   await b.js("window.pickedFixture=$$('.folder-option')[1].dataset.cwd;$$('.folder-option')[1].click();$('#startSession').click()");await sleep(100);
-  await check("launches.at(-1).action==='term-new-astra' && launches.at(-1).cwd===pickedFixture && state.sel===originalSel",'project launch submits chosen folder without changing the selected session');
+  await check("launches.at(-1).action==='term-new-codex' && launches.at(-1).cwd===pickedFixture && state.sel===originalSel",'project launch submits chosen folder without changing the selected session');
   await check("$('#modal').classList.contains('on') && $('#startSession').textContent==='Try again'",'launch failure retains project choice and retry');
   await b.js("closeModal();$('[data-project-new=claude]').click();$('#startSession').click()");await sleep(100);
   await check("launches.at(-1).action==='term-new' && launches.at(-1).cwd.startsWith(fixtureBase)",'Claude launch uses the same scoped in-app flow');

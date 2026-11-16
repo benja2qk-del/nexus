@@ -3,6 +3,7 @@
 const NX_RECENT_FILES=/\.(?:[cm]?js|jsx|tsx?|css|scss|html?|md|json|ya?ml|toml|xml|py|ipynb|cs|gd|go|rs|java|kt|swift|rb|php|c|cc|cpp|h|hpp|sh|ps1|sql|vue|svelte|csv|txt)$/i;
 // WSL shows up as a \\wsl$ or \\wsl.localhost path, or as a Linux path; Git Bash's /c/... is still Windows.
 function nxWhere(s){
+ if(s.wsl)return {wsl:true,label:'WSL · '+s.wsl};
  for(const p of [s.cwd,s.mainFolder,...(s.workFolders||[]).map(f=>f.path)]){
   if(typeof p!=='string'||!p)continue;
   const unc=/^\\\\wsl(?:\$|\.localhost)\\([^\\]+)/i.exec(p);if(unc)return {wsl:true,label:'WSL · '+unc[1]};
@@ -54,7 +55,7 @@ function nxRecentAiHTML(){
  const {result,error,running}=nxRecentAi;
  if(running)return '<p class="nx-rw-ai-status" role="status"><i class="nx-spinner"></i> Reading your latest sessions…</p>';
  const told=result?`<ul class="nx-rw-ai-list">${result.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul><p class="nx-rw-ai-next"><b>Next: </b>${esc(result.next.replace(/^(?:Next\s*\/\s*)?(?:needs you|next)\s*:?\s*/i,''))}</p>`:'';
- return `${told}${error?`<p class="nx-rw-ai-status" role="alert">${esc(error)}</p>`:''}${result?'':`<button class="btn" data-recent-summary>${nxIcon('catchup')}What was I doing?</button><p class="nx-rw-ai-note">${esc(state.summarizer?.note||'One request using your agent account.')}</p>`}`;
+ return `${told}${error?`<p class="nx-rw-ai-status" role="alert">${esc(error)}</p>`:''}${result?'':`<button class="btn" data-recent-summary>${nxIcon('catchup')}What was I doing?</button><p class="nx-rw-ai-note">${esc((state.summarizer?.note||'One request using your agent account.').replace(/Runs only when you press Summarize; /,'').replace(/\s*Runs only when you press Summarize\./,''))}</p>`}`;
 }
 async function nxRecentSummary(keys){
  const paint=()=>{const host=$('#nxRecentAi');if(host)updateHTML(host,nxRecentAiHTML());};
@@ -70,8 +71,9 @@ function nxRecentWork(count=10){
  const summary=`${day.length?`In the last 24 hours you worked ${names.length===1?`in <b>${esc(names[0])}</b>`:`across <b>${names.length} themes</b>`}.`:'Nothing in the last 24 hours. This is what you did before.'}${[needs?`<b class="needs">${needs} need${needs===1?'s':''} you</b>`:'',working?`<b class="working">${working} working</b>`:'',wsl?`${list.length-wsl} on Windows, ${wsl} in WSL`:''].filter(Boolean).map(t=>' '+t+'.').join('')}`;
  const groups=new Map();for(const s of list){const id=s.theme?.id||'unsorted';if(!groups.has(id))groups.set(id,{theme:s.theme||{name:'Unsorted'},sessions:[]});groups.get(id).sessions.push(s);}
  const body=[...groups.values()].map(g=>`<section class="nx-rw-theme"><h3>${nxThemeTick(g.theme)}<span>${esc(g.theme.name||'Unsorted')}</span><small>${esc(nxSince(g.sessions[0].updated))}</small></h3><ul>${g.sessions.map(s=>nxRecentItem(s,wsl>0)).join('')}</ul></section>`).join('');
- modal(`<div class="nx-recent-work"><h2>Recent work</h2><p class="nx-rw-summary">${summary}</p>${list.length?`<div id="nxRecentAi" class="nx-rw-ai">${nxRecentAiHTML()}</div>`:''}${list.length?'<p class="nx-rw-order">Grouped by theme &middot; latest activity first</p>':''}${list.length?body:'<p class="nx-muted">No sessions yet.</p>'}${empty>0?`<p class="nx-rw-note">${empty} empty session${empty===1?'':'s'} left out.</p>`:''}${told.length>count?`<button class="btn nx-rw-more" data-recent-more="${count+10}">Show 10 more</button>`:''}</div>`);
+ modal(`<div class="nx-recent-work"><h2>Recent work</h2><p class="nx-rw-summary">${summary}</p>${list.length?`<div id="nxRecentAi" class="nx-rw-ai">${nxRecentAiHTML()}</div>`:''}${list.length?'<p class="nx-rw-order">Grouped by theme &middot; latest activity first</p>':''}${list.length?body:'<p class="nx-muted">No sessions yet.</p>'}${empty>0?`<p class="nx-rw-note">${empty} empty session${empty===1?'':'s'} left out.</p>`:''}${told.length>count?`<button class="btn nx-rw-more" data-recent-more="${count+10}">Show 10 more</button>`:''}</div><div class="modal-actions"><button class="btn" data-recent-close>Close</button></div>`);
  $('#modalCard').onclick=e=>{
+  if(e.target.closest('[data-recent-close]')){closeModal();return;}
   const open=e.target.closest('[data-recent-open]'),catchup=e.target.closest('[data-recent-catchup]'),more=e.target.closest('[data-recent-more]');
   if(e.target.closest('[data-recent-summary]'))nxRecentSummary(list.map(keyOf));
   if(open){closeModal();select(open.dataset.recentOpen);}

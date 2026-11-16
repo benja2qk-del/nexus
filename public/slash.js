@@ -86,7 +86,7 @@ async function slashNative(entry,command,key,fromQueue=false){
   else if(entry.native==='usage'){
     // Reuse the session details view, including the phone sheet.
     nx.panel=true;nx.panelMode='details';renderHead();
-    if(innerWidth<=700){const details=$('#nxDetails');modal('<h2>Session usage</h2><div class="nx-slash-usage">'+(details?.innerHTML||'Usage is not recorded yet.')+'</div>');}
+    if(innerWidth<=700){const details=$('#nxDetails');modal('<h2>Session usage</h2><div class="nx-slash-usage">'+(details?.querySelector('.nx-panel-body')?.innerHTML||'Usage is not recorded yet.')+'</div>');}
   }else if(entry.native==='fork'){
     if(!state.byKey.has(key))return false;
     if(s.kind==='claude')await runAction('fork',s);
@@ -98,25 +98,37 @@ async function slashNative(entry,command,key,fromQueue=false){
   slashClose();return true;
 }
 function slashRow(receipt){
-  const status=receipt.status,label=status==='menu'?'Opened':status==='closed'?'Closed':status==='acknowledged'||status==='confirmed'?'Ran':status==='rejected'?'Command rejected':status==='failed'?'Command not sent':status==='uncertain'?'Command sent; result unconfirmed':'Running';
+  const status=receipt.status,label=status==='menu'?'Opened':status==='closed'?'Closed':status==='acknowledged'||status==='confirmed'?'Ran':status==='rejected'?'Command rejected':status==='failed'?'Command not sent':status==='uncertain'?'Command sent; result unconfirmed':status==='output'?'Command output':'Running';
   const warning=status==='uncertain'?'Check the terminal before sending again.':receipt.error||'';
   return `<div class="nx-slash-row" data-command-id="${esc(receipt.id||'')}" role="status"><b>${label} ${esc(receipt.text)}</b>${receipt.output?`<pre>${esc(receipt.output)}</pre>`:''}${warning?`<span>${esc(warning)}</span>`:''}${['menu','uncertain','rejected'].includes(status)?'<button class="text-action" data-slash-terminal>Open terminal</button>':''}</div>`;
 }
+// The same command typed or echoed within two seconds of its record: one command, not two.
+const slashNear=(a,b)=>a.text?.trim()===b.text?.trim()&&Math.abs(Date.parse(a.ts)-Date.parse(b.ts))<2000;
+// A delivered command the transcript already shows is drawn from the transcript only.
+function slashRecorded(events,item){const at=item.submittedAt;return !!at&&events.some(e=>e.t==='command'&&e.id!==item.id&&e.text?.trim()===item.text?.trim()&&Date.parse(e.ts)>=at&&Date.parse(e.ts)-at<120000);}
 function slashChatEvents(chat){
-  const receipts=chat.terminal?.commands||[],used=new Set(),events=[];
+  const receipts=chat.terminal?.commands||[],used=new Set(),events=[],echoes=new Set();
   let lastCommand=null;
   for(const event of chat.events){
     if(event.t==='cmd'||event.t==='user'&&receipts.some(r=>r.text.trim()===event.text.trim()&&Date.parse(event.ts)>=r.submittedAt&&(!r.supersededAt||Date.parse(event.ts)<r.supersededAt))){
+      // /compact is written as a plain prompt when it starts and as a command record, stamped with the start time, when it ends.
+      const echo=event.t==='cmd'?events.findLastIndex(e=>(e.t==='user'||echoes.has(e))&&slashNear(e,event)):-1;
+      if(echo>=0&&events[echo].t==='command'){lastCommand=events[echo];echoes.delete(lastCommand);continue;}
       const receipt=receipts.find(r=>r.text.trim()===event.text.trim()&&Date.parse(event.ts)>=r.submittedAt&&(!r.supersededAt||Date.parse(event.ts)<r.supersededAt)&&!used.has(r.id));
       if(receipt)used.add(receipt.id);
-      lastCommand={...event,...receipt,t:'command',ts:event.ts,status:receipt?.status||'acknowledged'};events.push(lastCommand);
+      lastCommand={...event,...receipt,t:'command',ts:event.ts,status:receipt?.status||'acknowledged'};
+      if(echo>=0)events[echo]=lastCommand;else events.push(lastCommand);
+      if(event.t==='user')echoes.add(lastCommand);
     }else if(event.t==='cmd-output'){
-      if(lastCommand){lastCommand.output=lastCommand.output?lastCommand.output.includes(event.text)?lastCommand.output:lastCommand.output+'\n'+event.text:event.text;if(event.err)lastCommand.status='rejected';}
-      else events.push({...event,t:'command',text:'Local command',output:event.text,status:event.err?'rejected':'acknowledged'});
+      const rejected=event.err||NexusSlash.refused(event.text),typed=events.at(-1);
+      if(lastCommand){lastCommand.output=lastCommand.output?lastCommand.output.includes(event.text)?lastCommand.output:lastCommand.output+'\n'+event.text:event.text;if(rejected)lastCommand.status='rejected';}
+      // A command typed in the Claude app can leave only its text and the answer (a refusal over Remote Control).
+      else if(typed?.t==='user'&&NexusSlash.parse(typed.text)&&Math.abs(Date.parse(typed.ts)-Date.parse(event.ts))<2000)events[events.length-1]=lastCommand={...typed,t:'command',output:event.text,status:rejected?'rejected':'acknowledged'};
+      else if(event.text.trim())events.push({...event,t:'command',text:'',output:event.text,status:rejected?'rejected':'output'});
     }else{events.push(event);if(event.t==='user'||event.t==='ai')lastCommand=null;}
   }
   for(const receipt of receipts)if(!used.has(receipt.id))events.push({...receipt,t:'command',ts:new Date(receipt.submittedAt).toISOString()});
-  for(const pending of chat.pending.filter(p=>p.command&&!receipts.some(r=>r.id===p.id)))events.push({...pending,...pending.receipt,t:'command',ts:new Date(pending.at).toISOString()});
+  for(const pending of chat.pending.filter(p=>p.command&&!receipts.some(r=>r.id===p.id)&&!slashRecorded(events,p)))events.push({...pending,...pending.receipt,t:'command',ts:new Date(pending.at).toISOString()});
   return events.sort((a,b)=>(Date.parse(a.ts)||0)-(Date.parse(b.ts)||0));
 }
 function slashSync(chat,key){

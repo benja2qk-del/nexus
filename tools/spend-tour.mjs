@@ -39,11 +39,14 @@ async function tour(width, height) {
     await check(`document.querySelectorAll('.nx-theme-spend-page').length===1`, 'repeated polls and renders never double the block');
     await check(`document.querySelector('#nxSpendStats')===frame.stats&&document.querySelector('#nxSpendChart')===frame.chart&&document.querySelector('.nx-theme-spend-page')===frame.block`, 'the page frame stays in place across polls');
     await check(`document.querySelector('[data-nx-day][aria-pressed=true]').dataset.nxDay==='12'&&document.querySelector('#nxChartReadout').textContent.includes(nx.spendDays[12].day)`, 'a picked day stays picked through refreshes');
+    await check(`[...document.querySelectorAll('.nx-theme-spend-page>button')].every(row=>{const n=row.querySelector('span').getBoundingClientRect(),a=row.querySelector('b').getBoundingClientRect(),r=row.getBoundingClientRect();return a.right<=r.right+1&&(a.left>=n.right-1||a.top>=n.bottom-1)})&&getComputedStyle(document.querySelector('.nx-theme-spend-page h2')).textTransform==='none'`, 'theme amounts stay inside their row without covering the name; the heading matches the other Spend cards');
+    if (width > 700) await check(`Math.abs(document.querySelector('.nx-spend-page>*').getBoundingClientRect().left-document.querySelector('#nxPage .nx-page-head h1').getBoundingClientRect().left)<=2`, 'Spend content starts on the same left edge as its title');
     await b.shot(`${out}/${width}-spend.png`);
     await b.js(`fixtureSessions[1].copilotUsage={};refreshNow();true`); await sleep(1500);
     await check(`!document.querySelector('.nx-theme-spend-page')`, 'no block when no theme reports dollars, premium requests or AI credits');
     await b.js(`setView('settings');true`); await sleep(400);
     await check(`!document.querySelector('#nxSpendStats')&&!!document.querySelector('.nx-settings-page')`, 'leaving Spend hands the page back to Settings');
+    await check(`document.querySelectorAll('.nx-settings-page>nav [aria-current=true]').length===1`+(width > 700 ? `&&Math.abs(document.querySelector('.nx-settings-page>nav').getBoundingClientRect().left-document.querySelector('#nxPage .nx-page-head h1').getBoundingClientRect().left)<=2` : ''), 'Settings marks the current section' + (width > 700 ? ' and starts on the title edge' : ''));
     await b.js(`setView('spend');true`); await sleep(400);
     await check(`!!document.querySelector('#nxSpendStats .glass')&&document.querySelectorAll('#nxPage .nx-page-head').length===1`, 'coming back rebuilds the Spend frame once');
     assert.deepEqual(b.exceptions, [], 'page exceptions');

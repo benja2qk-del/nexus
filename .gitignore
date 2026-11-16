@@ -60,3 +60,6 @@ docs/shots/slash2/**
 
 # Fixture-only Home and Wall polish review evidence.
 !docs/shots/home-polish/
+
+# The owner's private extensions (server modules that never ship with the public code).
+private/

@@ -6,17 +6,27 @@
   else root.NexusActivity = api;
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   const base = value => String(value || '').replace(/\\/g, '/').replace(/\/$/, '').split('/').pop();
+  // Emphasis and code marks go; the underscores and stars of names stay (message_queue.js, __init__.py, test_*.py).
+  // A mark opens only outside a name (not after '_', '*', '/' or '.') and not before '.', '/' or a lone glob star's
+  // '_' (*_spec.js, **/*.md), so a glob never pairs with the emphasis after it.
+  const emphasis = /(^|[^\p{L}\p{N}_*~/\\.])(\*{1,3}|_{1,3}|~~)(?![\s./\\])(?!(?<![*_~][*_~])[*_~])([^\n]*?[^\s\\])\2(?![\p{L}\p{N}_*~(/]|\.[\p{L}\p{N}])/gu;
+  function unmark(value) {
+    const code = [];
+    let text = String(value || '').replace(/(`+)([^`]*?)\1/g, (_, ticks, inner) => '\uE000' + (code.push(inner) - 1) + '\uE001');
+    for (let n = 0, next; n < 3 && (next = text.replace(emphasis, '$1$3')) !== text; n++) text = next;
+    return text.replace(/`+/g, '').replace(/\uE000(\d+)\uE001/g, (m, i) => code[i] ?? m);
+  }
   function readable(value, limit = 1200) {
-    return String(value || '')
-      .replace(/^ASTRA RESULT:\s*[0-9a-f,\s]+\|\s*/i, '')
+    return unmark(String(value || '')
+      .replace(/^(?:ASTRA|CODEX) RESULT:\s*[0-9a-f,\s]+\|\s*/i, '')
       .replace(/```[\s\S]*?(?:```|$)/g, '[Code in Feed]')
       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-      .replace(/(?:[A-Za-z]:[\\/]|\\\\)[^\r\n"<>|`]*?(?=\s+(?:and|then|to|is|was|with|for|in)\b|[,;]|[.!?](?:\s|$)|["<>|`\r\n]|$)/g, p => base(p.trim()))
+      .replace(/(?:[A-Za-z]:[\\/]|\\\\)[^\r\n"<>|`]*?(?=\s+(?:and|then|to|is|was|with|for|in)\b|(?<=\.[A-Za-z0-9]{1,8})\s|[,;]|[.!?](?:\s|$)|["<>|`\r\n]|$)/g, p => base(p.trim()))
       .replace(/\/(?:Users|home|tmp|var|mnt)\/[^\s"`<>]+/g, p => base(p))
       .replace(/\b(?:mcp__[\w-]+|functions\.[\w]+)\b/g, 'tool activity')
       .replace(/\{[^\n]*\}/g, '[Details in Feed]')
       .replace(/^\s*[>❯]\s*/gm, '')
-      .replace(/^[ \t]*#{1,6}\s+/gm, '').replace(/[*`_]/g, '')
+      .replace(/^[ \t]*#{1,6}\s+/gm, ''))
       .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, limit);
   }
   function sentence(value, limit = 240) {
@@ -37,14 +47,14 @@
     const urls = [i.url, ...(command.match(/https?:\/\/[^\s"'`<>\\)]+/g) || [])].filter(Boolean);
     const sites = [...new Set(urls.map(u => { try { return new URL(u).hostname; } catch { return ''; } }).filter(Boolean))];
     const chrome = /claude.in.chrome|mcp.*chrome|chrome.*mcp/i.test(n);
-    let kind = /astra/i.test(n) || /\bcodex(?:\.cmd|\.exe)?\s+(?:exec|resume|e)\b/i.test(command) ? 'astra'
+    let kind = /astra|codex/i.test(n) || /\bcodex(?:\.cmd|\.exe)?\s+(?:exec|resume|e)\b/i.test(command) ? 'codex'
       : /(?:^|[_.])(?:Edit|Write|MultiEdit|NotebookEdit|apply_patch)$/i.test(n) ? 'edit'
       : /(?:bash|shell|exec_command|run_command|powershell)/i.test(n) ? 'command'
       : chrome || /(?:browse|navigate|web.*(?:run|search|fetch)|WebFetch|WebSearch)/i.test(n) ? 'browse'
       : /(?:^|[_.])(?:Read|read_file|view_image)$/i.test(n) ? 'read'
       : /(?:grep|glob|search|list_dir)/i.test(n) ? 'search'
       : /(?:todo|taskupdate|taskcreate|update_plan)/i.test(n) ? 'plan'
-      : /(?:spawn_agent|Task$|Agent$)/i.test(n) ? 'delegate' : 'other';
+      : /(?:spawn_agent|Task$|Agent$|^Workflow$)/i.test(n) ? 'delegate' : 'other';
     // Codex orchestration wrappers contain executable source. Inspect names only;
     // never evaluate code or retain file contents in a humanized line.
     if (kind === 'other' && /(?:functions\.)?exec$/.test(n)) {
@@ -59,14 +69,15 @@
     const kind = items[0].kind, count = items.length;
     const files = [...new Set(items.flatMap(i => i.files || []))], sites = [...new Set(items.flatMap(i => i.sites || []))];
     if (kind === 'edit') {
-      if (files.length === 1) return 'Edited ' + readable(base(files[0]), 80);
+      // File names are shown as they are, never read as markdown.
+      if (files.length === 1) return 'Edited ' + base(files[0]).slice(0, 80);
       const parents = [...new Set(files.map(f => f.replace(/\\/g, '/').split('/').slice(-2, -1)[0]).filter(Boolean))];
-      return files.length ? `Edited ${files.length} files${parents.length === 1 ? ' in ' + readable(parents[0], 40) + '/' : ''}` : `Made ${count} file edit${count === 1 ? '' : 's'}`;
+      return files.length ? `Edited ${files.length} files${parents.length === 1 ? ' in ' + parents[0].slice(0, 40) + '/' : ''}` : `Made ${count} file edit${count === 1 ? '' : 's'}`;
     }
     if (kind === 'command') return `Ran ${count} shell command${count === 1 ? '' : 's'}`;
     if (kind === 'browse') return (sites.length ? 'Browsed ' + sites.slice(0, 2).join(', ') : 'Used the browser') + (items.some(i => i.chrome) ? ' in Chrome' : '');
-    if (kind === 'astra') return count === 1 ? 'Started an Astra run' : `Started ${count} Astra runs`;
-    if (kind === 'read') return files.length === 1 ? 'Read ' + readable(base(files[0]), 80) : `Read ${count} file${count === 1 ? '' : 's'}`;
+    if (kind === 'codex') return count === 1 ? 'Started a Codex run' : `Started ${count} Codex runs`;
+    if (kind === 'read') return files.length === 1 ? 'Read ' + base(files[0]).slice(0, 80) : `Read ${count} file${count === 1 ? '' : 's'}`;
     if (kind === 'search') return 'Searched the project';
     if (kind === 'plan') return 'Updated the work plan';
     if (kind === 'delegate') return 'Assigned work to an agent';
@@ -84,8 +95,10 @@
   function step(event) {
     const item = event.human || tool(event.name, event.input || event.text);
     if (item.note) return readable(item.note, 160);
-    const line = item.kind === 'command' && String(event.text || '').split(/\r?\n/).find(l => l.trim());
-    return line ? readable(line, 140) || describe([item]) : describe([item]);
+    // A command line is shown as it was run; a Codex exec's text is the wrapper source, its detail the command.
+    const run = /(?:^|\.)exec$/.test(event.name || '') && event.detail?.command || event.text;
+    const line = item.kind === 'command' && String(run || '').split(/\r?\n/).find(l => l.trim());
+    return line ? line.replace(/\s+/g, ' ').trim().slice(0, 140) : describe([item]);
   }
   function briefTitle(value) {
     const lines=String(value||'').split(/\r?\n/).map(l=>l.replace(/^#+\s*/, '').trim()).filter(Boolean);
@@ -97,7 +110,7 @@
   function subtitle(s) {
     const aiTitle = s.aiTitle && s.aiTitle !== s.title ? s.aiTitle : '';
     const source=s.commission || s.briefSummary || aiTitle || s.insights?.objective?.request || s.firstPrompt || s.insights?.objective?.title || s.title;
-    const text = readable(briefTitle(source).summary || briefTitle(s.title).summary || (s.kind==='astra'?'Astra task':'Agent task'), 500)
+    const text = readable(briefTitle(source).summary || briefTitle(s.title).summary || (s.kind==='codex'?'Codex task':'Agent task'), 500)
       .replace(/^(?:(?:please|can you|could you|help me|i (?:want|wanna|would like|need)(?: you)?(?: to)?)\s+)+/i, '')
       .replace(/\s+/g, ' ').replace(/^\w/, c => c.toUpperCase());
     const words = text.split(' ');
@@ -108,7 +121,7 @@
     const item=event.human||tool(event.name,event.input||event.text), command=event.detail?.command||inputObject(event.input||event.text).command||'';
     if(item.kind==='command')return /\b(test|pytest|jest|vitest|check|typecheck)\b/i.test(command)?'running the tests':'running a command';
     if(item.kind==='edit'){const count=item.files?.length||1;return count===1?'editing a file':`editing ${count} files`;}
-    return {browse:'checking sources',read:'reading the project',search:'searching the project',plan:'updating the plan',delegate:'checking with another agent',astra:'working with Astra',other:'working on your request'}[item.kind]||'working on your request';
+    return {browse:'checking sources',read:'reading the project',search:'searching the project',plan:'updating the plan',delegate:'checking with another agent',codex:'working with Codex',other:'working on your request'}[item.kind]||'working on your request';
   }
-  return { base, readable, sentence, tool, describe, groups, step, subtitle, current, briefTitle };
+  return { base, unmark, readable, sentence, tool, describe, groups, step, subtitle, current, briefTitle };
 });

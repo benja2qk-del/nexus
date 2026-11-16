@@ -28,7 +28,7 @@ try{
    {js:`document.querySelector('#overview').scrollTop=0;setView('wall')`},{shot:'wall'},
    {js:`nx.panel=${width>700};select('claude:s-dashboard')`},{until:`chatFor().loaded&&!!document.querySelector('#chatMessages .ev')`},{shot:'session'},
    {js:`document.querySelector('#chatView').scrollTop=0`},{shot:'session-top'},
-   {js:`select('astra:s-voice')`},{until:`chatFor().loaded`},{shot:'astra'},
+   {js:`select('codex:s-voice')`},{until:`chatFor().loaded`},{shot:'codex'},
    {js:`select('copilot:11111111-1111-4111-8111-111111111111')`},{until:`chatFor().loaded`},{shot:'copilot'},
    {js:`await recapDialog(state.byKey.get(state.sel))`},{shot:'catchup'},
    {js:`nxClosePhoneRecap();nx.panelMode='details';select('claude:s-deploy')`},{until:`!!document.querySelector('.permission-card')`},{shot:'question'},

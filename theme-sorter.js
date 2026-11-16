@@ -27,7 +27,7 @@ function parse(text,n){
   return Array.from({length:n},(_,i)=>{const v=typeof j[i+1]==='string'?j[i+1].replace(/\s+/g,' ').trim():'';return v.length<=60&&v.split(' ').length<=6&&!/^unsorted$/i.test(v)?v:'';});
 }
 function createSorter({file=path.join(HOME_DIR,'theme-picks.json'),enabled=true,available=()=>[],themes=()=>[],place=()=>{},home=os.homedir(),general,spawnProcess,launch,now=Date.now,wait=10e3}={}){
-  let store={};try{store=JSON.parse(fs.readFileSync(file,'utf8'))||{};}catch{}
+  let store={};try{store=JSON.parse(fs.readFileSync(file,'utf8'))||{};require('./legacy-names').keyed(store);/* old keys written after the start-up migration */}catch{}
   const queue=new Map(),cooling=new Map();let running=false,timer=null;
   const later=ms=>{clearTimeout(timer);timer=setTimeout(pump,ms);timer.unref?.();};
   function save(){try{

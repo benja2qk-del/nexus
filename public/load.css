@@ -1,5 +1,5 @@
 /* Live load on Spend: whole-PC meters, then one row per running session with its CPU trace. The dot pulses while a
-   session waits for its model (accent) or works this PC hard (amber). */
+   session waits for its model or works this PC hard (working colour). */
 .nx-load-machine{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:8px}
 .nx-load-machine>span{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:4px 8px}
 .nx-load-machine small{font-size:11px;color:var(--muted-foreground)}
@@ -10,17 +10,19 @@
 .nx-load-row{display:grid;grid-template-columns:minmax(0,1fr) 128px 64px 104px;align-items:center;gap:16px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--hairline);background:none;color:var(--foreground);text-align:left;cursor:pointer}
 .nx-load-row:disabled{cursor:default}
 .nx-load-row:not(:disabled):hover .nx-load-name b{color:var(--primary)}
-.nx-load-name{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:3px 8px;min-width:0}
-.nx-load-name>b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nx-load-name>small{grid-column:1/-1;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)}
-.nx-load-name>small>i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--status-saved)}
-.nx-load-row[data-tone=pc] .nx-load-name>small>i{background:var(--status-needs);animation:nx-load-pulse 1.1s ease-in-out infinite}
-.nx-load-row[data-tone=model] .nx-load-name>small>i{background:var(--primary);animation:nx-load-pulse 2.2s ease-in-out infinite}
+.nx-load-name{display:flex;flex-wrap:wrap;align-items:center;gap:3px 8px;min-width:0}
+.nx-load-agents{display:inline-flex;gap:4px;flex:none}
+.nx-load-agents .nx-agent{flex:none;width:auto}
+.nx-load-name>b{flex:1 1 7em;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nx-load-name>small{flex-basis:100%;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted-foreground)}
+.nx-load-name>small>i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--muted-foreground)}
+.nx-load-row[data-tone=pc] .nx-load-name>small>i{background:var(--status-working);animation:nx-load-pulse 1.1s ease-in-out infinite}
+.nx-load-row[data-tone=model] .nx-load-name>small>i{background:var(--status-working);animation:nx-load-pulse 2.2s ease-in-out infinite}
 .nx-load-spark{width:128px;height:28px;overflow:visible}
 .nx-load-spark polyline{fill:none;stroke:var(--primary);stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .nx-load-spark polygon{fill:color-mix(in oklch,var(--primary) 16%,transparent)}
-.nx-load-row[data-tone=pc] .nx-load-spark polyline{stroke:var(--status-needs)}
-.nx-load-row[data-tone=pc] .nx-load-spark polygon{fill:color-mix(in oklch,var(--status-needs) 16%,transparent)}
+.nx-load-row[data-tone=pc] .nx-load-spark polyline{stroke:var(--status-working)}
+.nx-load-row[data-tone=pc] .nx-load-spark polygon{fill:color-mix(in oklch,var(--status-working) 16%,transparent)}
 .nx-load-num{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
 .nx-load-num b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .nx-load-num small{font-size:11px;color:var(--muted-foreground);white-space:nowrap}
@@ -32,4 +34,45 @@
  .nx-load-machine{gap:14px}
  .nx-load-row{grid-template-columns:minmax(0,1fr) 56px 76px;gap:4px 10px}
  .nx-load-spark{grid-column:1/-1;grid-row:2;width:100%;height:22px}
+}
+
+/* Spend and Settings polish; these overrides follow the shared redesign sheets. */
+body.redesign .token-hero{color:var(--primary)}
+.nx-spend-page,.nx-settings-page{margin-left:0;margin-right:auto}
+.nx-settings-page>nav button[aria-current=true]{background:var(--accent);color:var(--foreground)}
+#nxSpendBreakdown>section:first-child .nx-bar-list small{white-space:nowrap;flex:none}
+#nxSpendBreakdown>section:first-child .nx-bar-list>div>div>span{min-width:0;overflow-wrap:anywhere}
+#nxSpendBreakdown>section:first-child .nx-bar-list b{flex:none;white-space:nowrap}
+/* Spend by theme: the same heading as the other Spend cards; the amount keeps its line. */
+body.redesign .nx-theme-spend-page h2{font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--foreground);margin:0 0 20px}
+.nx-theme-spend-page>button>span{min-width:0}
+#nxSpendAbout>summary,#nxCopilotFleet summary{min-height:28px;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none}
+#nxSpendAbout>summary::-webkit-details-marker,#nxCopilotFleet summary::-webkit-details-marker{display:none}
+#nxSpendAbout>summary::before,#nxCopilotFleet summary::before{content:'\25b8';flex:none}
+#nxSpendAbout[open]>summary::before,#nxCopilotFleet[open]>summary::before,#nxCopilotFleet details[open]>summary::before{content:'\25be'}
+body.redesign .talk-panel{border-radius:14px;text-align:left}
+body.redesign>.talk-panel{margin:0}
+body.redesign .talk-heading .btn,.nx-test-label{font-family:var(--font-sans)}
+body.redesign .talk-heading .talk-close{position:static;display:grid;place-items:center;flex:none;width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border:0;background:none;box-shadow:none;color:var(--muted-foreground);font-size:24px;line-height:1}
+.nx-voice-options{align-items:stretch}
+.nx-voice-footer{min-height:44px}
+/* Keep a replacement action when no QR code is available. An expired code cannot be copied usefully. */
+.nx-pair-card.expired .nx-qr{opacity:1}
+.nx-pair-card.expired:has(.nx-qr>button[data-nx-setting=pair]) .nx-pair-actions [data-nx-setting=pair],.nx-pair-card.expired .nx-pair-actions [data-nx-setting=copy-code]{display:none}
+body.redesign .nx-pair-actions button{height:32px;min-height:32px;padding:0 12px;border:1px solid var(--input);border-radius:8px;background:var(--elevated);color:var(--foreground);font:400 13px var(--font-sans);box-shadow:inset 0 1px 0 #ffffff0a;cursor:pointer}
+body.redesign .nx-device-list .btn.danger{color:var(--destructive);border-color:var(--destructive)}
+.nx-device-list [data-nx-revoke-cancel]{flex:none;min-height:32px}
+@media(hover:hover){body.redesign .nx-pair-actions button:hover{background:var(--accent);border-color:var(--ring)}}
+@media(min-width:701px){.nx-settings-page{padding-left:24px;padding-right:24px}}
+@media(max-width:700px){
+ #nxSpendAbout>summary,#nxCopilotFleet summary{min-height:44px}
+ .nx-theme-spend-page>button{flex-wrap:wrap;row-gap:2px;padding:8px 0}
+ .nx-theme-spend-page>button>span{flex:1 1 auto}
+ .nx-theme-spend-page>button>b{max-width:100%;margin-left:auto;white-space:normal}
+ body.redesign>.talk-panel{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;margin:0;border-radius:16px 16px 0 0;max-height:80dvh;padding:12px 16px calc(16px + env(safe-area-inset-bottom));overflow:auto}
+ body.redesign .talk-heading .talk-close{width:44px;min-width:44px;height:44px;min-height:44px}
+ body.redesign .nx-pair-actions button,.nx-device-list [data-nx-revoke-cancel]{height:44px;min-height:44px}
+ .nx-device-list>div:has([data-nx-revoke-cancel]){flex-wrap:wrap}
+ .nx-device-list>div:has([data-nx-revoke-cancel])>span{flex-basis:calc(100% - 30px)}
+ .nx-device-list [data-nx-revoke-cancel]{margin-left:auto}
 }

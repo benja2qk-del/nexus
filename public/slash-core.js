@@ -75,28 +75,39 @@
     const key=entry.invocation||entry.name,stats={...usage[agent]},old=stats[key]||{};stats[key]={count:(old.count||0)+1,at};
     return {...usage,[agent]:Object.fromEntries(Object.entries(stats).sort((a,b)=>b[1].at-a[1].at).slice(0,100))};
   }
+  const clean = text => String(text||'').replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,'');
+  // What Claude Code answers when it does not run a command.
+  const refusal=/(?:unknown|unrecognized|invalid|not found|not supported) (?:slash )?command|command .{0,80}(?:not found|not supported)|Unrecognized command|\bunknown skill\b|\bisn't available (?:over Remote Control|to a relay participant|in this environment)/i;
+  const refused=text=>refusal.test(clean(text));
   function claudeRecord(record) {
     if (record?.isSidechain || !(record?.type==='user'||record?.type==='system'&&record?.subtype==='local_command')) return [];
     const content=record.type==='system'?record.content:record.message?.content;
     const texts=typeof content==='string'?[content]:Array.isArray(content)?content.filter(p=>p.type==='text').map(p=>p.text||''):[];
     return texts.flatMap(text=>{
-      const command=/<command-name>([^<]+)<\/command-name>/.exec(text);
-      const output=/<local-command-(stdout|stderr)>([\s\S]*?)<\/local-command-\1>/.exec(text);
+      // A command record starts with its tag; a message that quotes one stays a message.
+      const command=/^\s*(?:<command-message>[\s\S]*?<\/command-message>\s*)?<command-name>([^<]+)<\/command-name>/.exec(text);
+      const output=/^\s*<local-command-(stdout|stderr)>([\s\S]*?)<\/local-command-\1>/.exec(text);
+      // isMeta: Claude Code attached it to the turn by itself (a skill a keyword loaded); nobody ran a command.
+      if(command&&record.isMeta)return [{t:'note',id:record.uuid,ts:record.timestamp,text:(/<skill-format>/.test(text)?'Skill loaded: ':'Claude Code added ')+command[1].trim()}];
       if(command){const args=/<command-args>([\s\S]*?)<\/command-args>/.exec(text)?.[1]||'';return [{t:'cmd',id:record.uuid,ts:record.timestamp,text:(command[1]+' '+args).trim()}];}
-      if(output)return [{t:'cmd-output',id:record.uuid,ts:record.timestamp,text:output[2].slice(0,12000),err:output[1]==='stderr'}];
+      if(output)return [{t:'cmd-output',id:record.uuid,ts:record.timestamp,text:clean(output[2]).slice(0,12000),err:output[1]==='stderr'}];
       return [];
     });
   }
   function transcriptReceipt(receipt, events) {
     // Match only records created for this attempt. Earlier identical commands do not count.
     const fresh=events.filter(e=>Date.parse(e.ts)>=receipt.submittedAt&&(!receipt.supersededAt||Date.parse(e.ts)<receipt.supersededAt));
-    const index=fresh.findIndex(e=>(e.t==='cmd'||e.t==='user')&&e.text?.trim()===receipt.text.trim());
+    const same=e=>e.text?.trim()===receipt.text.trim();
+    // /compact is echoed as a plain prompt when it starts; its command record and output come when it ends.
+    let index=fresh.findIndex(e=>e.t==='cmd'&&same(e));const echo=index<0;
+    if(echo)index=fresh.findIndex(e=>e.t==='user'&&same(e));
     if(index<0)return null;
-    const output=[];
-    for(const event of fresh.slice(index+1)){if(['cmd','user','ai'].includes(event.t))break;if(event.t==='cmd-output')output.push(event);}
-    return {status:output.some(e=>e.err)?'rejected':'acknowledged',evidence:'transcript',output:output.map(e=>e.text).join('\n').slice(0,12000)};
+    const output=[];let next=null;
+    for(const event of fresh.slice(index+1)){if(['cmd','user','ai'].includes(event.t)){next=event;break;}if(event.t==='cmd-output')output.push(event);}
+    // The echo alone says the command arrived, not that it ended.
+    if(echo&&!output.length&&!next)return {status:'submitted',evidence:'transcript',output:''};
+    return {status:output.some(e=>e.err||refused(e.text))?'rejected':'acknowledged',evidence:'transcript',output:output.map(e=>e.text).join('\n').slice(0,12000)};
   }
-  const clean = text => String(text||'').replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,'');
   function screenReceipt(receipt, {screen, ready, menu, busy, exited, settled, changed}) {
     if(!receipt.submittedAt)return null;
     const command=parse(receipt.text), current=clean(screen);
@@ -106,13 +117,13 @@
     const output=delta.filter(l=>!/[?] for shortcuts|context left|esc to interrupt|^[\u276f\u203a>]\s*(?:Ask Codex to do anything)?$|[◐◑◒◓].*\/effort|^← open sidebar|^\s*\S+\s+(?:default|low|medium|high|xhigh)\s+·|^\s*\d+\s+tokens?\b/i.test(l)).join('\n').slice(0,12000);
     if(exited && command && (ending.has(command.name)||receipt.kind==='session-ending') && exited.code===0)return {status:'acknowledged',output,evidence:'terminal-exit'};
     if (!changed) return null;
-    if(settled && /(?:unknown|unrecognized|invalid|not found|not supported) (?:slash )?command|command .{0,80}(?:not found|not supported)|Unrecognized command/i.test(output))return {status:'rejected',output,evidence:'terminal'};
+    if(settled && refusal.test(output))return {status:'rejected',output,evidence:'terminal'};
     if(settled && menu)return {status:'menu',output:'',evidence:'terminal'};
     // Input echo and a redraw alone are not evidence that a command ran.
     const lastPrompt=current.split('\n').findLast(l=>/^\s*[\u276f\u203a>]\s*/.test(l))?.trim()||'';
     if(settled && ready && !busy && output && !echo.test(lastPrompt))return {status:'acknowledged',output,evidence:'terminal'};
     return null;
   }
-  const api={parse,risk,handling,filter,categories,category,behaviorLabels,decorate,rank,groups,recordUsage,claudeRecord,transcriptReceipt,screenReceipt};
+  const api={parse,risk,handling,filter,categories,category,behaviorLabels,decorate,rank,groups,recordUsage,claudeRecord,transcriptReceipt,screenReceipt,refused};
   if(typeof module==='object')module.exports=api;else root.NexusSlash=api;
 })(typeof window==='object'?window:globalThis);

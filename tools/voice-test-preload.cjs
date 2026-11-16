@@ -2,7 +2,7 @@
 // Only isolated TEMP fixtures, only ports commissioned for this work.
 const fs = require('fs'), path = require('path'), os = require('os'), Module = require('module');
 const root = fs.realpathSync(process.env.NEXUS_VOICE_FIXTURE || '');
-if (!['4790','4791','4785','4786','4787','4788'].includes(process.env.NEXUS_PORT) || !root.toLowerCase().startsWith(fs.realpathSync(os.tmpdir()).toLowerCase() + path.sep) || !path.basename(root).startsWith('nexus-voice-')) throw Error('Unsafe voice fixture');
+if (!['4790','4791','4785','4786','4787','4788','4796','4797'].includes(process.env.NEXUS_PORT) || !root.toLowerCase().startsWith(fs.realpathSync(os.tmpdir()).toLowerCase() + path.sep) || !path.basename(root).startsWith('nexus-voice-')) throw Error('Unsafe voice fixture');
 const originalLoad = Module._load;
 const log = entry => fs.appendFileSync(path.join(root, 'pty-log.jsonl'), JSON.stringify(entry) + '\n');
 Module._load = function(name, parent, main) {
@@ -13,12 +13,12 @@ Module._load = function(name, parent, main) {
   if (name !== '@lydell/node-pty') return originalLoad.apply(this, arguments);
   return {spawn(file, args, options) {
     if (options.cwd !== path.join(root,'project')) throw Error('Only the fixture project may open');
-    const astra = file === 'cmd.exe', id = astra ? 'voice-astra' : args.at(-1);
-    if (!['voice-claude','voice-astra'].includes(id)) throw Error('Unknown fixture session');
+    const codex = file === 'cmd.exe', id = codex ? 'voice-codex' : args.at(-1);
+    if (!['voice-claude','voice-codex'].includes(id)) throw Error('Unknown fixture session');
     log({type:'spawn',file,args,cwd:options.cwd});
-    const transcript = astra ? path.join(root,'codex','sessions','rollout-voice-astra.jsonl') : path.join(root,'claude','projects',options.cwd.replace(/[^A-Za-z0-9]/g,'-'),id+'.jsonl');
+    const transcript = codex ? path.join(root,'codex','sessions','rollout-voice-codex.jsonl') : path.join(root,'claude','projects',options.cwd.replace(/[^A-Za-z0-9]/g,'-'),id+'.jsonl');
     let onData = () => {}, onExit = () => {}, pasted = '', question = false, ended = false;
-    const write = (role, text) => fs.appendFileSync(transcript, JSON.stringify({timestamp:new Date().toISOString(), ...(astra ? {type:'response_item',payload:{type:'message',role,content:[{type:role==='user'?'input_text':'output_text',text}]}} : {type:role,cwd:options.cwd,message:{content:role==='user'?text:[{type:'text',text}]}})})+'\n');
+    const write = (role, text) => fs.appendFileSync(transcript, JSON.stringify({timestamp:new Date().toISOString(), ...(codex ? {type:'response_item',payload:{type:'message',role,content:[{type:role==='user'?'input_text':'output_text',text}]}} : {type:role,cwd:options.cwd,message:{content:role==='user'?text:[{type:'text',text}]}})})+'\n');
     const paint = text => onData('\x1b[2J\x1b[H'+text.replace(/\r?\n/g,'\r\n'));
     const idle = '─────────────────────────────────────\n❯ \n─────────────────────────────────────\n? for shortcuts';
     setTimeout(() => paint(idle), 300);

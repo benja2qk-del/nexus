@@ -16,14 +16,14 @@ async function main(){
  assert(core.risk(core.parse('/session delete example')));assert(!core.risk(core.parse('/help')));
  assert.equal(core.handling({native:'model'},core.parse('/model')),'native:model');assert.equal(core.handling({native:'model'},core.parse('/model opus')),'terminal');
  assert(core.filter(commands.catalogs.claude.commands,'/comp').every(c=>c.name.startsWith('comp')));assert.equal(core.filter([], '/compact hi').length,0);
- const roots={home:root,claude:path.join(root,'personal-claude'),astra:path.join(root,'personal-astra'),copilot:path.join(root,'personal-copilot')};
+ const roots={home:root,claude:path.join(root,'personal-claude'),codex:path.join(root,'personal-codex'),copilot:path.join(root,'personal-copilot')};
  const cwd=path.join(root,'project');file('project/.git','fixture');
  file('personal-claude/commands/test.md','---\ndescription: Personal test\nargument-hint: <file>\n---\n!`must-never-run`');
  file('project/.claude/commands/test.md','---\ndescription: Project test\n---\nbody');
  file('project/.claude/commands/team/deploy.md','---\ndescription: Deploy preview\n---\nbody');
  file('project/.claude/skills/hidden/SKILL.md','---\nname: hidden\nuser-invocable: false\n---\nbody');
  file('project/.claude/skills/inspect/SKILL.md','---\nname: inspect\ndescription: >\n  Inspect files\n  carefully\n---\nbody');
- file('personal-astra/prompts/fix.md','---\ndescription: Fix a file\nargument-hint: FILE=<path>\n---\nbody');
+ file('personal-codex/prompts/fix.md','---\ndescription: Fix a file\nargument-hint: FILE=<path>\n---\nbody');
  file('project/.agents/skills/check/SKILL.md','---\nname: check\ndescription: Check files\n---\nbody');
  file('project/.github/skills/release/SKILL.md','---\nname: release\ndescription: Review release\n---\nbody');
  file('project/.github/agents/reviewer.agent.md','---\nname: reviewer\ndescription: Review changes\n---\nbody');
@@ -33,7 +33,7 @@ async function main(){
  assert.equal(data.commands.find(c=>c.name==='test').description,'Project test');assert(data.commands.some(c=>c.name==='team:deploy'));assert(!data.commands.some(c=>c.name==='hidden'));assert.equal(data.commands.find(c=>c.name==='inspect').description,'Inspect files carefully');assert.equal(data.commands.find(c=>c.name==='demo:audit').source,'plugin');
  file('project/.claude/commands/later.md','---\ndescription: Added later\n---\nbody');assert.equal(await commands.discover('claude',cwd,{roots}),data,'cached by folder and agent');
  data=await commands.discover('claude',cwd,{roots,ttl:0});assert(data.commands.some(c=>c.name==='later'));
- data=await commands.discover('astra',cwd,{roots});assert(data.commands.some(c=>c.name==='prompts:fix'));assert(data.skills.some(c=>c.invocation==='$check'));assert(!data.commands.some(c=>c.name==='check'));
+ data=await commands.discover('codex',cwd,{roots});assert(data.commands.some(c=>c.name==='prompts:fix'));assert(data.skills.some(c=>c.invocation==='$check'));assert(!data.commands.some(c=>c.name==='check'));
  data=await commands.discover('copilot',cwd,{roots});assert(data.commands.some(c=>c.name==='release'));assert(data.agents.some(c=>c.invocation==='/agent reviewer'));
  const at=Date.now(),ts=new Date(at).toISOString(),record=core.claudeRecord({type:'user',uuid:'one',timestamp:ts,message:{content:'<command-name>/compact</command-name><command-args>focus on tests</command-args>'}})[0];
  assert.equal(record.t,'cmd');assert.equal(record.text,'/compact focus on tests');
@@ -53,7 +53,7 @@ async function main(){
  assert(conversation.inputReady('OpenAI Codex (v0.153.4)\n› Ask Codex to do anything\n gpt-5.4 default · folder'));
  const t={display:{},lastOut:0,outputRevision:1,commandReceipts:[{...r,text:'/help',kind:'menu'}]};
  assert.equal(receipts.update(t,'Help\n↑/↓ scroll · esc close')[0].status,'menu');assert.equal(receipts.update(t,'❯\n? for shortcuts')[0].status,'closed');
- const resized={kind:'astra',seenInput:true,display:{},lastOut:0,outputRevision:2,commandReceipts:[{...r,text:'/permissions',kind:'menu',status:'menu'}]};
+ const resized={kind:'codex',seenInput:true,display:{},lastOut:0,outputRevision:2,commandReceipts:[{...r,text:'/permissions',kind:'menu',status:'menu'}]};
  assert.equal(receipts.update(resized,'› Ask Codex to do anything\n gpt-6-luna default · folder')[0].status,'closed','menu closure uses the same established-input guard after resize');
  const repeated={display:{},lastOut:0,outputRevision:0};
  const earlier=receipts.begin(repeated,'/context','earlier',{kind:'instant'},'❯\n? for shortcuts');
@@ -64,7 +64,7 @@ async function main(){
  const writes=[],ptys=[],requireTerms=createRequire(path.resolve('terms.js')),mod={exports:{}};
  const stub={spawn(){const p={pid:123,write:d=>writes.push(d),onData:fn=>p.data=fn,onExit:fn=>p.exit=fn,kill(){},resize(){}};ptys.push(p);return p;}};
  vm.runInNewContext(fs.readFileSync('terms.js','utf8'),{module:mod,require:n=>n==='@lydell/node-pty'?stub:n==='./agents'?{launch:(kind,args)=>({file:kind,args})}:requireTerms(n),process:{env:{}},setTimeout,clearTimeout,Buffer,console});
- for(const kind of ['claude','astra','copilot']){
+ for(const kind of ['claude','codex','copilot']){
   const terms=mod.exports,term=terms.open({kind,cwd:root,title:'Command fixture'}),p=ptys.at(-1),paint=s=>p.data('\x1b[2J\x1b[H'+s.replace(/\n/g,'\r\n'));
   paint('────────────────\n❯\n────────────────\n? for shortcuts');await sleep(610);
   const count=writes.length;await assert.rejects(terms.send(term.id,'/logout',{commandId:kind+'-logout'}),/Confirm/);assert.equal(writes.length,count,'unconfirmed command writes nothing');

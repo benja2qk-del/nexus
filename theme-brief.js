@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
-const FILES={'CLAUDE.md':['claude','copilot'],'.claude/CLAUDE.md':['claude','copilot'],'AGENTS.md':['astra','copilot'],'.github/copilot-instructions.md':['copilot']};
+const FILES={'CLAUDE.md':['claude','copilot'],'.claude/CLAUDE.md':['claude','copilot'],'AGENTS.md':['codex','copilot'],'.github/copilot-instructions.md':['copilot']};
 const key=p=>path.resolve(p).toLowerCase(),hash=s=>crypto.createHash('sha256').update(s).digest('hex'),MAX=64*1024;
 function folders(theme,sessions=[]){return [...new Map([theme.mainFolder,...(theme.workFolders||[]).map(f=>typeof f==='string'?f:f.path),...sessions.filter(s=>s.theme?.id===theme.id).flatMap(s=>(s.workFolders||[]).map(f=>f.path))].filter(p=>typeof p==='string'&&path.isAbsolute(p)).map(p=>[key(p),path.resolve(p)])).values()];}
 function confined(root,relative,{missing=false}={}){
@@ -52,7 +52,7 @@ function launch(spec,theme,sessions=[]){
  if(!theme)return {spec,method:''};
  if(!theme.mainFolder||!path.isAbsolute(theme.mainFolder)||!fs.statSync(theme.mainFolder).isDirectory())throw Error('This theme needs an available main folder before starting a session.');
  const dirs=folders(theme,sessions).filter(p=>{try{return fs.statSync(p).isDirectory();}catch{return false;}}),cwd=spec.cwd||theme.mainFolder;
- if(spec.kind==='astra')return {spec:{...spec,cwd:theme.mainFolder},method:'Started in the theme main folder; Codex reads AGENTS.md natively.'};
+ if(spec.kind==='codex')return {spec:{...spec,cwd:theme.mainFolder},method:'Started in the theme main folder; Codex reads AGENTS.md natively.'};
  const extra=dirs.filter(p=>key(p)!==key(cwd)),field=spec.kind==='claude'?'claudeArgs':'copilotArgs',args=[...(spec[field]||[]),...extra.flatMap(p=>['--add-dir',p])];
  let method=extra.length?'Theme folders added with --add-dir.':'Started in the theme main folder.';
  if(spec.kind==='claude'){

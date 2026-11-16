@@ -2,6 +2,8 @@
 // Read-only, incremental JSONL accounting. Runs in a worker, never on the HTTP thread.
 const fs = require('fs');
 const { StringDecoder } = require('string_decoder');
+const claudeRecords = require('./claude-records');
+const codex = require('./recap');
 const clip = (s, n = 500) => String(s || '').slice(0, n);
 const textOf = c => typeof c === 'string' ? c : Array.isArray(c) ? c.filter(p => p.type === 'text' || p.type === 'input_text' || p.type === 'output_text').map(p => p.text || '').join('\n') : '';
 const emptyUsage = () => ({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 });
@@ -9,12 +11,13 @@ const number = x => Number.isFinite(x) && x > 0 ? x : 0;
 const MAX_LINE = 32 * 1024 * 1024;
 const MAX_EVENTS = 24000;
 
-function fresh(file, kind) {
-  return { file, kind, offset: 0, size: 0, identity: '', complete: false, scanned: false, skipped: 0, malformed: 0, records: 0,
+// after: a helper thread's fork time; the copy of its parent's history, stamped no later, is not its own.
+function fresh(file, kind, after = 0) {
+  return { file, kind, after, offset: 0, size: 0, identity: '', complete: false, scanned: false, skipped: 0, malformed: 0, records: 0,
     pendingLine: '', lineBytes: 0, skipping: false, decoder: new StringDecoder('utf8'),
     usage: emptyUsage(), daily:{}, byModel:{}, currentModel:'', measured: false, messages: new Map(), calls: new Set(), pending: new Map(), turns: [], turn: null,
     codexTotal: emptyUsage(), events: [], droppedBefore: 0, recent: [], firstRequest: '', lastRequest: '', lastAssistant: '',
-    toolsSinceEdit: 0, reads: new Map(), failures: new Map(), waste: new Map(), current: null, scanMs: 0, bytesRead: 0 };
+    toolsSinceEdit: 0, exactCommands: false, commandFailed: false, reads: new Map(), failures: new Map(), waste: new Map(), current: null, scanMs: 0, bytesRead: 0 };
 }
 function event(s, type, ts, extra = {}) {
   const e = { type, at: Date.parse(ts) || 0, ...extra };
@@ -30,7 +33,8 @@ function turn(s, ts, request = '') {
   event(s, 'turn', ts);
 }
 function request(s, t, ts) {
-  if (!t || t.trim().startsWith('<') || t.startsWith('# AGENTS.md')) return;
+  // Claude and Codex prompts arrive already read the way the chat reads them, where a message may open with "<".
+  if (!t || s.kind === 'copilot' && (t.trim().startsWith('<') || t.startsWith('# AGENTS.md'))) return;
   if (!s.firstRequest) s.firstRequest = clip(t, 2400);
   s.lastRequest = clip(t, 2400);
   if (s.kind === 'claude' || !s.turn || s.turn.request) turn(s, ts, t);
@@ -47,6 +51,7 @@ function flag(s, id, reason) { s.waste.set(id, { reason, heuristic: true }); if 
 function tool(s, id, name, input, ts) {
   if (id && s.calls.has(id)) return;
   if (id) s.calls.add(id);
+  s.commandFailed = false;
   let a = input;
   if (typeof a === 'string') { try { a = JSON.parse(a); } catch { a = { code: a }; } }
   a = a || {};
@@ -75,12 +80,15 @@ function tool(s, id, name, input, ts) {
 }
 function result(s, id, raw, error, ts) {
   const output = typeof raw === 'string' ? raw : JSON.stringify(raw || '');
-  const failed = error || /(?:Process exited with code|exit_code["']?\s*[:=]|Exit code:)\s*[1-9]\d*/i.test(output);
   const call = s.pending.get(id); s.pending.delete(id);
+  // Once Codex records exact command outcomes, a command's output text is not a second verdict; a patch's still is.
+  // A Codex script's first line is its verdict; one that stopped on a failed command already recorded is one failure.
+  const verdict = s.kind === 'codex' ? codex.codexVerdict(output) : '', stopped = /^(?:failed|terminated)$/.test(verdict), counted = stopped && s.commandFailed; s.commandFailed = false;
+  const failed = error || stopped || !verdict && !(s.exactCommands && !call?.paths.length) && /(?:Process exited with code|exit_code["']?\s*[:=]|Exit code:)\s*[1-9]\d*/i.test(output);
   if (s.current && call) s.current.running = false;
   if (output.length > 40000) flag(s, 'large-output', `A tool returned ${Math.round(output.length / 1000)}k characters; large outputs can consume context.`);
   if (failed) {
-    event(s, 'error', ts, { text: clip(output, 300) });
+    if (!counted) event(s, 'error', ts, { text: clip(output, 300) });
     if (call?.normalized) {
       const n = (s.failures.get(call.normalized) || 0) + 1; s.failures.set(call.normalized, n);
       if (n >= 2) flag(s, 'failure:' + call.normalized, `Same command failed ${n} times: ${clip(call.normalized, 140)}`);
@@ -125,15 +133,11 @@ function consume(s, r) {
   }
   if (s.kind === 'claude') {
     if (r.type === 'system' && r.subtype === 'api_error') event(s, 'error', ts, { text: clip(r.error?.message || r.message || JSON.stringify(r.error || 'API error'), 300) });
-    const m = r.message;
-    if (r.type === 'user' && m) {
-      const parts = m.content;
-      if (!r.isMeta && !(Array.isArray(parts) && parts.some(p => p.type === 'tool_result'))) {
-        const t = textOf(parts).trim(); if (t && !t.startsWith('<')) { s.reads.clear(); s.failures.clear(); s.waste.clear(); request(s, t, ts); }
-      }
-      if (Array.isArray(parts)) for (const p of parts) if (p.type === 'tool_result') result(s, p.tool_use_id, typeof p.content === 'string' ? p.content : textOf(p.content), p.is_error, ts);
-    }
-    if (r.type !== 'assistant' || !m || m.model === '<synthetic>') return;
+    const m = r.message, own = claudeRecords.ownerPrompt(r);
+    if (own) { s.reads.clear(); s.failures.clear(); s.waste.clear(); request(s, claudeRecords.promptText(own), own.at || ts); }
+    if (r.type === 'user' && m && Array.isArray(m.content)) for (const p of m.content) if (p.type === 'tool_result') result(s, p.tool_use_id, typeof p.content === 'string' ? p.content : textOf(p.content), p.is_error, ts);
+    if (r.type === 'assistant' && r.isApiErrorMessage) event(s, 'error', ts, { text: clip(claudeRecords.assistantText(r) || 'API error', 300) });
+    if (r.type !== 'assistant' || !m || claudeRecords.machineReply(r)) return;
     if (m.usage) {
       const u = m.usage, key = m.id || r.uuid || 'record:' + s.records;
       if (!s.turn) turn(s, ts);
@@ -150,12 +154,17 @@ function consume(s, r) {
       else if (p.type === 'text' && p.text?.trim()) { s.lastAssistant = clip(p.text.trim(), 800); event(s, 'assistant', ts, { text: s.lastAssistant }); }
     }
   } else {
-    const p = r.payload; if (!p) return;
+    const p = r.payload; if (!p || s.after && !(Date.parse(ts) > s.after)) return;
     if(r.type==='turn_context'&&p.model)s.currentModel=p.model;
     if (r.type === 'event_msg') {
       if (p.type === 'error') event(s, 'error', ts, { text: clip(p.message || p.error || 'Agent error', 300) });
       if (p.type === 'task_started') { turn(s, ts); s.reads.clear(); s.failures.clear(); s.waste.clear(); }
       if (p.type === 'task_complete') event(s, 'complete', ts);
+      // Current Codex reports a command's outcome only here.
+      if (p.type === 'item_completed' && p.item?.type === 'CommandExecution') {
+        s.exactCommands = true;
+        if (p.item.status === 'failed' || p.item.exit_code > 0) { s.commandFailed = true; event(s, 'error', ts, { text: clip((Array.isArray(p.item.command) ? p.item.command.at(-1) : p.item.command || 'Command') + ' exited with code ' + (p.item.exit_code ?? '?'), 300) }); }
+      }
       if (p.type === 'token_count' && p.info?.total_token_usage) {
         const u = p.info.total_token_usage;
         const next = { input: number(u.input_tokens), output: number(u.output_tokens), cacheRead: number(u.cached_input_tokens), cacheWrite: 0, total: number(u.total_tokens) || number(u.input_tokens) + number(u.output_tokens) };
@@ -167,12 +176,12 @@ function consume(s, r) {
       }
     }
     if (r.type !== 'response_item') return;
-    if (p.type === 'message' && p.role === 'user') request(s, textOf(p.content).trim(), ts);
+    if (p.type === 'message' && p.role === 'user') request(s, codex.codexPromptText(p.content), ts);
     if (p.type === 'message' && p.role === 'assistant') {
       const t = textOf(p.content).trim(); if (t) { s.lastAssistant = clip(t, 800); event(s, 'assistant', ts, { text: s.lastAssistant }); }
     }
     if (['function_call', 'custom_tool_call', 'local_shell_call'].includes(p.type)) tool(s, p.call_id, p.name || 'shell', p.arguments || p.input || p.action, ts);
-    if (['function_call_output', 'custom_tool_call_output'].includes(p.type)) result(s, p.call_id, p.output, false, ts);
+    if (['function_call_output', 'custom_tool_call_output'].includes(p.type)) result(s, p.call_id, codex.codexOutput(p.output), false, ts);
   }
 }
 
@@ -180,7 +189,7 @@ async function scanFile(s, onProgress) {
   const started = performance.now();
   const st = await fs.promises.stat(s.file);
   const identity = `${st.dev}:${st.ino}:${st.birthtimeMs}`;
-  if ((s.identity && s.identity !== identity) || st.size < s.offset) Object.assign(s, fresh(s.file, s.kind));
+  if ((s.identity && s.identity !== identity) || st.size < s.offset) Object.assign(s, fresh(s.file, s.kind, s.after));
   s.identity = identity; s.size = st.size;
   if (s.scanned && s.offset === st.size) return s;
   if (!st.size) { s.scanned = s.complete = true; return s; }
@@ -221,7 +230,7 @@ function snapshot(s, since = 0) {
     opening: clip((assistant.match(/^[\s\S]*?[.!?](?:\s|$)/) || [assistant])[0].trim(), 280),
     partial: !s.complete || s.skipped > 0 || s.malformed > 0 || s.droppedBefore > since };
   return { scan: { complete: s.complete, scanned: s.scanned, offset: s.offset, size: s.size, skipped: s.skipped, malformed: s.malformed, ms: Math.round(s.scanMs), bytesRead: s.bytesRead },
-    spend: { ...s.usage, premiumRequests:s.premiumRequests??null,aiCredits:s.aiCredits??null, daily:Object.fromEntries(Object.entries(s.daily).sort(([a],[b])=>a.localeCompare(b)).slice(-90)), byModel:s.byModel, measured: s.measured, partial: !s.complete || s.skipped > 0 || s.malformed > 0, turns: s.turns.slice(-12), cacheIncludedInInput: s.kind === 'astra' },
+    spend: { ...s.usage, premiumRequests:s.premiumRequests??null,aiCredits:s.aiCredits??null, daily:Object.fromEntries(Object.entries(s.daily).sort(([a],[b])=>a.localeCompare(b)).slice(-90)), byModel:s.byModel, measured: s.measured, partial: !s.complete || s.skipped > 0 || s.malformed > 0, turns: s.turns.slice(-12), cacheIncludedInInput: s.kind === 'codex' },
     digest, firstRequest: s.firstRequest, lastRequest: s.lastRequest, lastAssistant: s.lastAssistant, current: s.current, recent: s.recent,
     waste: [...s.waste.values()], turn: s.turn ? { at: s.turn.at, tools: s.turn.tools, edits: s.turn.edits } : null };
 }

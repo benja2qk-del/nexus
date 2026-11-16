@@ -7,16 +7,18 @@ body.redesign #focusHead:has(#nxCopilotBar){flex-wrap:wrap}#nxCopilotBar{flex:0 
 @media(max-width:700px){body.redesign #focusHead:has(#nxCopilotBar){display:flex;align-items:flex-start;gap:8px}#nxCopilotBar{gap:6px;padding-top:8px}.nx-copilot-mode{flex:1;min-width:100%}.nx-copilot-mode button{flex:1;min-height:40px;font-size:13px}.nx-copilot-options{min-height:44px;font-size:12px;flex:1;justify-content:center}#nxCopilotBar>small{font-size:12px;flex-basis:100%}.nx-copilot-session-usage{font-size:12px}.nx-copilot-fields :is(select,input){min-height:44px;font-size:16px}.nx-copilot-fields{gap:12px}.nx-copilot-fields label{font-size:13px}.nx-copilot-hint{font-size:13px}#nxCopilotFleet{margin:0 16px 6px;padding:10px;max-height:130px}.nx-copilot-quota{max-width:none;flex:1}.nx-copilot-quota small{font-size:12px}.nx-theme-spend-page>button{min-height:48px}.nx-theme-spend-page>button>b{font-size:12px;max-width:46%}.nx-theme-spend-page>button>span{font-size:14px}.nx-premium-multiplier{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.nx-copilot-quota .nx-meter i{animation:none}.nx-copilot-mode button{transition-duration:.001ms}}
 @media(max-width:700px){
- body.redesign #focusHead,body.redesign #focusHead:has(#nxCopilotBar){display:grid;grid-template-columns:32px minmax(0,1fr) 44px;gap:8px;align-items:center}
- body.redesign #focusHead .session-more{grid-column:3;grid-row:1}
- body.redesign #focusHead .nx-model-select{grid-column:2 / 4;grid-row:2;justify-self:end;max-width:170px}
- body.redesign #focusHead .nx-catchup{grid-column:1 / -1;grid-row:2;width:calc(100% - var(--nx-model-width,160px) - 8px);min-height:44px}
- body.redesign #focusHead .nx-heading{grid-column:2;grid-row:1}
- #nxCopilotBar{grid-column:1 / -1;grid-row:3;padding-top:0}
- #nxCopilotBar .nx-copilot-mode button{min-height:40px}
- #nxCopilotBar .nx-copilot-session-usage{line-height:1.5}
+ #nxCopilotBar{grid-column:1 / -1;grid-row:3;padding-top:0;gap:6px 8px}
+ #nxCopilotBar .nx-copilot-mode{flex:0 0 auto;min-width:0}
+ #nxCopilotBar .nx-copilot-mode button{flex:1 1 auto;min-width:44px;min-height:44px;padding:0 8px;font-size:12px}
+ #nxCopilotBar .nx-copilot-options{flex:1 1 0;min-width:0;min-height:44px;padding:0 8px;font-size:12px;white-space:nowrap;overflow:hidden}
+ #nxCopilotBar .nx-copilot-options svg{display:none}
+ #nxCopilotBar .nx-copilot-options>span{overflow:hidden;text-overflow:ellipsis}
+ #nxCopilotBar .nx-copilot-session-usage{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.5}
+ #nxCopilotBar>small{flex:0 0 auto}
 }
 .nx-single-agent .nx-agent-name{display:none!important}
 .nx-copilot-boot .nx-boot-crystal{filter:none}
 @media(max-width:700px){body.redesign #focusHead .nx-header-meta{display:flex;font-size:12px;order:2}body.redesign #focusHead .nx-header-meta>span:not(.nx-theme-label){display:none}.nx-copilot-options{font-size:12px}.nx-copilot-mode button{min-height:44px}}
 .nx-bar-list>div>div>span{display:flex;gap:6px;align-items:center}
+.nx-copilot-mode button[aria-pressed=true]{color:var(--foreground);background:color-mix(in oklch,var(--agent-copilot) 22%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in oklch,var(--agent-copilot) 55%,transparent)}
+.nx-copilot-options>span{min-width:0}

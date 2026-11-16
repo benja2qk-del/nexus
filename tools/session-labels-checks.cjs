@@ -13,10 +13,10 @@ function stubs(behaviour){
   };
   return {calls,spawnProcess,launch:(kind,args)=>({file:kind,args})};
 }
-const all=[{kind:'claude',model:'haiku'},{kind:'astra',model:'gpt-6-luna'},{kind:'copilot',model:'claude-haiku-5.5'}];
+const all=[{kind:'claude',model:'haiku'},{kind:'codex',model:'gpt-6-luna'},{kind:'copilot',model:'claude-haiku-5.5'}];
 const old=Date.now()-60e3,session=(id,over={})=>({kind:'claude',id,title:'beacon demo dev',lastPrompt:'i have the playtester outdated can you put latest beacon full version into the playtester all unlocked please',lastText:'You\'ve hit your weekly limit',status:'idle',updated:old,...over});
 (async()=>{try{
-  assert.deepEqual(providers({claude:{installed:true},astra:{installed:true},copilot:{installed:true}},{astra:[{id:'gpt-6.1-sol'},{id:'gpt-6-luna'},{id:'gpt-5.6-luna'}],copilot:[{id:'claude-sonnet-5.5'},{id:'claude-haiku-5.5'},{id:'claude-haiku-4.5'}]}),all,'Claude Haiku, then the newest Luna, then Copilot\'s newest Haiku');
+  assert.deepEqual(providers({claude:{installed:true},codex:{installed:true},copilot:{installed:true}},{codex:[{id:'gpt-6.1-sol'},{id:'gpt-6-luna'},{id:'gpt-5.6-luna'}],copilot:[{id:'claude-sonnet-5.5'},{id:'claude-haiku-5.5'},{id:'claude-haiku-4.5'}]}),all,'Claude Haiku, then the newest Luna, then Copilot\'s newest Haiku');
   assert.deepEqual(providers({copilot:{installed:true}},{copilot:[]}),[{kind:'copilot',model:'claude-haiku-4.5'}],'a Copilot-only PC labels with Haiku through Copilot');
   assert.equal(clean('Label: "playtester kit update."\nmore'),'Playtester kit update');
   assert.equal(clean('This reply is far too long to be a label for a session card in the list at all'),'','long replies are not labels');
@@ -34,11 +34,11 @@ const old=Date.now()-60e3,session=(id,over={})=>({kind:'claude',id,title:'beacon
   assert.equal(s.calls.length,2,'working, just-finished and week-old sessions are left alone');
 
   // Claude at its limit: Codex Luna writes it, and Claude rests instead of failing on every label.
-  s=stubs({claude:()=>null,astra:()=>[JSON.stringify({type:'thread.started'}),JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'Demo published on the store'}})].join('\n')});
+  s=stubs({claude:()=>null,codex:()=>[JSON.stringify({type:'thread.started'}),JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'Demo published on the store'}})].join('\n')});
   l=createLabeler({file:path.join(root,'b.json'),available:()=>all,...s,gap:0});
   l.get(session('c'));l.get(session('d',{lastPrompt:'what follows on the game developing steps?'}));await wait(60);
   assert.equal(l.get(session('c')),'Demo published on the store');
-  assert.deepEqual(s.calls.map(c=>c.kind),['claude','astra','astra'],'one failed Claude run sets Claude aside');
+  assert.deepEqual(s.calls.map(c=>c.kind),['claude','codex','codex'],'one failed Claude run sets Claude aside');
   assert.ok(s.calls[1].args.includes('--ephemeral')&&s.calls[1].args.includes('gpt-6-luna')&&s.calls[1].input.startsWith('You label'),'Codex gets the instruction on stdin and keeps nothing');
 
   // Copilot keeps its sessions, so label runs start in the folder discovery skips.

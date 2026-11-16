@@ -4,7 +4,7 @@ const root=fs.realpathSync(process.env.NEXUS_REDESIGN_FIXTURE||'');
 if(!['4790','4791'].includes(process.env.NEXUS_PORT)||!root.toLowerCase().startsWith(fs.realpathSync(os.tmpdir()).toLowerCase()+path.sep)||!path.basename(root).startsWith('nexus-redesign-'))throw Error('Unsafe themes UI fixture');
 const sessions=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'))),single=process.env.NEXUS_THEMES_UI_SINGLE==='1',native=Module._load;
 const log=(name,row)=>fs.appendFileSync(path.join(root,name+'.jsonl'),JSON.stringify(row)+'\n');
-const agents=require('../agents');agents.publicStatus=agents.refresh=()=>({claude:{installed:!single},astra:{installed:!single},copilot:{installed:true}});agents.launch=(kind,args)=>({file:'fixture-'+kind,args});agents.summaryProvider=()=>({kind:single?'copilot':'claude',model:'fixture',note:'One explicit fixture summary; no model call.'});
+const agents=require('../agents');agents.publicStatus=agents.refresh=()=>({claude:{installed:!single},codex:{installed:!single},copilot:{installed:true}});agents.launch=(kind,args)=>({file:'fixture-'+kind,args});agents.summaryProvider=()=>({kind:single?'copilot':'claude',model:'fixture',note:'One explicit fixture summary; no model call.'});
 Module._load=function(name){if(name!=='@lydell/node-pty')return native.apply(this,arguments);return {spawn(file,args,options){
  if(!options.cwd.startsWith(root+path.sep))throw Error('Only fixture folders may launch');log('spawns',{file,args});
  const s=sessions.find(s=>args.includes(s.id));let onData=()=>{},onExit=()=>{},paste='';const idle='\u276f \n? for shortcuts';

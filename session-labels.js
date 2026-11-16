@@ -23,18 +23,18 @@ function clean(text){
 function providers(installed,catalog){
   const ids=kind=>(catalog?.[kind]||[]).map(m=>m.id),out=[];
   if(installed.claude?.installed)out.push({kind:'claude',model:'haiku'});
-  if(installed.astra?.installed)out.push({kind:'astra',model:ids('astra').find(id=>/luna/i.test(id))||'gpt-5.6-terra'});
+  if(installed.codex?.installed)out.push({kind:'codex',model:ids('codex').find(id=>/luna/i.test(id))||'gpt-5.6-terra'});
   if(installed.copilot?.installed)out.push({kind:'copilot',model:ids('copilot').find(id=>/haiku/i.test(id))||'claude-haiku-4.5'});
   return out;
 }
 function args(p,system){
   if(p.kind==='claude')return ['-p','--model',p.model,'--tools','','--allowedTools','','--no-session-persistence','--safe-mode','--strict-mcp-config','--mcp-config','{"mcpServers":{}}','--output-format','json','--system-prompt',system];
-  if(p.kind==='astra')return ['exec','--ephemeral','--ignore-user-config','--ignore-rules','--skip-git-repo-check','--sandbox','read-only','--disable','shell_tool','--disable','unified_exec','--json','-m',p.model,'-'];
+  if(p.kind==='codex')return ['exec','--ephemeral','--ignore-user-config','--ignore-rules','--skip-git-repo-check','--sandbox','read-only','--disable','shell_tool','--disable','unified_exec','--json','-m',p.model,'-'];
   return ['--model',p.model,'--silent','--available-tools=','--disable-builtin-mcps','--no-custom-instructions','--no-ask-user','--no-remote','--no-remote-export','--no-auto-update'];
 }
 function answer(kind,output){
   if(kind==='claude'){const j=JSON.parse(output);if(j.is_error)throw Error('failed');return j.result;}
-  if(kind==='astra')return output.split(/\r?\n/).flatMap(line=>{try{const r=JSON.parse(line);return r.type==='item.completed'&&r.item?.type==='agent_message'?[r.item.text]:[];}catch{return [];}}).at(-1);
+  if(kind==='codex')return output.split(/\r?\n/).flatMap(line=>{try{const r=JSON.parse(line);return r.type==='item.completed'&&r.item?.type==='agent_message'?[r.item.text]:[];}catch{return [];}}).at(-1);
   return output;
 }
 // One prompt to one light model with no tools and nothing saved, run from WORKDIR; resolves with the raw reply.
@@ -51,7 +51,7 @@ function run(p,system,text,options={}){const {spawnProcess=spawn,launch=(kind,a)
   child.stdin.end(p.kind==='claude'?text:system+'\n\nUntrusted transcript data:\n'+text);
 });}
 function createLabeler({file=path.join(HOME_DIR,'labels.json'),enabled=true,available=()=>[],spawnProcess=spawn,launch=(kind,a)=>require('./agents').launch(kind,a),now=Date.now,gap=1500}={}){
-  let store={};try{store=JSON.parse(fs.readFileSync(file,'utf8'))||{};}catch{}
+  let store={};try{store=JSON.parse(fs.readFileSync(file,'utf8'))||{};require('./legacy-names').keyed(store);/* old keys written after the start-up migration */}catch{}
   const queue=new Map(),cooling=new Map();let running=false,saveTimer=null;
   function save(){
     clearTimeout(saveTimer);

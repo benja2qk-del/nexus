@@ -54,20 +54,20 @@ fs.mkdirSync(path.join(home,'.git'),{recursive:true});
   assert.deepEqual([list[0].theme.name,list[0].theme.source],['Route Planner','owner'],'the owner\'s move wins over the model');
 
   // The sorter: one request for a batch, cheapest agent first, each session asked once.
-  const claude={kind:'claude',model:'haiku'},astra={kind:'astra',model:'gpt-6-luna'},picks=[];
+  const claude={kind:'claude',model:'haiku'},codex={kind:'codex',model:'gpt-6-luna'},picks=[];
   let s=stubs({claude:()=>JSON.stringify({result:'{"1":"Survey Chile","2":""}'})});
   const store=path.join(fixture,'picks.json'),offered=[{kind:'claude',id:'a',title:'Survey',firstPrompt:'Analyze the Chile survey results',updated:2},{kind:'claude',id:'b',title:'hi',firstPrompt:'hi',updated:1},{kind:'claude',id:'c',title:'New session',updated:3}];
-  let sorter=createSorter({file:store,available:()=>[claude,astra],themes:()=>[{name:'Nexus Deck',mainFolder:'C:\\x'}],place:p=>picks.push(...p),...s,wait:0});
+  let sorter=createSorter({file:store,available:()=>[claude,codex],themes:()=>[{name:'Nexus Deck',mainFolder:'C:\\x'}],place:p=>picks.push(...p),...s,wait:0});
   sorter.offer(offered);await wait(50);
   assert.equal(s.calls.length,1,'one request for the batch');assert.ok(s.calls[0].args.at(-1).startsWith('You sort')&&s.calls[0].input.includes('- Nexus Deck')&&s.calls[0].input.includes('Analyze the Chile survey results'));
   assert.ok(!s.calls[0].input.includes('New session'),'a session with no ask yet waits');
   assert.deepEqual(picks,[{key:'claude:a',name:'Survey Chile'}]);
   sorter.offer(offered);await wait(50);assert.equal(s.calls.length,1,'each session is asked about once');
-  sorter=createSorter({file:store,available:()=>[claude,astra],themes:()=>[],place:p=>picks.push(...p),...s,wait:0});
+  sorter=createSorter({file:store,available:()=>[claude,codex],themes:()=>[],place:p=>picks.push(...p),...s,wait:0});
   sorter.offer(offered);await wait(50);assert.equal(s.calls.length,1,'answers are kept across restarts');
-  s=stubs({claude:()=>null,astra:()=>JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'{"1":"Power BI Training"}'}})});
-  sorter=createSorter({file:path.join(fixture,'other.json'),available:()=>[claude,astra],place:p=>picks.push(...p),...s,wait:0});
+  s=stubs({claude:()=>null,codex:()=>JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'{"1":"Power BI Training"}'}})});
+  sorter=createSorter({file:path.join(fixture,'other.json'),available:()=>[claude,codex],place:p=>picks.push(...p),...s,wait:0});
   sorter.offer([{kind:'copilot',id:'d',title:'PBI Training',firstPrompt:'Teach me Power BI measures',updated:1}]);await wait(50);
-  assert.deepEqual(s.calls.map(c=>c.kind),['claude','astra'],'a failed agent hands over to the next one');assert.equal(picks.at(-1).name,'Power BI Training');
+  assert.deepEqual(s.calls.map(c=>c.kind),['claude','codex'],'a failed agent hands over to the next one');assert.equal(picks.at(-1).name,'Power BI Training');
   console.log('PASS theme sorting: repositories keep their folder, other sessions are read in batches by the lightest agent, the owner wins, emptied folder guesses hidden');
 }catch(e){console.error(e);process.exitCode=1;}finally{fs.rmSync(fixture,{recursive:true,force:true});}})();

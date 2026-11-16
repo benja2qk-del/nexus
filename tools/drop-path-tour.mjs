@@ -53,25 +53,28 @@ try {
 
   // 2. Dropping inserts the path where the caret is, without uploading.
   await b.js(`window.dt=new DataTransfer();dt.items.add(new File([new Uint8Array(${zipStat.size})],${JSON.stringify(path.basename(zip))},{lastModified:${Math.round(zipStat.mtimeMs)}}));$('#steerIn').dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:dt}))`);
-  await check("$('#steer').classList.contains('attachment-drag') && getComputedStyle($('#steer'),'::after').content.includes('Drop to insert the file path')", 'dragging a file over the composer says it will insert the path');
+  await check("$('#steer').classList.contains('attachment-drag') && getComputedStyle($('#steer'),'::after').content.includes('Drop to add the file')", 'dragging a file over the composer says it will add the file');
   await shot('drag-over');
   await b.js("$('#steer').dispatchEvent(new DragEvent('dragleave',{bubbles:true,relatedTarget:document.body}))");
   await b.js("$('#steerIn').value='Here is the sell-out: please unzip it';$('#steerIn').focus();$('#steerIn').setSelectionRange(22,22)");
   await dropFile('#steerIn', { name: path.basename(zip), size: zipStat.size, lastModified: Math.round(zipStat.mtimeMs) });
-  await b.until(`$('#steerIn').value.includes(${JSON.stringify(zip)})`, 8000);
-  await check(`$('#steerIn').value===${JSON.stringify('Here is the sell-out: ' + zip + ' please unzip it')}`, 'the dropped file path lands at the caret with spacing');
-  await check("uploadRequests===0 && !$('#steer .attachment-chip') && !$('#steer').classList.contains('attachment-drag')", 'dropping never uploads and leaves no chip');
+  // The box shows the file's name where the path goes; the sent text carries the path, exactly as before.
+  const zipName = '[' + path.basename(zip) + ']';
+  await b.until(`$('#steerIn').value.includes(${JSON.stringify(zipName)})`, 8000);
+  await check(`$('#steerIn').value===${JSON.stringify('Here is the sell-out: ' + zipName + ' please unzip it')}`, 'the dropped file\'s name lands at the caret with spacing, not its path');
+  await check(`attachments.expand(state.sel,$('#steerIn').value)===${JSON.stringify('Here is the sell-out: ' + zip + ' please unzip it')}`, 'the sent text has the full path where the name stands');
+  await check(`uploadRequests===0 && $$('#steer .attachment-chip').length===1 && $('#steer .attachment-chip small').textContent==='On this PC · Ready' && $('#steer .attachment-chip strong').title===${JSON.stringify(zip)} && !$('#steer').classList.contains('attachment-drag')`, 'dropping never uploads; the file shows as a chip that keeps its path in the tooltip');
   await check("document.activeElement===$('#steerIn') && !$('#steer [data-steer=send]').disabled", 'focus returns to the message and Send is ready');
   await shot('path-inserted');
 
   // 3. Paths with spaces are quoted; file:// links (editors) skip the lookup.
-  await b.js("$('#steerIn').value='';$('#steerIn').blur()");
+  await b.js("$('#steerIn').value='';$('#steerIn').blur();attachments.clear(state.sel)");
   await b.js("window.uriDT=new DataTransfer();uriDT.setData('text/uri-list','file:///C:/Reports/Q3%20sell%20out.xlsx');$('#steerIn').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:uriDT}))");
   await b.until("!!$('#steerIn').value", 4000);
-  await check(`$('#steerIn').value===${JSON.stringify('"C:\\Reports\\Q3 sell out.xlsx"')}`, 'a file:// link becomes a quoted Windows path');
+  await check(`$('#steerIn').value==='[Q3 sell out.xlsx]' && attachments.expand(state.sel,$('#steerIn').value)===${JSON.stringify('"C:\\Reports\\Q3 sell out.xlsx"')}`, 'a file:// link becomes a quoted Windows path in the sent text');
 
   // 4. A file that is not on this PC is reported, not guessed.
-  await b.js("$('#steerIn').value='keep me';$('#toasts').innerHTML=''");
+  await b.js("$('#steerIn').value='keep me';$('#toasts').innerHTML='';attachments.clear(state.sel)");
   await dropFile('#steerIn', { name: 'not-on-this-pc.zip', size: 10, lastModified: 1 });
   await b.until("$('#toasts').textContent.includes('Path not found')", 10000);
   await check("$('#steerIn').value==='keep me' && uploadRequests===0", 'an unknown file leaves the message alone and uploads nothing');
@@ -79,9 +82,9 @@ try {
 
   // 5. Stray drops elsewhere never navigate away from NEXUS; the clip still uploads.
   await check("(() => { const d=new DataTransfer(); d.items.add(new File(['x'],'stray.txt')); const e=new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:d}); document.body.dispatchEvent(e); return e.defaultPrevented; })()", 'a file dropped outside the composer is ignored instead of opening it');
-  await b.js("$('#steerIn').value='';const d=new DataTransfer();d.items.add(new File(['clip upload'],'clip.txt'));const input=$('#steer [data-file-picker=file]');input.files=d.files;input.dispatchEvent(new Event('change',{bubbles:true}))");
+  await b.js("$('#steerIn').value='';attachments.clear(state.sel);const d=new DataTransfer();d.items.add(new File(['clip upload'],'clip.txt'));const input=$('#steer [data-file-picker=file]');input.files=d.files;input.dispatchEvent(new Event('change',{bubbles:true}))");
   await b.until("!!$('#steer .attachment-chip.done')", 15000);
-  await check("uploadRequests===1 && /clip\\.txt$/.test($('#steerIn').value)", 'the clip button still uploads and inserts the uploaded copy');
+  await check("uploadRequests===1 && $('#steerIn').value==='[clip.txt]' && /clip\\.txt$/.test(attachments.expand(state.sel,$('#steerIn').value))", 'the clip button still uploads and sends the uploaded copy');
   await shot('clip-upload');
   await b.js("$('#steer .attachment-remove').click()");
 
@@ -91,8 +94,8 @@ try {
   await b.js("$('#steerIn').value='What is wrong here?';$('#steerIn').focus()");
   await check(paste(png), 'pasting a screenshot is taken over by NEXUS');
   await b.until("!!$('#steer .attachment-chip.done')", 15000);
-  await check("uploadRequests===2 && /^What is wrong here\\?\\n.*[\\\\/]Pasted image \\d{4}-\\d\\d-\\d\\d \\d{6}\\.png$/.test($('#steerIn').value) && $('#steer .attachment-chip.done small').textContent.startsWith('Photo')", 'the pasted image is uploaded with a dated name and its path follows the message');
-  const saved = await b.js("$('#steerIn').value.split('\\n')[1]");
+  await check("uploadRequests===2 && /^What is wrong here\\?\\n\\[Pasted image \\d{4}-\\d\\d-\\d\\d \\d{6}\\.png\\]$/.test($('#steerIn').value) && /^What is wrong here\\?\\n.*[\\\\/]Pasted image \\d{4}-\\d\\d-\\d\\d \\d{6}\\.png$/.test(attachments.expand(state.sel,$('#steerIn').value)) && $('#steer .attachment-chip.done small').textContent.startsWith('Photo')", 'the pasted image is uploaded with a dated name, which follows the message (its path in the sent text)');
+  const saved = await b.js("attachments.expand(state.sel,$('#steerIn').value).split('\\n')[1]");
   assert(fs.readFileSync(saved).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])), 'pasted bytes'); report.push('PASS the PC holds the exact pasted bytes'); console.log(report.at(-1));
   await shot('pasted-image');
   await b.js("$('#steer .attachment-remove').click()");

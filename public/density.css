@@ -12,14 +12,14 @@ body.redesign #chatConnection,body.redesign #nxQueue{margin-left:max(24px,calc((
 body.redesign #chatConnection:has(.chat-live-state){margin-top:8px}
 body.redesign .chat-live-state{min-height:34px;padding:3px 6px 3px 12px;gap:8px;font-size:13px;border:1px solid var(--input);border-bottom-color:var(--hairline);border-radius:var(--radius-xl) var(--radius-xl) 0 0;background:var(--surface)}
 body.redesign .chat-live-state .nx-live-step{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted-foreground);font-size:13px}
-body.redesign .chat-live-state .btn{margin-left:auto;height:26px;min-height:26px;padding:0 10px}
+body.redesign .chat-live-state .btn{margin-left:auto;height:26px;min-height:26px;padding:0 10px;font-size:12px}
 body.redesign #nxConversation:has(#chatConnection .chat-live-state):has(#nxQueue:empty) #steer,body.redesign #nxConversation:has(#chatConnection .chat-live-state):not(:has(#nxQueue)) #steer{margin-top:0;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
 body.redesign #nxConversation:has(#nxQueue:not(:empty)) .chat-live-state{border-bottom-color:var(--input);border-radius:var(--radius-xl)}
 body.redesign .nx-delegated-step{margin:0}
 body.redesign .ev-label{margin-bottom:4px}
 .nx-day,.nx-away{padding:2px 0}.nx-day span,.nx-away span{padding:2px 10px}
 @media(min-width:701px){body.redesign #chatMessages{gap:12px}}
-@media(max-width:700px){body.redesign #chatConnection,body.redesign #nxQueue{margin-left:12px;margin-right:12px}}
+@media(max-width:700px){body.redesign #chatConnection,body.redesign #nxQueue{margin-left:16px;margin-right:16px}body.redesign .chat-live-state .btn{height:44px;min-height:44px;padding:0 16px}}
 
 /* Commands and Recent sit right under the main nav as two clear buttons; refresh stays small in the foot. */
 .nx-quick{display:flex;gap:4px;margin:4px 0 8px}.nx-quick>[data-nx=palette]{flex:1 1 auto}.nx-quick>[data-recent-work]{flex:0 0 auto}
@@ -33,8 +33,21 @@ body.redesign .ev-label{margin-bottom:4px}
 /* Session cards: two lines for what the latest exchange was about. */
 @media(min-width:701px){.nx-session-open .nx-row-context{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;line-height:1.4}}
 
-/* Dialogs: the close button floats beside the title, so a field right under the title starts below it; the actions
-   row has no box of its own. Undo countdowns pause while hovered. */
+/* Dialogs: the close button floats beside the title, so a field right under the title starts below it. The actions row
+   is a flat footer with no box of its own: in a dialog that scrolls it stays pinned at the bottom, with a hairline above
+   it (--nx-card-pad-b is the card's bottom padding). Undo countdowns pause while hovered. */
 body.redesign #modalCard>h2+input,body.redesign #modalCard>h2+.picker-search{margin-top:16px}
-body.redesign .modal-actions{position:static;background:none}
+body.redesign .modal-actions{position:sticky;bottom:calc(-1 * var(--nx-card-pad-b,24px));z-index:3;margin:4px 0 calc(-1 * var(--nx-card-pad-b,24px));padding:12px 0 var(--nx-card-pad-b,24px);background:var(--popover);border:0;border-radius:0}
+body.redesign #modalCard.nx-scrolls .modal-actions{border-top:1px solid var(--hairline)}
 .nx-undo-toast.paused i{animation-play-state:paused}
+
+/* Phone dialogs: every dialog is one bottom sheet (full width, top corners rounded, footer above the home bar). */
+@media(max-width:700px){
+ body.redesign .modal{align-items:end;padding:0}
+ body.redesign #modalCard.modal-card:not(.nx-phone-new-card){width:100%;max-width:none;border-radius:16px 16px 0 0;padding:24px 16px max(24px,env(safe-area-inset-bottom));--nx-card-pad-b:max(24px,env(safe-area-inset-bottom));max-height:min(85dvh,calc(var(--visible-height,100dvh) - 16px))}
+ body.redesign.keyboard-open .modal{padding:0}
+ body.redesign.keyboard-open #modalCard.modal-card:not(.nx-phone-new-card){padding-bottom:16px;--nx-card-pad-b:16px}
+ /* A kept Undo moves above an open sheet, and the sheet stops short of it, so it never covers the dialog's buttons. */
+ body.redesign:has(#modal.on) #toasts{top:calc(var(--viewport-top,0px) + max(8px,env(safe-area-inset-top)));bottom:auto}
+ body.redesign:has(#modal.on):has(#toasts .nx-undo-toast) #modalCard.modal-card:not(.nx-phone-new-card){max-height:min(85dvh,calc(var(--visible-height,100dvh) - 90px - max(8px,env(safe-area-inset-top))))}
+}

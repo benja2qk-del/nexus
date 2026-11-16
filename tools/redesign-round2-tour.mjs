@@ -4,7 +4,7 @@ const sizes=[[1568,773],[1920,1080],[390,844]].filter(([w])=>!process.argv[2]||w
 for(const [width,height] of sizes){
 await new Promise((r,j)=>{const p=net.createServer();p.once('error',j);p.listen(4791,'127.0.0.1',()=>p.close(r));});
 const {root,env}=fixture();env.NEXUS_ROUND2='1';env.NEXUS_ROUND2_AUDIO='1';
-const guard=path.join(root,'browser.js');fs.writeFileSync(guard,`window.tourActions=[];const realFetch=fetch.bind(window);window.fetch=(url,options={})=>{const route=new URL(url,location.href).pathname;if(route==='/api/action'){const b=JSON.parse(options.body);tourActions.push(b);if(b.key&&!/^(claude|astra):s-/.test(b.key))throw Error('Nonfixture action');}return realFetch(url,options);};speechSynthesis.cancel=()=>{};speechSynthesis.speak=u=>{if(u.text){setTimeout(()=>u.onstart?.(),10);setTimeout(()=>u.onend?.(),1200);}};`);
+const guard=path.join(root,'browser.js');fs.writeFileSync(guard,`window.tourActions=[];const realFetch=fetch.bind(window);window.fetch=(url,options={})=>{const route=new URL(url,location.href).pathname;if(route==='/api/action'){const b=JSON.parse(options.body);tourActions.push(b);if(b.key&&!/^(claude|codex):s-/.test(b.key))throw Error('Nonfixture action');}return realFetch(url,options);};speechSynthesis.cancel=()=>{};speechSynthesis.speak=u=>{if(u.text){setTimeout(()=>u.onstart?.(),10);setTimeout(()=>u.onend?.(),1200);}};`);
 const server=spawn(process.execPath,['--require','./tools/redesign-round2-preload.cjs','server.js'],{env,windowsHide:true,stdio:['ignore','pipe','pipe']});process.on('exit',()=>server.kill());
 try{
  await new Promise((r,j)=>{server.stdout.on('data',d=>{if(String(d).includes('4791/'))r();});server.stderr.on('data',d=>process.stderr.write(d));server.once('exit',c=>j(Error('Server exited '+c)));});
@@ -45,7 +45,7 @@ try{
    {until:`NexusVoice.status==='checked'`},{shot:'voice-pass'},
    {js:`if(!Object.values(NexusVoice.checks).every(c=>c.phase==='pass'&&c.ms>0))throw Error('Voice timing or pass missing');NexusVoice.end();window.originalMedia=navigator.mediaDevices.getUserMedia;navigator.mediaDevices.getUserMedia=()=>Promise.reject(new DOMException('Blocked','NotAllowedError'));NexusVoice.check(true);`},{until:`NexusVoice.checks.mic?.phase==='fail'`},{shot:'voice-result'},
    {js:`NexusVoice.end();navigator.mediaDevices.getUserMedia=originalMedia;if(!document.querySelector('.nx-voice-failure')?.textContent.includes('Fix:'))throw Error('Missing voice fix');if(document.documentElement.scrollWidth>innerWidth)throw Error('Horizontal overflow');'PASS round two interactions ${width}';`},
-   {js:`select('astra:s-voice');`},{until:`chatFor().loaded`},{js:`await nxSessionSettings();document.querySelector('#nxSessionName').value='Astra renamed ${width}';document.querySelector('#nxSessionName').dispatchEvent(new Event('blur'));`},{until:`state.byKey.get('astra:s-voice').title==='Astra renamed ${width}'`},{js:`nxCloseSessionSettings();`}
+   {js:`select('codex:s-voice');`},{until:`chatFor().loaded`},{js:`await nxSessionSettings();document.querySelector('#nxSessionName').value='Codex renamed ${width}';document.querySelector('#nxSessionName').dispatchEvent(new Event('blur'));`},{until:`state.byKey.get('codex:s-voice').title==='Codex renamed ${width}'`},{js:`nxCloseSessionSettings();`}
   ];
   if(width===390)steps.push(
    {js:`setView('settings');await nxCreatePair();sessionStorage.setItem('fixturePairCode',nx.pair.code);location.href='/pair.html';void 0;`},{until:`!!document.querySelector('#code')`},{shot:'pair-entry'},
@@ -58,7 +58,7 @@ try{
   const file=path.join(out,'steps.json');fs.writeFileSync(file,JSON.stringify(steps,null,2));
   const browser=spawn(process.execPath,['tools/redesign-browser.mjs','4791',out,file],{env:{...env,NEXUS_TOUR_SOURCE:guard},windowsHide:true,stdio:'inherit'});await new Promise((r,j)=>browser.once('exit',c=>c?j(Error('Round two tour failed '+width)):r()));
  assert.equal(fs.readFileSync(path.join(root,'summary-calls.jsonl'),'utf8').trim().split('\n').length,2,'summary requires one request per click, including Retry');
- const records=fs.readFileSync(path.join(root,'codex','session_index.jsonl'),'utf8').trim().split('\n').map(JSON.parse);assert(records.some(r=>r.thread_name==='Astra renamed '+width));
+ const records=fs.readFileSync(path.join(root,'codex','session_index.jsonl'),'utf8').trim().split('\n').map(JSON.parse);assert(records.some(r=>r.thread_name==='Codex renamed '+width));
  console.log('PASS PC-only pairing receipts and issuance; single summary requests; persisted native titles. Fixture root: '+root);
 }finally{await new Promise(r=>{if(server.exitCode!==null)return r();server.once('exit',r);server.kill();});}
 }

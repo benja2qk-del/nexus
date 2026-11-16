@@ -12,7 +12,7 @@
   --popover-foreground: oklch(0.965 calc(0.008 * var(--ns, 1)) calc(var(--nh, 256) - 16));
   /* ice-blue to cyan accent family */
   --primary: oklch(0.83 calc(0.115 * var(--cs, 1)) var(--ah, 214));
-  --agent-astra: oklch(0.83 0.115 214);
+  --agent-codex: oklch(0.83 0.115 214);
   --agent-claude: oklch(0.76 0.13 52);
   --agent-copilot: oklch(0.74 0.13 295);
   --agent-antigravity: oklch(0.78 0.13 150);
@@ -383,7 +383,7 @@
 #nxModelMenu, #nxSessionSettings, .more-menu { animation: nx-pop-in 160ms ease-out both; }
 #nxRaw { animation: nx-rise 200ms ease-out both; }
 #nxCall { animation: nx-overlay-in 200ms var(--ease-out); }
-/* Sonner's reference toast uses 400ms ease for translation and opacity. */
+/* Toasts: 200 ms in, 150 ms out (house motion limit). */
 @keyframes nx-toast-in {
   from { opacity: 0; transform: translateY(100%); }
   to { opacity: 1; transform: translateY(0); }
@@ -391,8 +391,8 @@
 @keyframes nx-toast-out {
   to { opacity: 0; transform: translateY(100%); }
 }
-body.redesign .toast { animation: nx-toast-in 400ms ease both; }
-body.redesign .toast.bye { animation: nx-toast-out 400ms ease forwards; }
+body.redesign .toast { animation: nx-toast-in 200ms var(--ease-out) both; }
+body.redesign .toast.bye { animation: nx-toast-out 150ms var(--ease-out) forwards; }
 @media(max-width:700px) {
   #nxModelMenu, #nxSessionSettings, #nxPhoneRecap {
     animation: nx-rise 220ms cubic-bezier(.2,.8,.2,1) both;

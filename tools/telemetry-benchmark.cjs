@@ -15,7 +15,7 @@ async function main() {
     }
   }
   await walk(path.join(os.homedir(), '.claude', 'projects'), 'claude');
-  await walk(path.join(os.homedir(), '.codex', 'sessions'), 'astra');
+  await walk(path.join(os.homedir(), '.codex', 'sessions'), 'codex');
   if (!largest) throw new Error('No transcripts found');
   const s = fresh(largest.file, largest.kind), baseline = process.memoryUsage();
   let peak = baseline.rss, heap = baseline.heapUsed;

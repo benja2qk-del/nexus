@@ -30,7 +30,7 @@ assert(!d.duplicateUser(a,user('Please review this again',1000)));
 assert(!d.duplicateUser(a,user('Please review this',-1)));
 assert(!d.duplicateUser(a,{t:'user',text:a.text}));
 assert(!d.duplicateUser(user('???',0),user('!!!',10)));
-assert.equal(d.dedupeUsers([a,{t:'ai',text:'Ready'},user('Please review this!',2000),user('A different request',3000),user('Please review this',4000)]).length,4);
+assert.equal(d.dedupeUsers([a,{t:'ai',text:'Ready'},user('Please review this!',2000),user('Please review this',2500),user('A different request',3000),user('Please review this',4000)]).length,5);
 assert.equal(d.dedupeMirrors([{...user('Please review this!',1000),mirror:true},a]).length,1);
 assert.equal(d.dedupeMirrors([{...user('Please review this!',120001),mirror:true},a]).length,2);
 assert.equal(d.dedupeMirrors([{...a,mirror:true},{...a,t:'ai'}]).length,2);

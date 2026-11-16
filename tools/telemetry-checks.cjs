@@ -34,7 +34,7 @@ async function main() {
   assert.equal(s.bytesRead - partialBytes, buf.length - split, 'read only the appended bytes, including a split UTF-8 character');
   assert.equal(v.digest.turns, 1); assert.match(v.lastRequest, /🎛/); assert.equal(v.spend.total, 69);
   fs.writeFileSync(file, JSON.stringify(records[0]) + '\n'); await scanFile(s); assert.equal(snapshot(s).spend.total, 0, 'truncation resets totals');
-  const codex = fresh(file, 'astra');
+  const codex = fresh(file, 'codex');
   const count = (input, output, cached) => ({ type: 'event_msg', timestamp: ts(3), payload: { type: 'token_count', info: { total_token_usage: { input_tokens: input, output_tokens: output, cached_input_tokens: cached, total_tokens: input + output } } } });
   const event = type => ({ type: 'event_msg', timestamp: ts(1), payload: { type } });
   fs.writeFileSync(file, [event('task_started'), count(100, 20, 80), count(100, 20, 80), event('task_started'), count(130, 25, 95), count(10, 2, 5)].map(JSON.stringify).join('\n') + '\n');

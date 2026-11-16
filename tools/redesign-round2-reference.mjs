@@ -13,7 +13,7 @@ for(const [width,height] of [[1568,773],[1920,1080],[390,844]]){
  steps.push({js:`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim().startsWith('Catch me up')).click()`},{wait:200});shot('catchup');
  click('Summarize');shot('summary-loading',0);steps.push({wait:1500});shot('summary-error');click('Retry');steps.push({wait:1500});shot('summary-done');
  if(phone)steps.push({js:`Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim().startsWith('Catch me up')).click()`});
- more();click('Session settings…');shot('session-settings');click('Close session…');shot('close-confirm');click('Keep running');
+ more();click('Session settings…');shot('session-settings');click('Close session…');shot('close-confirm');click('Cancel');
  if(phone)click('Done');else steps.push({click:'[aria-label="Close session settings"]'});
  more();click('Raw terminal');shot('raw');steps.push({click:'[aria-label="Close raw terminal"]'});
  // The copied reference is only a mock: use its actual provider to stage delivery states.

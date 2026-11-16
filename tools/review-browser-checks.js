@@ -1,7 +1,7 @@
 // Runs only against the synthetic review fixture, at all requested viewports.
 window.reviewCheck=(value,label)=>{if(!value)throw Error(label);console.log('PASS '+label);};
 setView('overview');
-const oldUsage=state.usage;state.usage={claude:{},astra:{primary:{pct:null}},copilot:{premiumRequests:null}};
+const oldUsage=state.usage;state.usage={claude:{},codex:{primary:{pct:null}},copilot:{premiumRequests:null}};
 reviewCheck(nxUsage()==='','empty usage groups hidden');
 state.usage={copilot:{month:{pct:45},premiumRequests:135}};reviewCheck(/Month/.test(nxUsage())&&/135/.test(nxUsage()),'reported monthly premium usage');state.usage=oldUsage;
 reviewCheck(!/not reported/i.test(document.querySelector('#nxHome').innerText),'unknown Home fields hidden');
@@ -24,12 +24,12 @@ if(innerWidth>700){
  reviewCheck(saved.classList.contains('revealed')&&getComputedStyle(saved.querySelector('.nx-call-entry')).visibility==='visible','swipe-left reveals saved Call');
  saved.classList.remove('revealed');
 }
-select('astra:s-voice');await loadChat(state.sel,true);
+select('codex:s-voice');await loadChat(state.sel,true);
 reviewCheck(!document.querySelector('.chat-thinking-live'),'no duplicate thinking indicator');
 reviewCheck(!/turn started|turn complete/.test(document.querySelector('#chatMessages').innerText),'turn noise hidden');
 reviewCheck(document.querySelectorAll('.chat-live-state').length===1,'one working indicator');
 reviewCheck(document.querySelector('.chat-live-state [data-chat-answer="esc"]'),'live Stop control');
-const agent=document.querySelector('.ev.ai .nx-agent-name');if(agent)reviewCheck(agent.classList.contains('astra'),'Astra stream identity');
+const agent=document.querySelector('.ev.ai .nx-agent-name');if(agent)reviewCheck(agent.classList.contains('codex'),'Codex stream identity');
 if(innerWidth<=700){
  const head=document.querySelector('#focusHead'),call=head.querySelector('.nx-call-entry').getBoundingClientRect(),more=head.querySelector('.session-more').getBoundingClientRect(),catchup=head.querySelector('.nx-catchup').getBoundingClientRect(),model=head.querySelector('.nx-model-select').getBoundingClientRect();
  reviewCheck(call.width===40&&Math.abs(call.top-more.top)<5,'40px Call in first phone row');

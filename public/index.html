@@ -92,7 +92,7 @@
     <section class="project-shelf" aria-label="Your projects"><div class="project-shelf-label"><span class="eyebrow">YOUR PROJECTS</span><span id="projectShelfCount"></span></div><nav id="projectStrip" aria-label="Filter sessions by project"></nav><div id="projectSelection" aria-live="polite"></div></section>
     <div class="command-space">
       <div class="mission-channel" id="missionLeft"></div>
-      <div class="orbit-space"><div class="orbit-coordinate">LOCAL SPACE <span id="projectCount"></span></div><svg class="orbit-lines" viewBox="0 0 700 600" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor"><ellipse cx="350" cy="300" rx="280" ry="157" transform="rotate(-23 350 300)"/><ellipse cx="350" cy="300" rx="289" ry="227" transform="rotate(17 350 300)"/><ellipse cx="350" cy="300" rx="328" ry="265" stroke-dasharray="2 10"/><path d="M350 22v30m0 496v30M18 300h30m604 0h30"/></g></svg><div class="core-place"><div class="nexus-core" id="nexusCore" data-state="idle"><div class="core-aura"></div><img src="/core.svg" alt="" width="320" height="320"></div><h2>NEXUS</h2><p id="coreState">ATTENTION FIELD</p></div><nav id="orbitProjects" aria-label="Project orbit"></nav><div class="orbit-caption">Your projects have a place.<span>○ Claude &nbsp; ◇ Astra</span></div><div id="orbitPages"></div></div>
+      <div class="orbit-space"><div class="orbit-coordinate">LOCAL SPACE <span id="projectCount"></span></div><svg class="orbit-lines" viewBox="0 0 700 600" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor"><ellipse cx="350" cy="300" rx="280" ry="157" transform="rotate(-23 350 300)"/><ellipse cx="350" cy="300" rx="289" ry="227" transform="rotate(17 350 300)"/><ellipse cx="350" cy="300" rx="328" ry="265" stroke-dasharray="2 10"/><path d="M350 22v30m0 496v30M18 300h30m604 0h30"/></g></svg><div class="core-place"><div class="nexus-core" id="nexusCore" data-state="idle"><div class="core-aura"></div><img src="/core.svg" alt="" width="320" height="320"></div><h2>NEXUS</h2><p id="coreState">ATTENTION FIELD</p></div><nav id="orbitProjects" aria-label="Project orbit"></nav><div class="orbit-caption">Your projects have a place.<span>○ Claude &nbsp; ◇ Codex</span></div><div id="orbitPages"></div></div>
       <div class="mission-channel" id="missionRight"></div>
     </div>
     <nav id="phoneNavigation" aria-label="Overview shortcuts"><button class="btn" data-phone-live aria-pressed="false">Live only</button><button class="btn" data-phone-wall>Wall</button><button class="btn" data-phone-spend>Spend &amp; limits</button></nav>
@@ -109,7 +109,7 @@
       <button data-f="all" class="on">All</button>
       <button data-f="live">Live</button>
       <button data-f="claude">Claude</button>
-      <button data-f="astra">Astra</button>
+      <button data-f="codex">Codex</button>
     </div>
     <div id="termsBox" class="hidden">
       <div class="rail-head">Terminals in NEXUS</div>
@@ -120,7 +120,7 @@
     <div class="rail-head">Usage <span class="rail-hint">% used</span></div>
     <div id="limits"></div>
     <div class="rail-foot">
-      <div class="legend"><i class="dot claude"></i>Claude <i class="dot astra"></i>Astra <i class="dot live"></i>Live</div>
+      <div class="legend"><i class="dot claude"></i>Claude <i class="dot codex"></i>Codex <i class="dot live"></i>Live</div>
       <div class="keys">
         <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
         <span><kbd>Enter</kbd> open</span>
@@ -169,6 +169,7 @@
 <script src="/vendor/xterm.js"></script>
 <script src="/vendor/addon-fit.js"></script>
 <script src="/vendor/addon-web-links.js"></script>
+<script src="legacy-names.js"></script>
 <script src="prism.js"></script>
 <script src="polish.js"></script>
 <script src="apsis.js"></script>

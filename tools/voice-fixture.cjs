@@ -12,10 +12,10 @@ function fixture(port='4791') {
     {type:'assistant',message:{content:[{type:'thinking',thinking:'I will check the recorded release notes.'}]}},
     {type:'assistant',message:{content:[{type:'text',text:'The release notes are ready.\n\nThe phone checks passed. Send your next direction whenever you are ready.'}]}}
   ].map(r=>JSON.stringify({timestamp:ts,...r})).join('\n')+'\n');
-  fs.writeFileSync(path.join(codex,'sessions','rollout-voice-astra.jsonl'),[
-    {type:'session_meta',payload:{id:'voice-astra',cwd}},
+  fs.writeFileSync(path.join(codex,'sessions','rollout-voice-codex.jsonl'),[
+    {type:'session_meta',payload:{id:'voice-codex',cwd}},
     {type:'response_item',payload:{type:'message',role:'user',content:[{type:'input_text',text:'Review the phone conversation.'}]}},
-    {type:'event_msg',payload:{type:'agent_message',message:'Astra validation passed. The phone layout is ready for review.'}},
+    {type:'event_msg',payload:{type:'agent_message',message:'Codex validation passed. The phone layout is ready for review.'}},
     {type:'event_msg',payload:{type:'task_complete'}}
   ].map(r=>JSON.stringify({timestamp:ts,...r})).join('\n')+'\n');
   fs.writeFileSync(path.join(root,'stub-model'),'fixture');fs.writeFileSync(path.join(root,'utterance.txt'),'Reply with the word okay.');

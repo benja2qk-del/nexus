@@ -1,7 +1,7 @@
 /* Home on a PC: greeting, latest themes in orbit around the core, recent work newest first. */
 .nx-home-content{container-type:inline-size}
-.nx-welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:24px;min-height:280px}
-.nx-welcome-text{min-width:0;padding:8px 0}
+.nx-welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:24px;min-height:0}
+.nx-welcome-text{min-width:0;padding:16px 0 0}
 .nx-welcome-date{margin:0 0 12px;font:12px var(--font-mono);font-feature-settings:inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-foreground)}
 .nx-welcome h2{margin:0 0 16px;font-size:34px;line-height:1.15;font-weight:600;letter-spacing:-.035em}
 .nx-welcome-status{margin:0;font-size:15px;line-height:1.5;color:var(--foreground)}
@@ -15,7 +15,6 @@
 .nx-welcome-actions>.btn{min-height:40px}
 #nxHome .nx-welcome-actions>.nx-welcome-wall{flex-basis:100%;justify-content:flex-start;width:max-content;max-width:max-content;padding:0 2px;min-height:32px;border-color:transparent;background:none;color:var(--muted-foreground)}
 #nxHome .nx-welcome-actions>.nx-welcome-wall:hover{color:var(--foreground)}
-.nx-welcome-actions kbd{margin-left:4px;padding:0 4px;border:1px solid var(--hairline);border-radius:4px;font:12px var(--font-mono);font-feature-settings:inherit;color:var(--muted-foreground)}
 
 .nx-orbit-panel{min-width:0;max-width:620px;width:100%;justify-self:center}
 .nx-orbit{position:relative;height:216px;min-width:0;isolation:isolate;container-type:size;background:radial-gradient(ellipse 42% 48% at 50% 50%,oklch(.83 calc(.115 * var(--cs, 1)) var(--ah, 214) / .07),transparent 72%)}
@@ -48,8 +47,8 @@
 .nx-orbit-node.working{border-color:var(--status-working)}
 .nx-orbit-node.needs{border-color:var(--status-needs)}
 /* The detail dock never moves with a node and reserves its space before hover. */
-.nx-orbit-details{height:76px;position:relative;margin:0 8px;font-size:12px;line-height:1.4}
-.nx-orbit-detail{padding:8px 12px;border:1px solid var(--hairline);border-radius:8px;background:var(--surface);animation:nx-home-detail 150ms var(--ease-out)}
+.nx-orbit-details{height:56px;position:relative;margin:0 8px;font-size:12px;line-height:1.4}
+.nx-orbit-detail{position:relative;z-index:5;padding:8px 12px;border:1px solid var(--hairline);border-radius:8px;background:var(--surface);animation:nx-home-detail 150ms var(--ease-out)}
 .nx-orbit-detail>div{display:flex;align-items:baseline;gap:12px}.nx-orbit-detail b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nx-orbit-detail small{margin-left:auto;flex-shrink:0;font-size:12px;color:var(--muted-foreground)}
 .nx-orbit-detail p{margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted-foreground)}
 .nx-orbit-hint{margin:0;padding:10px 0;text-align:center;color:var(--muted-foreground)}.nx-orbit-hint span{display:block;margin-top:3px}
@@ -119,7 +118,7 @@
 /* The cards line up with the greeting instead of floating in a centred 1280px box. */
 .nx-home-content>.nx-home-grid{max-width:none;margin:0}
 @media(min-width:701px){
- .nx-home-content>.nx-home-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+ .nx-home-content>.nx-home-grid{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
  .nx-home-grid>.nx-home-card{min-height:184px}
  .nx-home-grid>.nx-home-card:only-child{max-width:660px}
  .nx-active-heading{font-weight:600}
@@ -127,10 +126,12 @@
  .nx-home-card.needs-border::before{animation:none;background:none}
  .nx-home-card .nx-card-purpose:empty{display:none}
  .nx-home-card .nx-card-top time{font-size:12px}
- .nx-recent{grid-template-columns:80px minmax(0,1fr) minmax(0,1fr) 120px 64px 48px}
+ .nx-recent{grid-template-columns:124px minmax(0,1fr) minmax(0,1fr) 120px 120px 48px}
+ .nx-recent>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .nx-recent-model{min-width:0;display:flex}.nx-recent-model .nx-model-badge{max-width:100%}
  .nx-recent>small:empty{visibility:hidden}
  .nx-recent time,.nx-recent small{font-size:12px}
 }
-@container(max-width:900px){.nx-recent{grid-template-columns:72px minmax(0,1fr) 48px}.nx-recent-context,.nx-recent-model,.nx-recent>small{display:none}}
+@container(max-width:900px){.nx-recent{grid-template-columns:124px minmax(0,1fr) 48px}.nx-recent-context,.nx-recent-model,.nx-recent>small{display:none}}
+@media(max-width:700px){.nx-quiet>div{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;max-width:280px;margin-inline:auto}body.redesign .nx-quiet>div .btn{height:44px;min-height:44px;justify-content:center}}
 @media(prefers-reduced-motion:reduce){.nx-orbit-detail,.nx-orbit-core::before{animation:none!important}.nx-orbit-core[data-state=needs]::before,.nx-orbit-core[data-state=working]::before{opacity:.6}}

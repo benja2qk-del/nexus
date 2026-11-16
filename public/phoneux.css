@@ -2,13 +2,13 @@
 .session-tags{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
 .session-tags:empty{display:none}.session-tags>span{font:11px/1.4 var(--ui);padding:2px 7px;border:1px solid var(--line-hi);border-radius:6px;color:var(--accent);background:rgba(var(--accent-rgb),.045)}
 .session-preview{display:block;width:100%;min-width:0;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(140deg,#182a3b99,oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8)));color:var(--text);cursor:pointer;font-family:var(--ui)}
-.session-preview:hover{border-color:var(--accent)}.session-preview.needs-you{border-left:3px solid #edc69c;background:linear-gradient(120deg,#302b2580,oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8)))}
+@media(hover:hover){.session-preview:hover{border-color:var(--accent)}}.session-preview.needs-you{border-left:3px solid #edc69c;background:linear-gradient(120deg,#302b2580,oklch(0.226 calc(0.033 * var(--ns, 1)) calc(var(--nh, 256) - 4.8)))}
 .preview-title{display:block;font-size:15px;line-height:1.35;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .preview-meta{display:flex;align-items:center;gap:8px;margin:6px 0;color:var(--muted);font-size:12px;min-width:0}.preview-meta>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.preview-meta .status{flex-shrink:0}.preview-meta time{margin-left:auto;flex-shrink:0}
 .preview-context{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font-size:13px;line-height:1.5;color:var(--dim)}.session-preview .session-tags:not(:empty){margin-top:8px}.status.ready{color:#edc69c}.status.ready i{background:#edc69c;box-shadow:none}
 .finder-results{display:flex;flex-direction:column;gap:8px}.finder-results>.session-preview{flex-shrink:0}.mission-card>.session-tags{margin:10px 0}.card .session-tags{margin:7px 0}
 .back-overview{z-index:8}
-#modalNotices{margin:10px 0}#modalNotices:empty{display:none}#modalNotices .toast{width:100%;max-width:100%;margin:0;box-shadow:none;animation:none}
+#modalNotices{position:sticky;top:0;z-index:9;margin:8px 0}#modalNotices .toast{padding-right:44px}#modalNotices:empty{display:none}#modalNotices .toast{width:100%;max-width:100%;margin:0;box-shadow:none;animation:none}
 .chat-caption>span:last-child{display:flex;gap:6px}.chat-tools{border:1px solid var(--line);border-radius:10px;margin:12px 0;color:var(--dim)}.chat-tools summary{cursor:pointer;min-height:40px;padding:10px 12px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chat-tools>div{padding:10px 12px;font-size:12px}.chat-tools pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 var(--mono)}
 .permission-card{padding:12px;border:1px solid #edc69c66;border-radius:14px;background:#302b2580;margin:12px 0 0}.permission-card>strong{color:#edc69c;font-size:13px}.permission-card p{font-size:14px;line-height:1.5;margin:8px 0}.permission-card>div{display:grid;gap:6px}.permission-option{display:flex;align-items:center;gap:10px;text-align:left;min-height:40px;border:1px solid #edc69c33;border-radius:9px;padding:8px 10px;background:#ffffff04;color:var(--text);font:13px/1.4 var(--ui);cursor:pointer}.permission-option b{color:#edc69c}.permission-card small{display:block;font-size:12px;color:var(--dim);margin-top:8px}.chat-empty,.chat-read-error{font-size:14px;line-height:1.6;color:var(--dim)}
 @media(max-width:700px){
@@ -51,4 +51,10 @@
 }
 /* Owner review 10-18: sessions sooner on the phone home; the header crystal already carries the core, and the briefing line says the state. */
 @media (max-width:700px){.apsis .orbit-space{display:none}#phoneNavigation{gap:6px}#phoneNavigation .btn{min-height:36px;font-size:13px;padding:6px 8px}.apsis .finder-results{max-height:72dvh}}
-@media (max-width:700px){button,button *,summary,[role=button]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+@media (max-width:700px){html{-webkit-tap-highlight-color:transparent}button,button *,summary,[role=button],[role=menuitem],[role=radio],[role=switch],[role=tab],a.btn,label,[data-session-key],.nx-board-tile,.nx-phone-row,.card.nx-row,#mobileDock{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+/* A dialog on a phone is one column as wide as the screen: an auto column grew to the text's unwrapped width, so a
+   dialog of plain paragraphs (Conversation help) ran off the right edge with its close button. */
+@media (max-width:700px){.modal{grid-template-columns:minmax(0,1fr)}.modal-card{max-width:100%}}
+/* The close button floats beside the title; a short title left it over the first line of text. */
+/* A dialog button with a long label (Fork here with Remote Control) wraps inside its button instead of running past it. */
+@media (max-width:700px){.modal-actions,body.redesign .modal-actions{flex-direction:column-reverse;align-items:stretch;flex-wrap:nowrap;gap:8px}.modal-actions .btn,body.redesign .modal-actions .btn{width:100%;flex:none;margin:0;white-space:nowrap;overflow-wrap:normal;height:auto;min-height:44px;justify-content:center;text-align:center}.modal-actions .lead,body.redesign .modal-actions .lead{order:0}.modal-actions .btn.danger,body.redesign .modal-actions .btn.danger{margin:0}.modal-card p{overflow-wrap:anywhere}}

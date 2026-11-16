@@ -14,7 +14,7 @@ try{
  for(const [width,height]of [[1568,773],[1920,1080],[440,956]]){
   const out=path.join(root,String(width));fs.mkdirSync(out);
   const steps=[{viewport:[width,height]},{navigate:'/'},{until:`typeof state!=='undefined'&&state.booted&&state.sessions.length>0`},{js:`setView('overview')`},{shot:'home'}];
-  for(const kind of ['claude','astra','copilot'])steps.push({js:`window.reviewSession=state.sessions.find(s=>s.kind==='${kind}');if(reviewSession)select(keyOf(reviewSession));`},{until:`!reviewSession||chatFor().loaded`},{shot:kind});
+  for(const kind of ['claude','codex','copilot'])steps.push({js:`window.reviewSession=state.sessions.find(s=>s.kind==='${kind}');if(reviewSession)select(keyOf(reviewSession));`},{until:`!reviewSession||chatFor().loaded`},{shot:kind});
   steps.push({js:`if(state.sel)await recapDialog(state.byKey.get(state.sel));`},{shot:'catchup'},{js:`nxClosePhoneRecap();setView('spend')`},{shot:'spend'},{js:`if(document.documentElement.scrollWidth>innerWidth)throw Error('Read-only layout overflow');`});
   const file=path.join(out,'steps.json');fs.writeFileSync(file,JSON.stringify(steps));
   const browser=spawn(process.execPath,['tools/redesign-browser.mjs','4790',out,file],{env:{...env,NEXUS_TOUR_SOURCE:guard},windowsHide:true,stdio:['ignore','pipe','pipe']});

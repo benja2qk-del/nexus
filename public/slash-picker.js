@@ -44,8 +44,8 @@ function slashPaint(entries,query){
   if(!picker){
     picker=document.createElement('div');picker.id='nxSlashPicker';picker.dataset.agent=agent;picker.className=slashUI.sheet?'nx-slash-overlay':'slash-pop';
     const title=nxMultiAgent()?agentName(agent)+' commands':'Commands';
-    picker.innerHTML=`<section class="nx-slash-surface" ${slashUI.sheet?'role="dialog" aria-modal="true" aria-label="Commands"':''}><span class="nx-slash-handle" aria-hidden="true"></span><header><b>${esc(title)} <span id="nxSlashCount"></span></b>${slashUI.sheet?'<button data-slash-close>Cancel</button>':'<span class="nx-slash-keys"><kbd>↑↓</kbd> move <kbd>Enter</kbd> run <kbd>Tab</kbd> complete <kbd>Esc</kbd> close</span>'}</header>${slashUI.sheet?'<label class="nx-slash-search"><span aria-hidden="true">⌕</span><input id="nxSlashSearch" type="search" placeholder="Search commands" aria-label="Search commands" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="nxSlashList" aria-expanded="true"></label><div class="nx-slash-chips" role="tablist" aria-label="Categories"></div>':''}<div class="nx-slash-body"><div id="nxSlashList" role="listbox" aria-label="Slash commands"></div><aside id="nxSlashExplain" aria-live="polite" aria-atomic="true"></aside></div></section>`;
-    if(slashUI.sheet){picker._wasInert=$('#app').inert;$('#app').inert=true;document.body.append(picker);$('#nxSlashSearch').value=query;$('#nxSlashSearch').addEventListener('input',()=>{slashUI.index=0;slashPaint(slashUI.entries,$('#nxSlashSearch').value.replace(/^\//,''));});queueMicrotask(()=>$('#nxSlashSearch')?.focus());}
+    picker.innerHTML=`<section class="nx-slash-surface" ${slashUI.sheet?'role="dialog" aria-modal="true" aria-label="Commands"':''}><header><b>${esc(title)} <span id="nxSlashCount"></span></b>${slashUI.sheet?'<button data-slash-close>Cancel</button>':'<span class="nx-slash-keys"><kbd>↑↓</kbd> move <kbd>Enter</kbd> run <kbd>Tab</kbd> complete <kbd>Esc</kbd> close</span>'}</header>${slashUI.sheet?'<label class="nx-slash-search"><span aria-hidden="true">⌕</span><input id="nxSlashSearch" type="search" placeholder="Search commands" aria-label="Search commands" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="nxSlashList" aria-expanded="true"></label><div class="nx-slash-chips" role="tablist" aria-label="Categories"></div>':''}<div class="nx-slash-body"><div id="nxSlashList" role="listbox" aria-label="Slash commands"></div><aside id="nxSlashExplain" aria-live="polite" aria-atomic="true"></aside></div></section>`;
+    if(slashUI.sheet){picker._wasInert=$('#app').inert;$('#app').inert=true;document.body.append(picker);$('#nxSlashSearch').value=query;$('#nxSlashSearch').addEventListener('input',()=>{slashUI.index=0;slashPaint(slashUI.entries,$('#nxSlashSearch').value.replace(/^\//,''));});queueMicrotask(()=>(innerWidth>700?$('#nxSlashSearch'):picker.querySelector('[data-slash-close]'))?.focus({preventScroll:true}));}
     else $('#steer').prepend(picker);
     picker.addEventListener('pointerdown',e=>{if(!slashUI.sheet&&e.target.closest('[role=option]'))e.preventDefault();});
     picker.addEventListener('pointermove',e=>{const row=e.target.closest('[data-slash-index]');if(row&&!slashUI.sheet&&Number(row.dataset.slashIndex)!==slashUI.index)slashHighlight(Number(row.dataset.slashIndex));});
@@ -117,7 +117,7 @@ slashNative=async function(entry,command,key,fromQueue=false){
 };
 slashRow=function(receipt){
   if(receipt.status==='confirm')return `<section class="slash-confirm" role="alertdialog" aria-label="Confirm ${esc(receipt.text)}"><div><b>Run ${esc(receipt.text)}?</b><p>This command can change saved state or end the session. Confirm before it reaches the terminal.</p></div><div><button class="btn" data-slash-cancel="${esc(receipt.id)}">Cancel</button><button class="btn danger" data-slash-confirm="${esc(receipt.id)}">Run command</button></div></section>`;
-  const status=receipt.status,label=status==='menu'||status==='opened'?'Opened':status==='closed'?'Closed':status==='cancelled'?'Cancelled':status==='acknowledged'||status==='confirmed'?'Ran':status==='rejected'?'Command rejected':status==='failed'?'Command not sent':status==='uncertain'?'Command sent; result unconfirmed':'Running';
+  const status=receipt.status,label=status==='menu'||status==='opened'?'Opened':status==='closed'?'Closed':status==='cancelled'?'Cancelled':status==='acknowledged'||status==='confirmed'?'Ran':status==='rejected'?'Command rejected':status==='failed'?'Command not sent':status==='uncertain'?'Command sent; result unconfirmed':status==='output'?'Command output':'Running';
   const warning=status==='uncertain'?'Check the terminal before sending again.':receipt.error||'';
   const summary=status==='cancelled'?'nothing changed':/\bfreed\s+[\d,.]+\s*[kKmM]?\s*tokens\b/i.exec(receipt.output||'')?.[0]||receipt.summary||'';
   const heading=`<i class="nx-slash-result-glyph ${label==='Running'?'running':''}" aria-hidden="true">/</i><span>${label} <b>${esc(receipt.text)}</b>${summary?' - '+esc(summary):''}</span><time>${receipt.submittedAt?clockTime(receipt.submittedAt):''}</time>`;
@@ -125,8 +125,12 @@ slashRow=function(receipt){
 };
 const slashEventsBase=slashChatEvents;
 slashChatEvents=function(chat){
-  const events=slashEventsBase(chat),ids=new Set(events.map(e=>e.id));
-  for(const receipt of [...chat.localCommands||[],...chat.queue?.history||[]])if((NexusSlash.parse(receipt.text)||receipt.status==='confirm')&&!ids.has(receipt.id))events.push({...receipt,...receipt.command,t:'command',ts:new Date(receipt.submittedAt||receipt.at).toISOString()});
+  const events=slashEventsBase(chat),ids=new Set(events.map(e=>e.id)),history=chat.queue?.history||[];
+  for(const receipt of [...chat.localCommands||[],...history])if((NexusSlash.parse(receipt.text)||receipt.status==='confirm')&&!ids.has(receipt.id)&&!(history.includes(receipt)&&slashRecorded(events,receipt))){
+    // A finished queue entry is not still running, even if its receipt was copied mid-command.
+    const command=receipt.command?.status==='submitted'?{...receipt.command,status:receipt.status}:receipt.command;
+    events.push({...receipt,...command,t:'command',ts:new Date(receipt.submittedAt||receipt.at).toISOString()});
+  }
   return events.sort((a,b)=>(Date.parse(a.ts)||0)-(Date.parse(b.ts)||0));
 };
 document.addEventListener('click',e=>{

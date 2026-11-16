@@ -3,13 +3,17 @@
 // scripts and programs are only shown in their folder); right-click offers Open folder, Copy path and, for an HTML file
 // inside the session folder, a preview right in the chat. On a phone a link previews HTML or copies the path.
 const NX_PATH_IN_TEXT=/(^|[\s(\[>"'])((?:[A-Za-z]:[\\/]|\/[a-z]\/)[^\s<>"'|*?`]+)/g;
+// A name with no folder is a file only by a file type's extension or when the session touched it: Date.now and
+// state.sel are code, and so is a member of a well-known object even when it reads like a type (console.log, res.json).
+const NX_FILE_TYPES=/\.(?:[cm]?[jt]sx?|json5?|md|mdx|txt|rtf|html?|css|scss|sass|less|xml|svg|ya?ml|toml|ini|cfg|conf|env|properties|plist|csv|tsv|py|ipynb|rb|php|go|rs|java|kt|kts|gradle|swift|cs|csproj|sln|c|cc|cpp|h|hpp|lua|dart|gd|gdshader|gdshaderinc|tscn|tres|godot|import|uid|sh|ps1|psm1|bat|cmd|sql|sqlite|db|vue|svelte|proto|graphql|prisma|log|lock|patch|diff|bak|pdf|docx?|xlsx?|pptx?|odt|png|jpe?g|gif|webp|bmp|ico|ttf|otf|mp3|wav|ogg|flac|mp4|mov|webm|zip|7z|tar|gz|exe|msi|apk|jsonl)$/i;
+const NX_CODE_NAME=/^(?:console|this|self|super|window|document|globalThis|process|module|logger|req|res|Date|Math|JSON|Object|Array|Promise|Reflect|Symbol|Intl|Buffer)\.\w+$/;
 // An absolute Windows path from what an answer shows; a bare file name inside code or bold means the session folder.
-function nxPathFrom(text,cwd){
+function nxPathFrom(text,cwd,touched=[]){
   if(/[\r\n]/.test(text)||String(text).length>400)return '';
   let t=String(text).replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim().replace(/[.,;:)\]]+$/,'');
   if(/^\/[a-z]\//i.test(t))t=t[1].toUpperCase()+':\\'+t.slice(3);
   if(/^[A-Za-z]:[\\/]/.test(t))return t.replace(/\//g,'\\');
-  if(cwd&&/^[\w.-]+(?:[\\/][\w.-]+)*\.[A-Za-z][A-Za-z0-9]{0,7}$/.test(t))return cwd.replace(/[\\/]+$/,'')+'\\'+t.replace(/\//g,'\\');
+  if(cwd&&/^[\w.-]+(?:[\\/][\w.-]+)*\.[A-Za-z][A-Za-z0-9]{0,7}$/.test(t)&&(/[\\/]/.test(t)||NX_FILE_TYPES.test(t)&&!NX_CODE_NAME.test(t)||touched.some(f=>String(f).split(/[\\/]/).pop().toLowerCase()===t.toLowerCase())))return cwd.replace(/[\\/]+$/,'')+'\\'+t.replace(/\//g,'\\');
   return '';
 }
 function nxPreviewable(abs,s){const base=String(s?.cwd||'').replace(/[\\/]+$/,'');return !!base&&/\.html?$/i.test(abs)&&abs.toLowerCase().startsWith(base.toLowerCase()+'\\');}
@@ -17,7 +21,7 @@ function nxLinkPaths(html,s){
   const cwd=s?.cwd||'';
   const link=(abs,inner)=>`<a class="nx-path" href="#" data-path="${esc(abs)}" title="${esc(abs)}">${inner}</a>`+(nxPreviewable(abs,s)?`<button class="nx-path-preview" data-preview="${esc(abs)}">Preview</button>`:'');
   // A whole code or bold span that is a path may contain spaces.
-  html=html.replace(/<(code|strong)>([^<]+)<\/\1>/g,(m,tag,inner)=>{const abs=nxPathFrom(inner,cwd);return abs?link(abs,m):m;});
+  html=html.replace(/<(code|strong)>([^<]+)<\/\1>/g,(m,tag,inner)=>{const abs=nxPathFrom(inner,cwd,s?.touchedFiles||[]);return abs?link(abs,m):m;});
   // In running text a path ends at the first space; links, code and code blocks are left alone.
   let depth=0;
   return html.split(/(<[^>]+>)/).map(part=>{
@@ -33,7 +37,7 @@ async function nxOpenPath(p,mode){
   const result=await act('open-path',{path:p,mode,key:state.sel});
   if(result==='revealed'&&mode!=='folder')toast('Shown in its folder','Documents and media open directly; other files are shown in Explorer instead of being run.');
 }
-function nxPathMenu(p,x,y){
+function nxPathMenu(p,x,y,link){
   $('#nxPathMenu')?.remove();
   const items=[...(state.remote?[]:[['open','Open'],['folder','Open folder']]),...(nxPreviewable(p,state.byKey.get(state.sel))?[['preview','Preview here']]:[]),['copy','Copy path']];
   const menu=document.createElement('div');menu.id='nxPathMenu';menu.setAttribute('role','menu');menu.setAttribute('aria-label',p);
@@ -41,7 +45,7 @@ function nxPathMenu(p,x,y){
   document.body.append(menu);const r=menu.getBoundingClientRect();
   menu.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
   menu.onclick=e=>{const id=e.target.closest('[data-path-menu]')?.dataset.pathMenu;if(!id)return;menu.remove();if(id==='open'||id==='folder')nxOpenPath(p,id);else if(id==='preview')nxPreviewOpen(state.sel,p);else copyText(p,'Path copied');};
-  menu.querySelector('button')?.focus();
+  menu._link=link||document.activeElement;menu.querySelector('button')?.focus();
 }
 
 // One preview per conversation, under its messages. It lives outside the re-rendered message list, so a running
@@ -70,6 +74,9 @@ document.addEventListener('click',e=>{
   if(!state.remote)return nxOpenPath(a.dataset.path,'open');
   if(nxPreviewable(a.dataset.path,state.byKey.get(state.sel)))nxPreviewOpen(state.sel,a.dataset.path);else copyText(a.dataset.path,'Path copied');
 });
-document.addEventListener('contextmenu',e=>{const a=e.target.closest('a.nx-path');if(!a)return;e.preventDefault();nxPathMenu(a.dataset.path,e.clientX,e.clientY);});
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('#nxPathMenu'))$('#nxPathMenu')?.remove();},true);
-document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#nxPathMenu')?.remove();});
+document.addEventListener('contextmenu',e=>{const a=e.target.closest('a.nx-path');if(!a)return;e.preventDefault();nxPathMenu(a.dataset.path,e.clientX,e.clientY,a);});
+document.addEventListener('pointerdown',e=>{const menu=$('#nxPathMenu');if(!menu||e.target.closest('#nxPathMenu'))return;menu.remove();if(e.pointerType!=='mouse')nxSwallowTap(e);},true);
+(typeof window!=='undefined'?window:document).addEventListener('keydown',e=>{const menu=$('#nxPathMenu');if(!menu)return;
+  if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();menu.remove();menu._link?.focus?.();return;}
+  if(['ArrowDown','ArrowUp','Tab','Home','End'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();const items=[...menu.querySelectorAll('button')],i=items.indexOf(document.activeElement);
+    const next=e.key==='Home'?0:e.key==='End'?items.length-1:(i+((e.key==='ArrowUp'||(e.key==='Tab'&&e.shiftKey))?-1:1)+items.length)%items.length;items[next]?.focus();}},true);

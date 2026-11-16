@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 const out = path.resolve(process.argv[2]);
-if (!['4790', '4791', '4785', '4786'].includes(process.env.NEXUS_PORT)) throw new Error('Tours only run on private ports 4790 / 4791 / 4785 / 4786');
+if (!['4790', '4791', '4785', '4786', '4796', '4797'].includes(process.env.NEXUS_PORT)) throw new Error('Tours only run on private ports 4790 / 4791 / 4785 / 4786 / 4796 / 4797');
 const E = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const width = Number(process.env.NEXUS_WIDTH) || 1920;
 const height = Number(process.env.NEXUS_HEIGHT) || 1080;

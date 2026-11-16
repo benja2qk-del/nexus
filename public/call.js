@@ -12,8 +12,18 @@ const NexusCall = (() => {
   const valid=(c,ticket)=>call===c&&active()&&sequence===ticket&&!c.paused&&!document.hidden;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const identity=e=>JSON.stringify([e.t,e.id,e.ts,e.text]);
-  const baseline=chat=>new Set(chat.events.map(identity));
-  function mode(c,value,hint='') {if(call!==c||c.machine.value==='ended')return;c.machine.set(value);c.hint=hint;render();}
+  const baseline=chat=>Object.assign(new Set(chat.events.map(identity)),{anchor:chat.events.length?identity(chat.events.at(-1)):null});
+  // Load earlier messages prepends old events during a call; only events after the last one seen before the sentence are new.
+  const fresh=(c,chat)=>{const at=c.pending?.anchor?chat.events.findLastIndex(e=>identity(e)===c.pending.anchor):-1;return chat.events.slice(at+1).filter(e=>!c.pending?.has(identity(e)));};
+  // An API error after the sentence is the turn's news: its first sentence, without the JSON body some errors carry.
+  const failure=(c,events)=>{const e=events.slice(events.findLastIndex(x=>x.t==='user')+1).findLast(x=>x.t==='note'&&x.err&&String(x.text||'').trim());if(!e)return '';
+    const s=voice.clean(String(e.text).replace(/\{[\s\S]*\}/g,' ')).replace(/\s+/g,' ').trim(),first=(s.match(/.*?[.!?](?=\s|$)/)||[s])[0].slice(0,300);
+    return (({claude:'Claude Code'})[c.session.kind]||agentName(c.session.kind))+(first?' reports: '+first:' reported an error. It is in the conversation.');};
+  function mode(c,value,hint='',errorTitle='') {if(call!==c||c.machine.value==='ended')return;c.machine.set(value);c.hint=hint;c.errorTitle=errorTitle;render();}
+  const microphoneBlocked=error=>error?.name==='NotAllowedError'||/permission denied|microphone.*(?:blocked|denied)/i.test(error?.message||'');
+  function pauseError(c,error,message=error.message){
+    const blocked=microphoneBlocked(error);stop();mode(c,'error',blocked?'Allow microphone access in your browser settings, then try again.':message,blocked?'Microphone blocked':'');
+  }
   function stop(){sequence++;call?.liveStart?.abort();const old=audio;audio=null;return old?.close();}
   function button(key,label=false){return `<button class="nx-call-entry ${label?'with-label':''}" data-call-session="${esc(key)}" aria-label="Call ${esc(state.byKey.get(key)?.title||'this session')}">${icon('phone')}${label?'<span>Call</span>':''}</button>`;}
   function decorateButton(el){const on=active()&&call.key===state.sel;const html=icon('phone')+`<span>${on?'On call':'Call'}</span>`;if(el.innerHTML!==html)el.innerHTML=html;el.setAttribute('aria-label',on?'Return to call':'Call this session');el.classList.add('nx-composer-call');}
@@ -23,7 +33,7 @@ const NexusCall = (() => {
     layer.innerHTML=`<div class="nx-call-scrim" data-call="minimize"></div><section id="nxCall" role="dialog" aria-modal="true" aria-label="Session call" tabindex="-1"><header class="nx-call-header"><button data-call="minimize" aria-label="Minimize call">${icon('down')}</button><div><strong id="nxCallTitle"></strong><span id="nxCallMeta"></span></div><span class="nx-call-signal" aria-label="Connected to your PC">${icon('signal')}</span></header><div class="nx-call-content"><div class="nx-call-body"><button class="nx-call-core" data-call="core" aria-label="Send now"><span class="nx-call-ripples"><i></i><i></i><i></i></span><span class="nx-call-glow"></span><span class="nx-call-shimmer"></span><span class="nx-call-crystal">${Prism.markup()}</span></button><div class="nx-call-state" role="status" aria-live="polite"><h2 id="nxCallState"></h2><p id="nxCallHint"></p></div><button class="nx-call-resume btn" data-call="resume" hidden>Resume call</button><label class="nx-call-progress"><span>Spoken progress updates</span><input type="checkbox" data-call-progress role="switch" aria-label="Spoken progress updates"></label><div id="nxCallCaptions" aria-label="Live captions"><div data-caption="you"><small>You</small><p></p></div><div data-caption="agent"><small></small><p></p></div></div></div><section id="nxCallQuestion" aria-label="Agent question" hidden></section></div><footer class="nx-call-controls">${[['mute','mic','Mute'],['interrupt','hand','Interrupt'],['end','end','End'],['speaker','speaker','Speaker'],['captions','captions','Captions']].map(([action,glyph,label])=>`<span><button data-call="${action}" aria-label="${action==='end'?'End call':label}">${icon(glyph)}</button><small>${label}</small></span>`).join('')}</footer><div id="nxCallEnded" hidden></div></section>`;
     document.body.append(layer);
     const languageButton=document.createElement('button');languageButton.dataset.call='language';languageButton.className='nx-call-language';languageButton.textContent='EN';$('.nx-call-signal').before(languageButton);
-    const debug=document.createElement('details');debug.className='nx-call-debug';debug.innerHTML='<summary>Call options &amp; timing</summary><div id="nxCallLatency">Waiting for a voice turn</div><div><button class="btn" data-call="fallback">Use turn-by-turn Call</button><button class="btn" data-call="live">Use Live</button></div><label><input type="checkbox" data-call-pc-voice> Use PC voice for fallback</label></details>';$('.nx-call-body').append(debug);
+    const debug=document.createElement('details');debug.className='nx-call-debug';debug.innerHTML='<summary>Call options &amp; timing</summary><div id="nxCallLatency">Waiting for a voice turn</div><div><button class="btn" data-call="fallback">Use turn-by-turn Call</button><button class="btn" data-call="live">Use Live</button></div><label><span>Use PC voice for fallback</span><input type="checkbox" role="switch" data-call-pc-voice></label></details>';$('.nx-call-body').append(debug);
     const meter=document.createElement('div');meter.className='nx-live-meter';meter.setAttribute('role','meter');meter.setAttribute('aria-label','Microphone level');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');meter.setAttribute('aria-valuenow','0');meter.innerHTML='<i></i>';$('#nxCallState').after(meter);
     layer.addEventListener('click',e=>{const choice=e.target.closest('[data-call-answer]');if(choice){answer(choice.dataset.callAnswer,choice.dataset.signature);return;}const action=e.target.closest('[data-call]')?.dataset.call;if(action)controls(action);});
     layer.addEventListener('change',e=>{if(e.target.matches('[data-call-progress]')&&call){call.narration=e.target.checked;pref.set('callNarration',call.narration?'on':'off');}if(e.target.matches('[data-call-pc-voice]'))pref.set('voiceServerSpeech',e.target.checked?'on':'off');});
@@ -40,8 +50,8 @@ const NexusCall = (() => {
     $('[data-call-pc-voice]').checked=pref.get('voiceServerSpeech','off')==='on';
     $('[data-call="fallback"]').hidden=!c.live;$('[data-call="live"]').hidden=!!c.live;
     if(c.latency)$('#nxCallLatency').textContent=[['vadMs','Pause'],['whisperMs','Words'],['ttftMs','First token'],['synthesisMs','Synthesis'],['ttsMs','Voice'],['totalMs','Total']].map(([k,label])=>label+': '+(Number.isFinite(c.latency[k])?Math.round(c.latency[k])+' ms':'--')).join(' · ');
-    const labels={connecting:'Calling '+(agentName(c.session.kind))+'…',listening:'Listening',thinking:'Thinking',working:c.activity?'Working: '+c.activity:'Thinking',speaking:'Speaking','your-turn':'Your turn',paused:'Call paused',muted:'Muted',error:'Call paused',ended:'Call ended'};
-    $('.nx-call-signal').setAttribute('aria-label',['paused','error'].includes(c.machine.value)?'Call paused':c.machine.value==='connecting'?'Connecting to your PC':'Connected to your PC');
+    const labels={connecting:'Calling '+(agentName(c.session.kind))+'…',listening:'Listening',thinking:'Thinking',working:c.activity?'Working: '+c.activity:'Thinking',speaking:'Speaking','your-turn':'Your turn',paused:'Call paused',muted:'Muted',error:c.errorTitle||'Call paused',ended:'Call ended'};
+    $('.nx-call-signal').setAttribute('aria-label',['paused','error'].includes(c.machine.value)?labels[c.machine.value]:c.machine.value==='connecting'?'Connecting to your PC':'Connected to your PC');
     $('#nxCallState').textContent=labels[c.machine.value];
     const hints={connecting:'Connecting to the session on your PC',listening:c.question?'Say one, two or three, or choose below':'Speak, then pause. Tap the core to send now.',thinking:'Working out a reply',working:'Following the session on your PC',speaking:'Tap the core to interrupt and speak','your-turn':'Start talking when ready',paused:'Listening stopped while NEXUS was away.',muted:'Unmute when you are ready to talk'};
     $('#nxCallHint').textContent=c.hint||(c.live&&c.machine.value==='speaking'?'Speak to interrupt. I am still listening.':c.live&&c.machine.value==='listening'?'Talk freely. Say “tell the agent” to relay a request.':hints[c.machine.value])||'';
@@ -53,12 +63,17 @@ const NexusCall = (() => {
     $('#nxCallCaptions').hidden=!c.captions;
     $('[data-caption="you"]').hidden=!c.heard;$('[data-caption="you"] p').textContent=c.heard||'';
     // The question card already captions the complete question and spoken choices.
-    $('[data-caption="agent"]').hidden=!c.spoken||!!c.question&&!c.live;$('[data-caption="agent"] p').textContent=c.live?(c.spoken||''):(NexusDesign.plainSummary(c.spoken)||'');$('[data-caption="agent"] small').textContent=c.live?'NEXUS':agentName(c.session.kind);
+    // NEXUS's own notes (progress, unclear answers, a held sentence) are captioned as NEXUS, never as the agent.
+    const own=c.live||c.spokenBy==='nexus';
+    $('[data-caption="agent"]').hidden=!c.spoken||!!c.question&&!own;$('[data-caption="agent"] p').textContent=c.live?(c.spoken||''):(NexusDesign.plainSummary(c.spoken)||'');$('[data-caption="agent"] small').textContent=own?'NEXUS':agentName(c.session.kind);
     const q=c.question;$('#nxCallQuestion').hidden=!q||ended;
-    if(q)updateHTML($('#nxCallQuestion'),`<small>${agentName(c.session.kind)} is asking</small><p>${esc(q.question)}</p><div>${q.options.slice(0,3).map((o,i)=>`<button data-call-answer="${esc(o.key)}" data-signature="${esc(q.signature)}"><b>${i+1}</b>${esc(o.label)}</button>`).join('')}</div><span>Say one, two or three · <button data-call-answer="esc" data-signature="${esc(q.signature)}">Cancel</button>${q.options.length>3?'<button data-call="conversation">All options in conversation</button>':''}</span>`);
+    if(q)updateHTML($('#nxCallQuestion'),`<small>${agentName(c.session.kind)} is asking</small><p>${esc(q.question)}</p>${q.context?`<pre class="permission-context">${esc(q.context)}</pre>`:''}<div>${q.options.slice(0,3).map((o,i)=>`<button data-call-answer="${esc(o.key)}" data-signature="${esc(q.signature)}"><b>${i+1}</b>${esc(o.label)}</button>`).join('')}</div><span><span>Say one, two or three</span><button class="btn" data-call-answer="esc" data-signature="${esc(q.signature)}">Cancel</button>${q.options.length>3?'<button data-call="conversation">All options in conversation</button>':''}</span>`);
     for(const cls of ['.nx-call-header','.nx-call-content','.nx-call-controls'])$(cls).hidden=ended;
     $('#nxCallEnded').hidden=!ended;
     if(ended)renderEnded(c);
+    const shownQuestion=q&&!ended&&visible?q.signature:null;
+    if(shownQuestion&&c.shownQuestion!==shownQuestion)$('#nxCallQuestion').scrollIntoView({block:'nearest'});
+    c.shownQuestion=shownQuestion;
     if(!visible){
       let pill=$('#nxCallPill');if(!pill){pill=document.createElement('div');pill.id='nxCallPill';pill.setAttribute('role','region');pill.setAttribute('aria-label','Ongoing call');document.body.append(pill);pill.onclick=e=>e.target.closest('[data-call-end]')?end():restore();}
       updateHTML(pill,`<button aria-label="Return to call"><i></i><strong>${esc(c.session.title)}</strong><time>${c.paused?'Call paused':core.formatTime((Date.now()-c.startedAt)/1000)}</time></button><button data-call-end aria-label="End call">${icon('end')}</button>`);
@@ -82,6 +97,8 @@ const NexusCall = (() => {
       state(value){if(!valid(c,ticket))return;if(value==='listening')mode(c,'listening');else if(value==='transcribing')mode(c,'thinking','Turning your recording into words on your PC.');else if(value==='speaking')mode(c,'speaking');else if(value==='your-turn')mode(c,'your-turn');},
       level(value){if(valid(c,ticket))$('#nxCall')?.style.setProperty('--voice-level',String(value));}
     });audio=adapter;
+    // An unclear or stale answer is said aloud and the call listens again; hands-free, a silent pause looks like a dead call.
+    const retry=async text=>{c.pending=null;await say(c,text,adapter,ticket,'nexus');if(valid(c,ticket)&&c.speaker)await adapter.earcon();};
     try{
       await adapter.unlock();if(!valid(c,ticket))return;
       await loadChat(c.key,true);if(!valid(c,ticket))return;
@@ -114,13 +131,13 @@ const NexusCall = (() => {
         await loadChat(c.key,true);if(!valid(c,ticket))return;
         const latest=chatFor(c.key),question=latest.terminal?.prompt;c.pending=baseline(latest);
         if(question||signature){
-          if(!question||question.signature!==signature){c.pending=null;throw Error('The question changed while you spoke. Review it, then try again.');}
+          if(!question||question.signature!==signature){await retry('The question changed while you spoke. Nothing was answered.');continue;}
           const choice=voice.spokenAnswer(result.text,question);
-          if(!choice){c.pending=null;throw Error('That answer was unclear. Say one, two or three, or use the buttons.');}
+          if(!choice){await retry('That answer was unclear, so nothing was sent. Say one, two or three, or use the buttons.');continue;}
           if(!await answerChat(choice,signature,c.key,adapter.signal))throw Error('The answer was not sent. Review the question and try again.');
           c.answered=signature;c.question=null;
         }else{
-          if(latest.terminal?.busy){c.pending=null;throw Error('The agent is still working. Use Interrupt to stop it, then speak.');}
+          if(latest.terminal?.busy){await retry('The agent is still working, so your sentence was not sent. Use Interrupt to stop it, then speak.');continue;}
           mode(c,'thinking','Sending your sentence…');
           const receipt=await sendChat(null,result.text,adapter.signal,c.key);if(!valid(c,ticket))return;
           if(!receipt?.ok)throw Error(receipt?.message?.error||'Your sentence was not delivered. Try again when the session is ready.');
@@ -128,7 +145,10 @@ const NexusCall = (() => {
         }
         if(valid(c,ticket))mode(c,'thinking');
       }
-    }catch(error){if(valid(c,ticket)&&error.name!=='AbortError'){stop();let message=error.message;if(error.name==='NotAllowedError')message='Allow microphone access in your browser settings, then try again.';if(error.name==='NotFoundError')message='Connect a microphone, then try again.';if(error.name==='NotReadableError')message='The microphone is busy. Close the other recording app, then try again.';mode(c,'error',message);}}
+    }catch(error){if(valid(c,ticket)&&error.name!=='AbortError'){let message=error.message;if(microphoneBlocked(error))message='Allow microphone access in your browser settings, then try again.';if(error.name==='NotFoundError')message='Connect a microphone, then try again.';if(error.name==='NotReadableError')message='The microphone is busy. Close the other recording app, then try again.';
+      // Say why the call paused; a voice that cannot reach the PC must not hold the pause back.
+      if(!microphoneBlocked(error))await Promise.race([say(c,message,adapter,ticket,'nexus').catch(()=>{}),wait(12000)]);
+      if(valid(c,ticket))pauseError(c,error,message);}}
   }
   async function runLive(c,ticket){
     c.liveStart=new AbortController();
@@ -141,40 +161,55 @@ const NexusCall = (() => {
         speaker:()=>c.speaker,narration:()=>c.narration,question:()=>c.question,
         heard(text){if(valid(c,ticket)){c.heard=text;render();}},caption(text){if(valid(c,ticket)){c.spoken=text;render();}},
         sentence(text){if(valid(c,ticket)){c.spoken=text;render();}},latency(value){if(valid(c,ticket)){c.latency=value;render();}},renderer(kind){if(valid(c,ticket)){c.speechKind=kind;render();}},
-        notice(text){if(valid(c,ticket)){c.hint=text;render();}},error(error){if(valid(c,ticket)){stop();mode(c,'error',error.message);}},
+        notice(text){if(valid(c,ticket)){c.hint=text;render();}},error(error){if(valid(c,ticket))pauseError(c,error);},
         fallback(){if(valid(c,ticket)){c.live=false;c.hint='Live voice unavailable. Your heard words are kept above.';run(c);}},
         context(chat){if(!valid(c,ticket))return;c.question=chat.terminal?.prompt||null;c.activity=chat.terminal?.busy?NexusActivity.current(chat.events.findLast(e=>e.t==='tool')):'';if(c.machine.value==='working'&&!c.activity)mode(c,'listening');else render();}
       });
       if(!valid(c,ticket)){adapter.close();return;}audio=adapter;if(c.muted)adapter.setMuted(true);
     }catch(error){if(!valid(c,ticket)||error.name==='AbortError')return;
-      if(/Live voice is unavailable|CLI sign-in|live call|Session unavailable/i.test(error.message)){c.live=false;c.hint='Live voice unavailable. Turn-by-turn Call is ready.';run(c);}
-      else {stop();mode(c,'error',error.name==='NotAllowedError'?'Allow microphone access, then try again.':error.message);}
+      if(microphoneBlocked(error))pauseError(c,error);
+      else if(/Live voice is unavailable|CLI sign-in|live call|Session unavailable/i.test(error.message)){c.live=false;c.hint='Live voice unavailable. Turn-by-turn Call is ready.';run(c);}
+      else pauseError(c,error);
     }
   }
-  async function say(c,text,adapter,ticket){
-    if(!valid(c,ticket))return;c.spoken=text;render();
+  async function say(c,text,adapter,ticket,from='agent'){
+    if(!valid(c,ticket))return;c.spoken=text;c.spokenBy=from;render();
     if(c.speaker)await adapter.speak(text,c.forcedLanguage||voice.replyLanguage(text,c.language));
   }
   async function working(c,adapter,ticket){
-    let last='',stable=Date.now();
+    let last='',stable=Date.now(),ran=false;
     while(valid(c,ticket)){
       await loadChat(c.key,true);if(!valid(c,ticket))return;
       const chat=chatFor(c.key);
       if(chat.error)throw Error('Connection lost. Your sent sentence stays in the conversation. Try again to reconnect.');
       if(c.receipt?.status==='failed'){const error=c.receipt.error;c.pending=null;c.receipt=null;throw Error(error);}
       if(chat.terminal?.prompt&&chat.terminal.prompt.signature!==c.answered)return;
-      const events=chat.events.filter(e=>!c.pending?.has(identity(e))),replies=events.filter(e=>e.t==='ai').map(e=>e.text).join('\n\n');
-      if(replies!==last){last=replies;stable=Date.now();}
-      if(replies&&!chat.more&&!chat.terminal?.busy&&((chat.terminal?.input??chat.terminal?.ready)||chat.terminal?.exited)&&Date.now()-stable>=1000){
-        c.pending=null;c.receipt=null;c.activity='';await say(c,voice.gist(replies),adapter,ticket);
-        if(valid(c,ticket)){if(c.speaker)await adapter.earcon();else mode(c,'your-turn');}return;
-      }
+      const events=fresh(c,chat),replies=events.filter(e=>e.t==='ai').map(e=>e.text).join('\n\n'),idle=!chat.terminal?.busy&&!!(chat.terminal?.input??chat.terminal?.ready);
+      const seen=JSON.stringify([replies,events.length,!!chat.terminal?.busy]);
+      // The call saw a turn run: its terminal was busy after the baseline, or a new message started one.
+      ran||=!!chat.terminal?.busy||events.some(e=>e.t==='user');
+      if(seen!==last){last=seen;stable=Date.now();}
+      const finish=async(text,from)=>{c.pending=null;c.receipt=null;c.activity='';await say(c,text,adapter,ticket,from);if(valid(c,ticket)){if(c.speaker)await adapter.earcon();else mode(c,'your-turn');}};
+      if(replies&&!chat.more&&!chat.terminal?.busy&&(idle||chat.terminal?.exited)&&Date.now()-stable>=1000)return finish(voice.gist(voice.closingReply(events),c.language),'agent');
       if(chat.terminal?.exited)throw Error('The session ended before replying. Your sentence is in the conversation.');
-      if(!replies&&c.answered&&!chat.terminal?.prompt&&!chat.terminal?.busy&&(chat.terminal?.input??chat.terminal?.ready)&&Date.now()-stable>=1000){c.pending=null;c.receipt=null;mode(c,'your-turn');return;}
+      // The server queue may hold the sentence (paused queue, failed delivery): it was never typed into the session.
+      const held=c.receipt?.status==='queued'&&chat.queue?.items?.some(i=>i.id===c.receipt.id);
+      if(held&&(chat.queue.hold||idle&&Date.now()-stable>=3000)){const why=String(chat.queue.hold||chat.queue.reason||'').trim();return finish('Your sentence is waiting in the queue and was not sent yet.'+(why?' '+why:''),'nexus');}
+      if(!replies&&!chat.terminal?.prompt&&idle&&!held){
+        if(c.answered&&Date.now()-stable>=1000){c.pending=null;c.receipt=null;return;}
+        // A turn interrupted elsewhere ends without text; waiting for one would show Thinking for good. It is news only
+        // when part of it was recorded after the baseline (a busy screen alone may be a turn that already answered), and
+        // the sentence is named only when the call sent it and it is recorded: a refused one never was.
+        if(!chat.more&&ran&&Date.now()-stable>=3000){
+          if(!events.length){c.pending=null;c.receipt=null;return;}
+          const sent=c.receipt&&events.some(e=>e.t==='user'&&String(e.text||'').trim()===String(c.receipt.text||'').trim());
+          return finish(failure(c,events)||'The turn ended without a reply.'+(sent?' Your sentence is in the conversation.':''),'nexus');
+        }
+      }
       c.activity=NexusActivity.current(events.findLast(e=>e.t==='tool'));
       mode(c,c.activity?'working':'thinking');
       const progress=c.progress.take(c.activity,c.narration&&c.speaker&&!!chat.terminal?.busy);
-      if(progress){await say(c,progress,adapter,ticket);if(!valid(c,ticket))return;mode(c,c.activity?'working':'thinking');}
+      if(progress){await say(c,progress,adapter,ticket,'nexus');if(!valid(c,ticket))return;mode(c,c.activity?'working':'thinking');}
       await wait(500);
     }
   }
@@ -222,7 +257,7 @@ const NexusCall = (() => {
     if(call===c)render();
   }
   function renderEnded(c){
-    const counts=c.recap?.counts,items=counts?[[counts.files,'file updated','files updated'],[counts.commands,'command run','commands run'],[counts.sites,'source checked','sources checked'],[counts.astra,'Astra run','Astra runs'],[counts.errors,'reported error','reported errors']].filter(([n])=>n).map(([n,a,b])=>`${n} ${n===1?a:b}`):[];
+    const counts=c.recap?.counts,items=counts?[[counts.files,'file updated','files updated'],[counts.commands,'command run','commands run'],[counts.sites,'source checked','sources checked'],[counts.codex,'Codex run','Codex runs'],[counts.errors,'reported error','reported errors']].filter(([n])=>n).map(([n,a,b])=>`${n} ${n===1?a:b}`):[];
     updateHTML($('#nxCallEnded'),`<span class="nx-ended-core">${Prism.markup()}</span><h2>Call ended</h2><p>${esc(c.session.title)} · <time>${core.formatTime((c.endedAt-c.startedAt)/1000)}</time></p><div class="nx-call-recap"><small>What was done</small>${items.length?`<ul>${items.map(t=>`<li><i>✓</i>${esc(t)}</li>`).join('')}</ul>`:`<p>${esc(c.recapError||(counts?'No file, command or source activity recorded during this call.':'Loading activity…'))}</p>`}${c.recap?.partial?'<p>Counts cover the available part of the call.</p>':''}<p>The conversation keeps your messages and the full replies.</p></div><button class="btn primary" data-call="conversation">${icon('chat')}Open conversation</button><div><button class="btn" data-call="again">${icon('phone')}Call again</button><button class="btn" data-call="close">Close</button></div>`);
   }
   function dismiss(){if(active())return;call=null;render();$('#app').inert=false;dialogFocus?.isConnected&&dialogFocus.focus({preventScroll:true});}

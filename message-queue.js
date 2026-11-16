@@ -6,17 +6,25 @@ const slash=require('./slash-commands');
 const copy=value=>JSON.parse(JSON.stringify(value));
 const inputUp=t=>!!t&&(t.input??t.ready);
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const RESTART_HOLD='Delivery interrupted by a NEXUS restart. Check the conversation before retrying.';
+// The chat clips a long message (Claude at 40,000 characters, Codex and Copilot at 12,000, one less to keep an emoji
+// whole) and adds an ellipsis; that clipped record is still this message.
+const sameMessage=(e,text)=>{const r=e.text?.trim()||'',m=text.trim();return r===m||r.length>8000&&r.endsWith('…')&&m.startsWith(r.slice(0,-1));};
 class MessageQueue {
   constructor({load=()=>({}),save,inspect,send,now=Date.now}) {
     this.data=copy(load());this.save=save;this.inspect=inspect;this.send=send;this.now=now;this.locks=new Map();
     for(const q of Object.values(this.data)) {
-      if(q.active){q.hold='Delivery interrupted by a NEXUS restart. Check the conversation before retrying.';q.active.status='failed';q.items.unshift(q.active);q.active=null;}
+      // A message the session already received is not in doubt, so it never pauses the queue.
+      if(q.active?.received)q.history.push({...q.active,status:'confirmed',finishedAt:this.now()});
+      else if(q.active){q.hold=RESTART_HOLD;q.active.status='failed';q.active.error=RESTART_HOLD;q.items.unshift(q.active);}
+      q.active=null;
       for(const item of q.items||[])if(['sending','confirm','control'].includes(item.status))item.status='queued';
       for(const item of q.items||[])if(item.status==='opening'){item.status='failed';item.error='NEXUS restarted while opening a control. Check its result before retrying.';q.hold=item.error;}
+      if(q.hold===RESTART_HOLD&&!q.items.some(item=>item.status==='failed'))q.hold='';
     }
   }
   serial(key,work) {const task=(this.locks.get(key)||Promise.resolve()).catch(()=>{}).then(work);this.locks.set(key,task);return task.finally(()=>{if(this.locks.get(key)===task)this.locks.delete(key);});}
-  queue(key) {if(typeof key!=='string'||!/^(claude|astra|copilot|term):[\w.-]+$/.test(key))throw Error('Unknown session.');return this.data[key]||= {items:[],history:[],active:null,hold:''};}
+  queue(key) {if(typeof key!=='string'||!/^(claude|codex|copilot|term):[\w.-]+$/.test(key))throw Error('Unknown session.');return this.data[key]||= {items:[],history:[],active:null,hold:''};}
   async persist(){await this.save(copy(this.data));}
   reason(q,s) {
     if(q.hold)return q.hold;
@@ -85,8 +93,9 @@ class MessageQueue {
       if(s.terminal.prompt||s.terminal.menu)throw Error('Answer the question or close the terminal menu first.');
       if(slash.core.parse(item.text))throw Error('Slash commands wait until the session is ready.');
       q.items.splice(i,1);
-      try{const result=await this.send(s.terminal.id,item.text,{commandId:item.id,midTurn:true});q.history.push({...item,status:'pushed',submittedAt:result.submittedAt||this.now(),finishedAt:this.now()});}
-      catch(error){q.items.splice(i,0,item);throw error;}
+      try{const result=await this.send(s.terminal.id,item.text,{commandId:item.id,midTurn:true});q.history.push({...item,status:'pushed',submittedAt:result.submittedAt||this.now(),finishedAt:this.now()});if(q.hold===item.error&&!q.items.some(x=>x.status==='failed'))q.hold='';}
+      // Text that reached the terminal may still sit in its message box: hold it rather than paste it again.
+      catch(error){q.items.splice(i,0,error.notSent?item:{...item,status:'failed',error:error.message});if(!error.notSent){q.hold=error.message;await this.persist().catch(()=>{});}throw error;}
     }
     else if(action==='confirm'||action==='send-now') {
       if(confirmed!==true||expectedText!==item.text)throw Error('Confirm '+(action==='send-now'?'interrupting the current turn':'this command')+' before sending.');
@@ -111,11 +120,12 @@ class MessageQueue {
     let s=this.inspect(key),t=s?.terminal;
     if(q.active){
       const a=q.active;if(t?.busy||s?.streaming)a.sawBusy=true;
-      const command=t?.commands?.find(r=>r.id===a.id),event=s?.events?.find(e=>['user','cmd'].includes(e.t)&&e.text?.trim()===a.text.trim()&&Date.parse(e.ts)>=a.submittedAt);
-      if(t?.exited&&command?.status==='acknowledged'){
-        q.history.push({...a,status:'confirmed',received:true,command,finishedAt:this.now()});q.history=q.history.slice(-100);q.active=null;await this.persist();return;
+      const command=t?.commands?.find(r=>r.id===a.id),event=s?.events?.find(e=>['user','cmd'].includes(e.t)&&sameMessage(e,a.text)&&Date.parse(e.ts)>=a.submittedAt);
+      // A message the session already received stays delivered when its terminal ends mid-turn or NEXUS quits.
+      if((!t||t.exited)&&command?.status!=='rejected'&&(a.received||event||command?.status==='acknowledged')){
+        q.history.push({...a,status:'confirmed',received:true,...(command?{command}:{}),finishedAt:this.now()});q.history=q.history.slice(-100);q.active=null;await this.persist();return;
       }
-      if(command?.status==='rejected'||command?.status==='uncertain'||!t||t.exited||this.now()-a.submittedAt>45000&&!a.sawBusy&&!event&&!command?.evidence){
+      if(command?.status==='rejected'||command?.status==='uncertain'&&!t?.busy||!t||t.exited||this.now()-a.submittedAt>45000&&!a.sawBusy&&!event&&!command?.evidence){
         a.status='failed';a.error=command?.output||'Delivery was not confirmed. Check the conversation before retrying.';q.hold=a.error;q.items.unshift(a);q.active=null;await this.persist();return;
       }
       const received=event||command&&['acknowledged','closed','menu'].includes(command.status)||a.sawBusy&&inputUp(t)&&!t.busy;
@@ -140,8 +150,10 @@ class MessageQueue {
       // Nothing was typed: put it back and try again shortly. Only an uncertain delivery pauses the queue.
       const attempts=(q.active?.attempts||0)+1;
       if(error.notSent&&attempts<6&&q.active){q.items.unshift({...q.active,status:'queued',attempts});q.active=null;q.retryAt=this.now()+1000*attempts;await this.persist();return;}
-      if(q.active){q.items.unshift({...q.active,status:'failed',error:error.message});q.active=null;}
-      q.hold='Delivery failed. '+error.message;await this.persist();
+      // The row and the pause carry one text, so removing the row releases the queue.
+      const reason='Delivery failed. '+error.message;
+      if(q.active){q.items.unshift({...q.active,status:'failed',error:reason});q.active=null;}
+      q.hold=reason;await this.persist();
     }
   }
   async tick(){await Promise.all(Object.keys(this.data).map(key=>this.serial(key,()=>this.pump(key))));}

@@ -7,7 +7,8 @@ function validateChoice(lang,id){if(!['en','es'].includes(lang)||voiceById.get(i
 // Bounded NDJSON parser handles arbitrary UTF-8/network boundaries and rejects a
 // truncated success. Audio is always a complete WAV chunk, never an arbitrary byte slice.
 async function readChunks(response,onChunk,{signal}={}){
-  if(!response.ok)throw Error('Neural voice is warming up or busy.');
+  // Only a 503 is worth retrying; a 400 or 413 refuses this text (over 700 characters, or invalid) for good.
+  if(!response.ok)throw Object.assign(Error(response.status===503?'Neural voice is warming up or busy.':[400,413].includes(response.status)?'The neural voice refused this text: it is too long or not valid.':'Neural voice failed. Device speech is available.'),{status:response.status});
   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',finished=false,audio=false;
   try{for(;;){if(signal?.aborted)throw new DOMException('Cancelled','AbortError');const {done,value}=await reader.read();buffer+=done?decoder.decode():decoder.decode(value,{stream:true});if(buffer.length>8*1024*1024)throw Error('Voice chunk is too large.');let at;
     while((at=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,at);buffer=buffer.slice(at+1);if(!line)continue;if(finished)throw Error('Unexpected voice data after completion.');const msg=JSON.parse(line);

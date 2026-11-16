@@ -30,7 +30,7 @@ try{
   await b.js("$('#folderSearch').value='no such project xyz';$('#folderSearch').dispatchEvent(new Event('input'))");await shot('new-session-empty');
   await b.cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
   await check("!$('#modal').classList.contains('on') && !$('#app').inert",'Escape dismisses modal');
-  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='astra'&&s.brief&&s.size<500000&&s.status!=='busy')||state.sessions[0]))");await b.until('!!state.transcript');await sleep(600);await shot('feed');
+  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='codex'&&s.brief&&s.size<500000&&s.status!=='busy')||state.sessions[0]))");await b.until('!!state.transcript');await sleep(600);await shot('feed');
   await check("$('#feed').clientHeight > 220",'feed keeps useful reading height');
   await b.js("state.tab='thinking';renderHead()");await shot('thinking');
   await b.js("state.tab='chat';renderHead()");await shot('chat-unattached');
@@ -68,7 +68,7 @@ try{
   if(width<701){await check("$$('.steer-buttons button').every(x=>x.getBoundingClientRect().height>=44)",'all chat touch targets are at least 44px');await check("parseFloat(getComputedStyle($('#steerIn')).fontSize)>=16",'composer avoids iOS input zoom');}
   await b.js("const v=termViews.get(selTerm().id);v.ended=true;selTerm().exited={code:0};renderHead();renderChatOutput(v)");await shot('terminal-ended-fixture');
   await b.js('await closeTerm(selTerm())');terminal=null;
-  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='astra')||state.sessions[0]),{tab:'thinking'});window.rememberedKey=state.sel;pref.set('testKey',state.sel)");await b.until('!!state.transcript');
+  await b.js("select(keyOf(state.sessions.find(s=>s.kind==='codex')||state.sessions[0]),{tab:'thinking'});window.rememberedKey=state.sel;pref.set('testKey',state.sel)");await b.until('!!state.transcript');
   await b.js('location.reload()');await b.until("state.booted && deviceUI.restored && state.view==='focus'");
   await check("state.sel===pref.get('testKey') && state.tab==='thinking'",'last session, view and tab restore on this device');
   await b.until('!!state.transcript');

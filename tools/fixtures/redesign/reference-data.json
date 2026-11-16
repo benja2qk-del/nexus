@@ -16,7 +16,7 @@
       "path": "D:\\dev\\ledger-agent"
     },
     {
-      "id": "babel",
+      "id": "atlas",
       "name": "Atlas Lens",
       "path": "D:\\dev\\atlas-lens"
     },
@@ -590,7 +590,7 @@
           "id": "s-orders-t1",
           "seconds": 9,
           "summary": "Broke the task into small, testable steps",
-          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+          "text": "Codex scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
         },
         {
           "kind": "tools",
@@ -730,7 +730,7 @@
           "id": "s-voice-t1",
           "seconds": 9,
           "summary": "Broke the task into small, testable steps",
-          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+          "text": "Codex scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
         },
         {
           "kind": "tools",
@@ -1001,7 +1001,7 @@
     },
     {
       "id": "s-ocr",
-      "projectId": "babel",
+      "projectId": "atlas",
       "title": "Manga OCR accuracy",
       "purpose": "Raise vertical Japanese text recognition above 95%",
       "status": "done",
@@ -1304,7 +1304,7 @@
           "id": "s-feeds-t1",
           "seconds": 9,
           "summary": "Broke the task into small, testable steps",
-          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+          "text": "Codex scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
         },
         {
           "kind": "tools",
@@ -1499,7 +1499,7 @@
     },
     {
       "id": "s-glossary",
-      "projectId": "babel",
+      "projectId": "atlas",
       "title": "Translator glossary sync",
       "purpose": "Keep character names consistent across chapters",
       "status": "saved",
@@ -1607,7 +1607,7 @@
           "id": "s-regex-t1",
           "seconds": 9,
           "summary": "Broke the task into small, testable steps",
-          "text": "Astra scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
+          "text": "Codex scanned the project layout, located the relevant modules and chose an approach that keeps the change small and reversible."
         },
         {
           "kind": "tools",

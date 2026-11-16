@@ -51,7 +51,7 @@ else{
     sessionPreview=s=>parityMock.sessions.find(m=>m.id===s.id)?.sinceLast||preview(s);
     nxPurpose=s=>parityMock.sessions.find(m=>m.id===s.id)?.purpose||purpose(s);
     for(const s of state.sessions){const m=parityMock.sessions.find(m=>m.id===s.id);if(m){s.groupLabel=parityMock.projects.find(p=>p.id===m.projectId).name;s.updated=Date.now()-m.updatedMinutes*60000;}}
-    state.usage.astra={week:{pct:18,minutes:10080,resetsAt:Date.now()+598800000}};
+    state.usage.codex={week:{pct:18,minutes:10080,resetsAt:Date.now()+598800000}};
     state.usage.copilot={month:{pct:71,resetsAt:Date.now()+432000000},premiumRequests:213};
     render();`);
 }

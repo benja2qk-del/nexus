@@ -14,7 +14,7 @@ const edit=(file,id='edit')=>({type:'assistant',message:{content:[{type:'tool_us
 const read=(file,id='read')=>({type:'assistant',message:{content:[{type:'tool_use',id,name:'Read',input:{file_path:file}}]}});
 const workFile=path.join(folders['alpha-repo'],'src','cafe.js');
 const claude=records('claude','claude-work',[{type:'user',cwd:folders.launch,message:{content:'Fix alpha repository'}},edit(workFile),read(path.join(folders.launch,'readme.md'))]);
-const codex=records('astra','codex-work',[{type:'session_meta',payload:{id:'codex-work',cwd:folders.launch}},{type:'response_item',payload:{type:'custom_tool_call',name:'exec',call_id:'exec',input:'const r = await tools.exec_command('+JSON.stringify({cmd:'Get-Content src/cafe.js',workdir:folders['alpha-repo']})+'); await tools.apply_patch('+JSON.stringify('*** Begin Patch\n*** Update File: '+workFile+'\n@@\n-old\n+new\n*** End Patch')+');'}}]);
+const codex=records('codex','codex-work',[{type:'session_meta',payload:{id:'codex-work',cwd:folders.launch}},{type:'response_item',payload:{type:'custom_tool_call',name:'exec',call_id:'exec',input:'const r = await tools.exec_command('+JSON.stringify({cmd:'Get-Content src/cafe.js',workdir:folders['alpha-repo']})+'); await tools.apply_patch('+JSON.stringify('*** Begin Patch\n*** Update File: '+workFile+'\n@@\n-old\n+new\n*** End Patch')+');'}}]);
 const request={toolCallId:'edit',name:'edit',arguments:JSON.stringify({path:workFile,old_str:'before',new_str:'after'})};
 const copilot=records('copilot','copilot-work',[{type:'session.start',data:{context:{cwd:folders.launch}}},{type:'assistant.message',data:{toolRequests:[request]}},{type:'tool.execution_start',data:{...request,toolName:'edit'}},{type:'tool.execution_complete',data:{...request,toolName:'edit'}}]);
 const storeFile=path.join(root,'themes.json');let service=new Themes({file:storeFile,roots,scanner});
@@ -40,8 +40,8 @@ assert.equal(service.state.assignments['claude:generic'],undefined,'suggestions 
 service.assign(['claude:generic'],undefined,true);service.decorate([claude,generic]);assert.equal(generic.theme.source,'owner');
 const custom=service.change({op:'create',name:'Owner Theme',color:'#123456'});service.assign(['claude:claude-work'],custom.id);service.decorate([claude]);assert.equal(claude.theme.name,'Owner Theme');assert.equal(claude.theme.source,'owner');
 const fork=records('claude','fork',[{type:'fork-context-ref',parentSessionId:claude.id},edit(path.join(folders['beta-repo'],'fork.js'))]);
-const afork=records('astra','afork',[{type:'session_meta',payload:{cwd:folders.launch,forked_from:codex.id}},{type:'response_item',payload:{type:'function_call',name:'exec_command',call_id:'x',arguments:JSON.stringify({cmd:'pwd',workdir:folders['beta-repo']})}}]);
-service.decorate([claude,codex,fork,afork]);assert.deepEqual(fork.parent,{key:'claude:'+claude.id,relation:'fork'});assert.equal(fork.theme.id,custom.id);assert.equal(afork.parent.key,'astra:'+codex.id);assert.equal(afork.theme.id,codex.theme.id,'Codex forks inherit the parent theme despite different work evidence');
+const afork=records('codex','afork',[{type:'session_meta',payload:{cwd:folders.launch,forked_from:codex.id}},{type:'response_item',payload:{type:'function_call',name:'exec_command',call_id:'x',arguments:JSON.stringify({cmd:'pwd',workdir:folders['beta-repo']})}}]);
+service.decorate([claude,codex,fork,afork]);assert.deepEqual(fork.parent,{key:'claude:'+claude.id,relation:'fork'});assert.equal(fork.theme.id,custom.id);assert.equal(afork.parent.key,'codex:'+codex.id);assert.equal(afork.theme.id,codex.theme.id,'Codex forks inherit the parent theme despite different work evidence');
 service.assign(['claude:fork'],service.catalog().themes.find(t=>t.name==='Alpha Repo').id);service.decorate([claude,fork]);assert.notEqual(fork.theme.id,claude.theme.id);
 service.recordParent('copilot:child','claude:'+claude.id);const child=records('copilot','child',[]);service.decorate([claude,child]);assert.equal(child.theme.id,custom.id);
 service=new Themes({file:storeFile,roots});service.decorate([child]);assert.equal(child.theme.id,custom.id,'off-window parent theme and NEXUS fork survive restart');
@@ -60,9 +60,9 @@ const nongit=path.join(projects,'plain-project','src');fs.mkdirSync(nongit,{recu
 assert.throws(()=>service.change({op:'rename',id:custom.id,name:''}));assert.throws(()=>service.assign(['missing'],null));
 const broken=path.join(root,'broken.json');fs.writeFileSync(broken,'broken');const bad=new Themes({file:broken,roots});assert.throws(()=>bad.change({op:'create',name:'Do not overwrite'}));assert.equal(fs.readFileSync(broken,'utf8'),'broken');
 const searchSource=fs.readFileSync('public/phoneux.js','utf8').split('function compactSessionCard')[0],context={};require('vm').runInNewContext(searchSource,context);const search=context.sessionSearchText({theme:{name:'Saved Theme'},workFolders:[{path:'/repo/search-folder'}],touchedFiles:['needle.js']});for(const word of ['saved theme','search-folder','needle.js'])assert.ok(search.includes(word));
-for(const kind of ['astra','copilot']){
+for(const kind of ['codex','copilot']){
   const s=records(kind,'append-'+kind,[]),scan=new WorkScanner({roots});scan.session(s);
-  const rows=kind==='astra'?[{type:'response_item',payload:{type:'custom_tool_call',name:'apply_patch',call_id:'append',input:'*** Update File: '+workFile+'\n'}}]:[{type:'tool.execution_start',data:{toolName:'create',toolCallId:'append',arguments:{path:workFile}}}];
+  const rows=kind==='codex'?[{type:'response_item',payload:{type:'custom_tool_call',name:'apply_patch',call_id:'append',input:'*** Update File: '+workFile+'\n'}}]:[{type:'tool.execution_start',data:{toolName:'create',toolCallId:'append',arguments:{path:workFile}}}];
   const text=rows.map(r=>JSON.stringify(r)).join('\n')+'\n';fs.appendFileSync(s.file,text);assert.equal(scan.session(s).mainFolder,folders['alpha-repo']);assert.equal(scan.bytesRead,Buffer.byteLength(text)+1);const readBytes=scan.bytesRead;scan.session(s);assert.equal(scan.bytesRead,readBytes);
 }
 console.log('PASS themes: three transcript formats, code-mode, weighted roots, generic suggestions, aliases, inheritance, owner precedence, atomic persistence, incremental UTF-8, rotation, scan caps and search');

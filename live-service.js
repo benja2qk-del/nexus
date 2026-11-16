@@ -12,7 +12,7 @@ function createLiveService({config={},snapshot,send,tts=null,brainFactory=create
     let body='',c;
     try{
       for await(const chunk of req){body+=chunk;if(body.length>16000)throw Error('Voice request is too large.');}
-      const data=JSON.parse(body||'{}');if(!authorized())return json(401,{error:'Pair this device again.'});
+      const data=require('./legacy-names').request(JSON.parse(body||'{}'));/* older clients: old key prefix */if(!authorized())return json(401,{error:'Pair this device again.'});
       if(route==='/api/live/start'){
         if(starting||calls.size)throw Error('Another live call is already active on this PC.');
         const state=snapshot(data.key);if(!state)throw Error('Session unavailable.');starting=true;
@@ -86,7 +86,10 @@ function createLiveService({config={},snapshot,send,tts=null,brainFactory=create
         }
         await speech;
         emit({type:'done',ttftMs:metrics?.ttftMs??0,brainMs:metrics?.totalMs??0,firstAudioMs});
-      }catch(e){emit({type:/Live voice is unavailable/.test(e.message)?'unavailable':'error',message:e.message});}
+      }catch(e){
+        // The brain's sentence was already spoken ("I will tell the agent..."); a refusal after it must be heard too.
+        if(sentenceId&&!event)say(e.message);
+        emit({type:/Live voice is unavailable/.test(e.message)?'unavailable':'error',message:e.message});}
       finally{await speech;audioAbort.abort();c.busy=false;res.removeListener('close',disconnect);if(!res.destroyed)res.end();}
     }catch(e){json(400,{error:e.message});}
   }

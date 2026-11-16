@@ -3,15 +3,27 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 const language = require('./public/activity-language');
-const MAX_BYTES = 4 * 1024 * 1024, CHUNK_BYTES = 64 * 1024;
+const claudeRecords = require('./claude-records');
+// Back to the owner's last message: an agent working on its own for hours writes several MB between two messages
+// (6 MB after a nine-hour run). Read only when the owner asks for a recap.
+const MAX_BYTES = 16 * 1024 * 1024, CHUNK_BYTES = 64 * 1024;
 const contentText = content => typeof content === 'string' ? content : Array.isArray(content) ? content.filter(c => ['text', 'input_text', 'output_text'].includes(c.type)).map(c => c.text || '').join('\n') : '';
+// Codex as the chat reads it (codexPrompt, codexEvents in server.js): the blocks Codex adds to a user message and the
+// CLI's notices are not the request, markup the owner pasted is; tool output is a list of parts, screenshots among them.
+const CODEX_BLOCK = /^<\/?(?:environment_context|recommended_plugins|user_instructions|image|turn_aborted|permissions|skills_instructions|collaboration_mode|user_shell_command|subagent_notification|multi_agent_\w+)\b|^<([a-z]+(?:_[a-z]+)+)>[\s\S]*<\/\1>$/, CODEX_NOTICE = /^Codex could not (?:read|attach|load)\b/;
+const codexOwn = s => s && !CODEX_BLOCK.test(s) && !s.startsWith('# AGENTS.md') && !CODEX_NOTICE.test(s);
+const codexPromptText = content => (Array.isArray(content) ? content : []).filter(c => c.type === 'input_text' && codexOwn((c.text || '').trim())).map(c => c.text).join('\n').trim();
+const codexOutput = v => Array.isArray(v) ? v.reduce((all, x) => { const part = typeof x?.text === 'string' ? x.text : x?.type === 'input_image' ? '[image]' : '[' + (x?.type || 'part') + ']'; return all && !all.endsWith('\n') ? all + '\n' + part : all + part; }, '') : v;
+// A Codex script states its outcome on its first line; the commands inside it report theirs in item_completed.
+const codexVerdict = text => (/^Script (completed|failed|terminated)\b/.exec(text) || [])[1] || '';
 function realUser(record) {
-  if (!record || record.isMeta || record.isSidechain) return null;
-  const p = record.payload;
+  if (!record || record.isMeta || record.isSidechain || record.isCompactSummary) return null;
+  // Claude: the same reading as the chat and the row (pastes, queued messages, interruptions).
+  if (record.type === 'user' || record.type === 'attachment') { const own = claudeRecords.ownerPrompt(record); return own && { text: claudeRecords.promptText(own), at: own.at }; }
+  const p = record.payload, at = record.timestamp || null;
+  if (record.type === 'response_item' && p?.type === 'message' && p.role === 'user') { const text = codexPromptText(p.content); return text ? { text, at } : Array.isArray(p.content) && p.content.some(c => c.type === 'input_image') ? { text: '[Image attached]', at } : null; }
   let content;
   if (record.type === 'user.message') content = record.data?.content;
-  else if (record.type === 'user' && record.message?.role !== 'system') content = record.message?.content;
-  else if (record.type === 'response_item' && p?.type === 'message' && p.role === 'user') content = p.content;
   else if (record.type === 'event_msg' && p?.type === 'user_message') content = p.message;
   else return null;
   if (Array.isArray(content) && content.some(c => c.type === 'tool_result')) return null;
@@ -24,7 +36,7 @@ function realUser(record) {
 
 // Read each byte at most once. Only complete JSON lines cross the decoding
 // boundary, so UTF-8 and records spanning chunks stay intact. No full-file read.
-function readSpan(file, { maxBytes = MAX_BYTES, chunkBytes = CHUNK_BYTES, since = null } = {}) {
+function readSpan(file, { maxBytes = MAX_BYTES, chunkBytes = CHUNK_BYTES, since = null, after = 0 } = {}) {
   const fd = fs.openSync(file, 'r');
   try {
     const stat = fs.fstatSync(fd), size = stat.size;
@@ -32,6 +44,8 @@ function readSpan(file, { maxBytes = MAX_BYTES, chunkBytes = CHUNK_BYTES, since 
     const records = [];
     const accept = bytes => {
       let record; try { record = JSON.parse(bytes.toString('utf8')); } catch { return false; }
+      // A helper thread's rollout opens with a copy of its parent's history, stamped no later than the fork: not its own.
+      if (after) { const t = Date.parse(record.timestamp); if (!(t > after)) return boundary = t <= after; }
       if(since!==null){
         if(Date.parse(record.timestamp)<since){boundary=true;return true;}
       }else{
@@ -65,21 +79,24 @@ function readSpan(file, { maxBytes = MAX_BYTES, chunkBytes = CHUNK_BYTES, since 
 }
 
 function events(r) {
-  if (!r || r.isSidechain || r.isMeta) return [];
+  if (!r || r.isSidechain || r.isMeta || r.isCompactSummary) return [];
   const out = [], p = r.payload, at = r.timestamp;
-  const assistant = text => { if (text?.trim()) out.push({ type: 'assistant', text: language.readable(text, 12000), shortened: text.length > 12000, at }); };
+  // The reply is kept as written; the recap draws it as Markdown.
+  const assistant = text => { if (text?.trim()) out.push({ type: 'assistant', text: claudeRecords.clip(text, 12000), shortened: text.length > 12000, at }); };
   const tool = (name, input, id) => out.push({ type: 'tool', ...language.tool(name, input), id, at });
-  const result = (id, value, error) => {
-    const text = typeof value === 'string' ? value : JSON.stringify(value || '');
-    const failed = !!error || /(?:Process exited with code [1-9]|Exit code:\s*[1-9]|"isError"\s*:\s*true|(?:^|\n)(?:Error:|Traceback \())/i.test(text);
-    out.push({ type: 'result', id, failed });
+  // Claude and Copilot flag their own failures; only Codex output has to be read. Declining a tool is the owner's choice.
+  const result = (id, value, error, flagged) => {
+    const text = typeof value === 'string' ? value : contentText(value) || JSON.stringify(value || '');
+    if (flagged) { out.push({ type: 'result', id, failed: !!error && !/^\s*The user doesn't want to proceed/.test(text) }); return; }
+    const verdict = codexVerdict(text), stopped = !error && /^(?:failed|terminated)$/.test(verdict), guessed = !error && !verdict && /(?:Process exited with code [1-9]|Exit code:\s*[1-9]|"isError"\s*:\s*true|(?:^|\n)(?:Error:|Traceback \())/i.test(typeof value === 'string' ? value : JSON.stringify(value || ''));
+    out.push({ type: 'result', id, failed: !!error || stopped || guessed, ...(guessed ? { guessed } : {}) });
   };
   if(r.data && !r.payload){
     const cp=require('./copilot');
     for(const e of cp.events(r)){
       if(e.t==='ai')assistant(e.text);
       if(e.t==='tool')out.push({type:'tool',...e.human,id:e.id,at});
-      if(e.t==='result')result(e.id,e.text,e.err);
+      if(e.t==='result')result(e.id,e.text,e.err,true);
       if(e.err&&e.t==='note')out.push({type:'result',failed:true,error:e.text});
       if(e.text==='turn complete')out.push({type:'state',state:'task_complete'});
       if(e.text==='turn started')out.push({type:'state',state:'task_started'});
@@ -87,21 +104,29 @@ function events(r) {
       if(e.detail?.files?.length&&e.t==='note')out.push({type:'files',files:e.detail.files.map(f=>f.path)});
     }
   }
+  // Claude Code's own placeholder is no reply; an API error it writes is an error, not Claude's words.
+  if (claudeRecords.machineReply(r)) { if (r.isApiErrorMessage) out.push({ type: 'result', failed: true, error: claudeRecords.note(r).text }); return out; }
   if (r.type === 'assistant' && typeof r.message?.content === 'string') assistant(r.message.content);
   if (r.type === 'assistant' && Array.isArray(r.message?.content)) for (const c of r.message.content) {
     if (c.type === 'text') assistant(c.text);
     if (c.type === 'tool_use') tool(c.name, c.input, c.id);
   }
-  if (r.type === 'user' && Array.isArray(r.message?.content)) for (const c of r.message.content) if (c.type === 'tool_result') result(c.tool_use_id, c.content, c.is_error);
+  if (r.type === 'user' && Array.isArray(r.message?.content)) for (const c of r.message.content) if (c.type === 'tool_result') result(c.tool_use_id, c.content, c.is_error, true);
   if (r.type === 'response_item' && p) {
     if (p.type === 'message' && p.role === 'assistant') assistant(contentText(p.content));
+    // A question Codex puts to the owner is its latest word, drawn as in the chat.
+    if (/^request_user_input(?:_async)?$/.test(p.name || '')) { let a; try { a = JSON.parse(p.arguments || p.input); } catch { } if (Array.isArray(a?.questions)) assistant(a.questions.map(q => [q?.title || q?.question || '', ...(Array.isArray(q?.options) ? q.options.map(o => '- ' + (o?.label || o?.title || o)) : [])].filter(Boolean).join('\n')).filter(Boolean).join('\n\n')); }
     if (['function_call', 'custom_tool_call', 'local_shell_call'].includes(p.type)) tool(p.name || 'shell', p.arguments || p.input || p.action?.command?.join(' '), p.call_id || p.id);
-    if (['function_call_output', 'custom_tool_call_output'].includes(p.type)) result(p.call_id, p.output, p.is_error);
+    if (['function_call_output', 'custom_tool_call_output'].includes(p.type)) result(p.call_id, codexOutput(p.output), p.is_error);
   }
   if (r.type === 'event_msg' && p) {
     if (p.type === 'agent_message') { assistant(p.message); if (out[0]) out[0].mirror = true; }
     if (['task_started', 'task_complete', 'turn_aborted'].includes(p.type)) out.push({ type: 'state', state: p.type });
+    // A turn stopped by the usage limit is written as task_complete, with the error beside it.
+    if (p.type === 'task_complete' && p.error) out.push({ type: 'result', failed: true, error: typeof p.error === 'string' ? p.error : p.error.message || 'Codex reported an error.' });
     if (p.type === 'error') out.push({ type: 'result', failed: true });
+    // Current Codex reports a command's outcome only here; its output text carries no exit code.
+    if (p.type === 'item_completed' && p.item?.type === 'CommandExecution') out.push({ type: 'result', exact: true, failed: p.item.status === 'failed' || p.item.exit_code > 0 });
   }
   // readSpan walks records backwards; reverse within-record events as well.
   return out.reverse();
@@ -113,19 +138,24 @@ function status(session, span) {
   const last = span.events.findLast(e => e.type === 'state');
   if (last?.state === 'turn_aborted') return { label: 'Saved', detail: 'The turn was interrupted.' };
   if (last?.state === 'task_complete') return { label: 'Saved', detail: 'The turn is complete; ready for your next message.' };
-  if (session.status === 'busy' || (session.kind === 'astra' && last?.state === 'task_started' && session.live)) return { label: 'Working', detail: session.kind === 'astra' ? 'Still working, based on recent rollout activity.' : 'Still working.' };
+  if (session.status === 'busy' || (session.kind === 'codex' && last?.state === 'task_started' && session.live)) return { label: 'Working', detail: session.kind === 'codex' ? 'Still working, based on recent rollout activity.' : 'Still working.' };
   if (session.live) return { label: 'Live', detail: 'No active work reported; ready for your next message.' };
   return { label: 'Saved', detail: 'No live session reported. Open the conversation to read or resume it.' };
 }
 function build(session, span) {
   const seen=new Set();span={...span,events:span.events.filter(e=>{if(e.type!=='tool'||!e.id)return true;if(seen.has(e.id))return false;seen.add(e.id);return true;})};
   const results = new Map(span.events.filter(e => e.type === 'result' && e.id).map(e => [e.id, e]));
-  const calls = span.events.filter(e => e.type === 'tool');
-  const successful = calls.filter(e => results.has(e.id) && !results.get(e.id).failed);
-  const files = [...new Set([...successful.filter(e => e.kind === 'edit').flatMap(e => e.files),...span.events.filter(e=>e.type==='files').flatMap(e=>e.files)])].map(f => language.readable(language.base(f), 160));
+  const calls = span.events.filter(e => e.type === 'tool'), kinds = new Map(calls.map(e => [e.id, e.kind]));
+  // A failed command and the script that stopped on it are one failed step, as in the chat.
+  const same = new Set(); let command = null;
+  for (const e of span.events) if (e.type === 'tool') command = null; else if (e.type === 'result' && e.exact && e.failed) command = e; else if (e.type === 'result' && e.id && command) { if (e.failed && !e.guessed) same.add(command); command = null; }
+  // With exact command outcomes recorded, a command's output text is not read as a second verdict.
+  const exact = span.events.some(e => e.exact), failed = e => e.type === 'result' && e.failed && !same.has(e) && !(exact && e.guessed && kinds.get(e.id) !== 'edit');
+  const successful = calls.filter(e => results.has(e.id) && !failed(results.get(e.id)));
+  const files = [...new Set([...successful.filter(e => e.kind === 'edit').flatMap(e => e.files),...span.events.filter(e=>e.type==='files').flatMap(e=>e.files)])].map(f => claudeRecords.clip(language.base(f), 160));
   const sites = [...new Set(calls.flatMap(e => e.sites))];
   const pendingEdits = calls.filter(e => e.kind === 'edit' && !results.has(e.id)).length;
-  const counts = { files: files.length, commands: calls.filter(e => e.kind === 'command').length, sites: sites.length, astra: calls.filter(e => e.kind === 'astra').length, errors: span.events.filter(e => e.type === 'result' && e.failed).length, pendingEdits };
+  const counts = { files: files.length, commands: calls.filter(e => e.kind === 'command').length, sites: sites.length, codex: calls.filter(e => e.kind === 'codex').length, errors: span.events.filter(failed).length, pendingEdits };
   // Codex records the same public message in event_msg and response_item.
   const responseTexts = new Set(span.events.filter(e => e.type === 'assistant' && !e.mirror).map(e => e.text));
   const activity = span.events.filter(e => e.type !== 'assistant' || !e.mirror || !responseTexts.has(e.text));
@@ -135,15 +165,16 @@ function build(session, span) {
   for (const e of activity) {
     if (e.type === 'tool') run.push(e);
     if (e.type === 'assistant') { flush(); lines.push('Assistant: ' + e.text.slice(0, 2400)); }
-    if (e.type === 'result' && e.failed) { flush(); lines.push('A tool reported an error.'); }
+    if (failed(e)) { flush(); lines.push(e.error ? 'Agent error: ' + language.readable(e.error, 300) : 'A tool reported an error.'); }
   }
   flush();
   const state = status(session, span);
-  const prefix = `Owner message: ${language.readable(span.user?.text || 'Not found in this excerpt.', 1600)}\nCoverage: ${span.partial ? 'Showing the last part only.' : 'Since the latest recorded user message.'}\nStatus: ${state.detail}\nCounts: ${JSON.stringify(counts)}\n`;
+  // A Codex run's request is usually a brief another agent wrote; the chat labels it the same way. The words are quoted as sent.
+  const prefix = `${session.kind === 'codex' ? 'Request to Codex' : 'Owner message'}: ${claudeRecords.clip(span.user?.text || 'Not found in this excerpt.', 1600)}\nCoverage: ${span.partial ? 'Showing the last part only.' : 'Since the latest recorded user message.'}\nStatus: ${state.detail}\nCounts: ${JSON.stringify(counts)}\n`;
   const body = lines.join('\n'), room = 12000 - prefix.length;
   const digest = prefix + (body.length <= room ? body : '[Earlier activity omitted from summary input]\n' + body.slice(-(room - 48)));
   return { key: session.kind + ':' + session.id, size: span.size, mtime: span.mtime, capturedAt: span.capturedAt, bytesRead: span.bytesRead, partial: span.partial,
-    user: span.user ? { text: language.readable(span.user.text, 2400), at: span.user.at, shortened: span.user.text.length > 2400 } : null,
+    user: span.user ? { text: claudeRecords.clip(span.user.text, 2400), at: span.user.at, shortened: span.user.text.length > 2400 } : null,
     counts, files, sites, finalAssistant: lastAssistant?.text || '', finalAt: lastAssistant?.at || null, finalShortened: !!lastAssistant?.shortened,
     activityAfterReply: !!lastAssistant && activity.slice(activity.indexOf(lastAssistant) + 1).some(e => e.type === 'tool'),
     status: state, digest, digestTrimmed: body.length > room };
@@ -152,11 +183,12 @@ function snapshot(session, {since = null} = {}) {
   const { continuation } = require('./transcript-tail');
   const chain = continuation(session.file);
   const files = [...new Set([...(session.chainFiles || []), ...chain.files])];
-  let span = readSpan(files.at(-1),{since}), budget = 4 * 1024 * 1024 - span.bytesRead;
+  const after = session.forkedUntil || 0;
+  let span = readSpan(files.at(-1),{since,after}), budget = MAX_BYTES - span.bytesRead;
   // A continuation may start with assistant activity before it records a user.
   // Walk predecessors under the SAME total byte ceiling for this recap.
   for (let i = files.length - 2; i >= 0 && !span.user && !span.boundary && budget > 0; i--) {
-    const earlier = readSpan(files[i], { maxBytes: budget, since }); budget -= earlier.bytesRead;
+    const earlier = readSpan(files[i], { maxBytes: budget, since, after }); budget -= earlier.bytesRead;
     span = { ...span, user: earlier.user, boundary:earlier.boundary, events: [...earlier.events, ...span.events], bytesRead: span.bytesRead + earlier.bytesRead, partial: earlier.partial };
   }
   if (!span.user && !span.boundary && budget <= 0) span.partial = true;
@@ -182,7 +214,7 @@ function createSummarizer(spawnProcess = spawn, selectProvider = () => require('
       const env = { ...process.env }; for (const k of ['CLAUDECODE', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_SSE_PORT']) delete env[k];
       const instruction=args.at(-1);
       if(provider.kind==='copilot')args=['--model',provider.model,'--silent','--available-tools=','--disable-builtin-mcps','--no-custom-instructions','--no-ask-user','--no-remote','--no-remote-export','--no-auto-update'];
-      if(provider.kind==='astra')args=['exec','--ephemeral','--ignore-user-config','--ignore-rules','--skip-git-repo-check','--sandbox','read-only','--disable','shell_tool','--disable','unified_exec','--json','-m',provider.model,'-'];
+      if(provider.kind==='codex')args=['exec','--ephemeral','--ignore-user-config','--ignore-rules','--skip-git-repo-check','--sandbox','read-only','--disable','shell_tool','--disable','unified_exec','--json','-m',provider.model,'-'];
       let p, timer, settled = false, output = '', errors = '', quotaError=false, modelError=false;
       const abort=()=>{p?.kill();finish(Error('Summary cancelled.'));};
       const finish = (error, value) => { if (settled) return; settled = true; clearTimeout(timer);signal?.removeEventListener('abort',abort); error ? reject(error) : resolve(value); };
@@ -190,7 +222,8 @@ function createSummarizer(spawnProcess = spawn, selectProvider = () => require('
       // A flag this CLI release dropped is left out and the request runs again.
       const start = () => {
       output = ''; errors = '';
-      try { const launch=launchProcess(provider.kind,args);p = spawnProcess(launch.file, launch.args, { cwd: os.tmpdir(), env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }); }
+      // Copilot saves every prompt-mode run; run from the labels folder, its discovery leaves them out.
+      try { const launch=launchProcess(provider.kind,args),cwd=provider.kind==='copilot'?require('./session-labels').WORKDIR:os.tmpdir();if(provider.kind==='copilot')fs.mkdirSync(cwd,{recursive:true});p = spawnProcess(launch.file, launch.args, { cwd, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }); }
       catch (error) { finish(error); return; }
       timer = setTimeout(() => { p.kill(); finish(new Error('Summary timed out after 60 seconds. Try again.')); }, 60000);
       p.on('error', e => finish(e)); p.stdin.on('error', e => finish(e));
@@ -200,7 +233,7 @@ function createSummarizer(spawnProcess = spawn, selectProvider = () => require('
         if (settled) return;
         if (code !== 0) { if (flagUnsupported(provider.kind, errors)) { clearTimeout(timer); return start(); } return finish(new Error(quotaError||/quota|premium request|credit.*exceed/i.test(output)?'Account quota exceeded. No summary was generated.':modelError?'The summary model is unavailable. Review copilotSummaryModel in config.json.':'Summary request failed. Check that '+provider.kind+' is available and signed in on the PC.')); }
         try {
-          const wrapper = provider.kind==='copilot'?{result:output}:provider.kind==='astra'?{result:output.split(/\r?\n/).flatMap(line=>{try{const r=JSON.parse(line);return r.type==='item.completed'&&r.item?.type==='agent_message'?[r.item.text]:[];}catch{return [];}}).at(-1)}:JSON.parse(output);
+          const wrapper = provider.kind==='copilot'?{result:output}:provider.kind==='codex'?{result:output.split(/\r?\n/).flatMap(line=>{try{const r=JSON.parse(line);return r.type==='item.completed'&&r.item?.type==='agent_message'?[r.item.text]:[];}catch{return [];}}).at(-1)}:JSON.parse(output);
           if (wrapper.is_error) throw Error();
           const result = JSON.parse(String(wrapper.result || '').replace(/^```(?:json)?\s*|\s*```$/g, ''));
           if (!Array.isArray(result.bullets) || result.bullets.length < 3 || result.bullets.length > 6 || result.bullets.some(b => typeof b !== 'string' || !b.trim()) || typeof result.next !== 'string' || !result.next.trim()) throw Error();
@@ -233,7 +266,7 @@ function recentSnapshot({sessions}){
  return {size:require('crypto').createHash('sha256').update(digest).digest('hex'),mtime:Math.max(0,...rows.map(r=>r.data.mtime)),digest,partial:rows.some(r=>r.data.partial),digestTrimmed:parts.some(p=>p.length>room)};
 }
 const summarizeLatest=createSummarizer(undefined,undefined,undefined,recentSnapshot);
-module.exports = { readSpan, realUser, build, instant, createSummarizer, themeSnapshot, recentSnapshot, summarizeRecent:sessions=>{
+module.exports = { readSpan, realUser, build, instant, createSummarizer, themeSnapshot, recentSnapshot, codexPromptText, codexOutput, codexVerdict, summarizeRecent:sessions=>{
  if(process.env.NEXUS_TEST_TERMINALS==='1')throw Error('Real model calls are disabled in test mode.');
  return summarizeLatest({kind:'recent',id:'latest',sessions});
 }, summarizeTheme:(theme,sessions,options)=>{

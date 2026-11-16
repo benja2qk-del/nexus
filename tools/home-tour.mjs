@@ -40,6 +40,9 @@ async function tour(width, height) {
     if (width <= 700) {
       await check(`!!document.querySelector('#nxHome .nx-themes-strip .nx-theme-tile')&&!document.querySelector('.nx-orbit')&&!document.querySelector('.nx-welcome')`, 'phones keep the theme strip and no orbit');
       await check(`document.documentElement.scrollWidth<=innerWidth`, 'no sideways scroll on the phone');
+      await check(`(()=>{const n=document.querySelector('.nx-phone-home-new').getBoundingClientRect(),c=document.querySelector('.nx-phone-home-title>span');return n.height>=44&&getComputedStyle(c).fontSize==='12px'&&[...c.children].every(s=>s.scrollWidth<=s.clientWidth+1);})()`, 'phone Home header: New is 44px tall and the count is a 12px line under the title');
+      await check(`[...document.querySelectorAll('.nx-call-row-wrap>.nx-call-entry')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})`, 'phone Home call buttons are 44px targets');
+      await check(`[...document.querySelectorAll('.nx-phone-row .nx-row-meta>.nx-muted')].every(e=>e.getBoundingClientRect().width>=40)`, 'a phone Home row never cuts its theme to a bare ellipsis');
       await b.shot(`${out}/${width}-home.png`);
       return report;
     }
@@ -67,6 +70,8 @@ async function tour(width, height) {
     await check(`document.querySelector('.nx-theme-rail-row[data-theme-drop=old] .nx-theme-context').textContent==='Archive of planning notes for the shop.'`, 'without a purpose, the project description says what a theme is');
     if (width >= 1200) await check(`document.querySelector('.nx-theme-column [data-session-key="claude:b"] .nx-row-context').textContent==='You: Refactor the API client so retries back off? · Claude: Done.'`, 'a session card says what the latest exchange was about');
     await check(`document.documentElement.scrollWidth<=innerWidth`, 'no sideways scroll');
+    await check(`[...document.querySelectorAll('.nx-recent-list .nx-recent')].every(r=>[r.querySelector('.status'),r.querySelector(':scope>small')].every(e=>!e||!e.offsetWidth||e.scrollWidth<=e.getBoundingClientRect().width+1))`, 'a Recent row never cuts its status or its cost');
+    await check(`[...document.querySelectorAll('.nx-home-card .nx-card-foot>small')].every(e=>e.scrollWidth<=e.clientWidth+1)`, 'a Home card never cuts its cost');
     if (width < 1200) await check(`document.querySelector('.nx-orbit').getBoundingClientRect().left>=document.querySelector('.nx-welcome-text').getBoundingClientRect().right`, 'the orbit stays beside the greeting on a narrower screen');
     await b.shot(`${out}/${width}-home.png`);
     await b.js(`document.querySelector('.nx-orbit-node[data-theme-pick=data]').click()`); await sleep(200);

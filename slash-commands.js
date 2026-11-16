@@ -2,7 +2,7 @@
 // Read metadata only: never evaluate skill bodies, hooks, shell substitutions or plugins.
 const fs=require('fs/promises'),path=require('path'),os=require('os');
 const core=require('./public/slash-core');
-const catalogs={claude:require('./slash/claude'),astra:require('./slash/astra'),copilot:require('./slash/copilot'),antigravity:{version:'',commands:[]}};
+const catalogs={claude:require('./slash/claude'),codex:require('./slash/codex'),copilot:require('./slash/copilot'),antigravity:{version:'',commands:[]}};
 const cache=new Map(),TTL=10000,MAX_FILES=600;
 async function read(file) { try {const s=await fs.lstat(file);if(!s.isFile()||s.isSymbolicLink()||s.size>256*1024)return '';return await fs.readFile(file,'utf8');}catch{return ''; } }
 function metadata(text) {
@@ -29,7 +29,7 @@ async function scopeFolders(cwd) {
   for(let i=0;i<20;i++){folders.push(dir);try{await fs.lstat(path.join(dir,'.git'));break;}catch{}const parent=path.dirname(dir);if(parent===dir)break;dir=parent;}
   return folders.reverse();
 }
-function homes(env=process.env,home=os.homedir()) {return {claude:env.NEXUS_CLAUDE_DIR||env.CLAUDE_CONFIG_DIR||path.join(home,'.claude'),astra:env.NEXUS_CODEX_DIR||env.CODEX_HOME||path.join(home,'.codex'),copilot:env.NEXUS_COPILOT_DIR||env.COPILOT_HOME||path.join(home,'.copilot'),home};}
+function homes(env=process.env,home=os.homedir()) {return {claude:env.NEXUS_CLAUDE_DIR||env.CLAUDE_CONFIG_DIR||path.join(home,'.claude'),codex:env.NEXUS_CODEX_DIR||env.CODEX_HOME||path.join(home,'.codex'),copilot:env.NEXUS_COPILOT_DIR||env.COPILOT_HOME||path.join(home,'.copilot'),home};}
 async function discover(kind,cwd,{roots=homes(),now=Date.now(),ttl=TTL}={}) {
   if(!catalogs[kind])throw Error('Unknown agent.');
   const key=JSON.stringify([kind,path.resolve(cwd||roots.home),roots]);
@@ -47,7 +47,7 @@ async function discover(kind,cwd,{roots=homes(),now=Date.now(),ttl=TTL}={}) {
         if(format==='prompt')name='prompts:'+name;
         if(!/^[\w][\w:.-]{0,140}$/.test(name))continue;
         const description=meta.description||('Run '+name.replace(/[-_:]/g,' ')+'.');
-        if(kind==='astra'&&format==='skill'){skills.push({name,description,source,invocation:'$'+name});continue;}
+        if(kind==='codex'&&format==='skill'){skills.push({name,description,source,invocation:'$'+name});continue;}
         if(format==='agent'){agents.push({name,description,source,invocation:'/agent '+name});continue;}
         name=namespace+name;
         // Built-ins retain their real meaning; project metadata overrides personal metadata.
@@ -64,9 +64,9 @@ async function discover(kind,cwd,{roots=homes(),now=Date.now(),ttl=TTL}={}) {
         const name=id.split('@')[0];if(!/^[\w.-]+$/.test(name))continue;
         await add(path.join(install.installPath,'commands'),'plugin','command',name+':');await add(path.join(install.installPath,'skills'),'plugin','skill',name+':');
       }
-    }else if(kind==='astra'){
-      await add(path.join(roots.astra,'prompts'),'custom','prompt');
-      await add(path.join(roots.astra,'skills'),'skill','skill');await add(path.join(roots.home,'.agents','skills'),'skill','skill');
+    }else if(kind==='codex'){
+      await add(path.join(roots.codex,'prompts'),'custom','prompt');
+      await add(path.join(roots.codex,'skills'),'skill','skill');await add(path.join(roots.home,'.agents','skills'),'skill','skill');
       for(const folder of folders)await add(path.join(folder,'.agents','skills'),'skill','skill');
     }else{
       await add(path.join(roots.copilot,'skills'),'skill','skill');await add(path.join(roots.copilot,'agents'),'custom','agent');

@@ -32,7 +32,7 @@ const NexusVoice = (() => {
   function stopCapture() { if (capture) { capture.cancelled = true; capture.stop(); } }
   function end() {
     generation++; const old = active; active = null;
-    old?.controller.abort(); stopCapture(); stopSpeech(); panel()?.remove();
+    old?.controller.abort(); stopCapture(); stopSpeech(); panel()?.remove(); document.getElementById('talkScrim')?.remove();
     if(old?.check)for(const [id,c]of Object.entries(checks))if(c.phase==='running')checkStep(id,'fail','Check stopped.',null,'Run the check again when you are ready.');
     if (old?.check) $('#app').inert = false;
     document.body.classList.remove('talk-active'); updateControls();
@@ -55,9 +55,9 @@ const NexusVoice = (() => {
   function showPanel(check = false, inline = false) {
     document.body.classList.add('talk-active');
     const el = document.createElement('section'); el.id = 'talkPanel'; el.className = 'talk-panel'; el.setAttribute('aria-label', check ? 'Voice check' : 'Talk conversation');
-    el.innerHTML = `<div class="talk-heading"><span>${check ? 'VOICE CHECK' : 'TALK · ' + esc(agentName(state.byKey.get(state.sel)?.kind || selTerm()?.kind).toUpperCase())}</span><button class="btn" data-talk="end">${check ? 'Close' : 'End'}</button></div><div id="talkState" role="status" aria-live="polite">Getting ready</div><div class="talk-meter" role="meter" aria-label="Microphone level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="talkHint"></p><p id="talkHeard" aria-label="Heard text"></p><div id="voiceResults" aria-live="polite"></div><div class="talk-actions"><button class="btn" data-talk="retry" hidden>Try again</button><button class="btn primary" data-talk="send" disabled>Send now</button></div><details class="talk-settings"><summary>Voice options &amp; help</summary><label>Send after a pause <select id="talkSilence"><option value="1300">1.3 seconds</option><option value="2000">2 seconds</option><option value="0">Only when I tap</option></select></label><label><input type="checkbox" id="talkServerSpeech"> Use PC voice for playback</label><p>Audio is transcribed on your PC and deleted. Keep NEXUS open. End stops voice; an already sent message stays in the chat.</p></details>`;
+    el.innerHTML = `<div class="talk-heading"><span>${check ? 'VOICE CHECK' : 'TALK · ' + esc(agentName(state.byKey.get(state.sel)?.kind || selTerm()?.kind).toUpperCase())}</span>${check && !(inline && $('#nxVoiceLive')) ? '<button class="btn modal-dismiss talk-close" data-talk="end" aria-label="Close">×</button>' : `<button class="btn" data-talk="end">${check ? 'Close' : 'End'}</button>`}</div><div id="talkState" role="status" aria-live="polite">Getting ready</div><div class="talk-meter" role="meter" aria-label="Microphone level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><p id="talkHint"></p><p id="talkHeard" aria-label="Heard text"></p><div id="voiceResults" aria-live="polite"></div><div class="talk-actions"><button class="btn" data-talk="retry" hidden>Try again</button><button class="btn primary" data-talk="send" disabled>Send now</button></div><details class="talk-settings"><summary>Voice options &amp; help</summary><label><span>Send after a pause</span><select id="talkSilence"><option value="1300">1.3 seconds</option><option value="2000">2 seconds</option><option value="0">Only when I tap</option></select></label><label><span>Use PC voice for playback</span><input type="checkbox" role="switch" id="talkServerSpeech"></label><p>Audio is transcribed on your PC and deleted. Keep NEXUS open. End stops voice; an already sent message stays in the chat.</p></details>`;
     if (check && inline && $('#nxVoiceLive')) { $('#nxVoiceLive').append(el); el.classList.add('nx-inline-check'); }
-    else if (check) { document.body.append(el); el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); $('#app').inert = true; } else $('#steer').before(el);
+    else if (check) { const scrim=document.createElement('div');scrim.id='talkScrim';scrim.className='talk-scrim';scrim.setAttribute('aria-hidden','true');scrim.onclick=end;document.body.append(scrim,el); el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); $('#app').inert = true; } else $('#steer').before(el);
     el.querySelector('[data-talk=end]').focus({preventScroll:true});
     el.querySelector('#talkSilence').value = pref.get('voiceSilence', '1300');
     el.querySelector('#talkServerSpeech').checked = pref.get('voiceServerSpeech', 'off') === 'on';
@@ -154,7 +154,8 @@ const NexusVoice = (() => {
         const stop = () => { interrupted = true; finish(true); speechSynthesis.cancel(); };
         speechStop = stop;
         const startTimer = setTimeout(() => { if (!started) { finish(false); speechSynthesis.cancel(); } }, 1800);
-        const endTimer = setTimeout(() => { finish(false); speechSynthesis.cancel(); }, Math.min(45000, Math.max(8000, text.length * 95)));
+        // A stalled voice falls back to the PC voice; one that already started is never cut and read again from the start.
+        const endTimer = setTimeout(() => { finish(started); speechSynthesis.cancel(); }, Math.max(8000, text.length * 130));
         utterance.onstart = () => { started = true;turn.callbacks?.audioStart?.(); }; utterance.onend = () => finish(started); utterance.onerror = () => finish(false);
         try { if(voices.length&&!utterance.voice)finish(false);else speechSynthesis.speak(utterance); } catch { finish(false); }
       });
@@ -199,7 +200,7 @@ const NexusVoice = (() => {
     } else {
       if (chat.terminal?.busy) throw Error('The session is still working. Wait for its reply, then try again.');
       stateLabel('waiting', 'Sending');
-      const receipt = await sendChat(null, result.text, turn.controller.signal);
+      const receipt = await sendChat(null, result.text, turn.controller.signal, turn.key);
       if (!receipt?.ok) throw Error(receipt?.message?.error || 'Message not delivered. Your heard text is kept here; try again when the session is ready.');
       turn.receipt = receipt.message;
     }
@@ -219,7 +220,7 @@ const NexusVoice = (() => {
       if (turn.receipt?.status === 'failed') throw Error(turn.receipt.error);
       const replies = chat.events.slice(baseline).filter(e => e.t === 'ai').map(e => e.text).join('\n\n');
       if (replies !== last) { last = replies; stable = Date.now(); }
-      if (replies && !chat.more && !chat.terminal?.busy && ((chat.terminal?.input ?? chat.terminal?.ready) || chat.terminal?.exited) && Date.now() - stable >= 1000) { turn.receipt = null; return speak(core.gist(replies), turn); }
+      if (replies && !chat.more && !chat.terminal?.busy && ((chat.terminal?.input ?? chat.terminal?.ready) || chat.terminal?.exited) && Date.now() - stable >= 1000) { turn.receipt = null; return speak(core.gist(core.closingReply(chat.events.slice(baseline))), turn); }
       if (chat.terminal?.exited && !replies) throw Error('The session ended before replying. Your message is in the chat.');
       if (Date.now() - start > 180000) throw Error('The session is taking longer. Follow its progress in the chat and tap Talk when ready.');
       await delay(500, turn.controller.signal);
@@ -276,7 +277,7 @@ const NexusVoice = (() => {
     if (button) { if(typeof NexusCall!=='undefined')NexusCall.decorateButton(button);else button.textContent = active && !active.check ? 'End talk' : 'Talk'; button.setAttribute('aria-pressed', String(calling || !!active && !active.check && !active.call)); }
     const send = document.querySelector('[data-steer=send]'), input = $('#steerIn');
     if (send && input) {
-      const reason = calling || active && !active.check && !active.call ? 'End the call to type a message.' : chat?.terminal?.prompt ? 'Answer the question above first.' : chat?.sending ? 'Sending your message.' : attachments.blocked(state.sel) ? 'Wait for the attachment to finish.' : !input.value.trim() ? 'Write a message first.' : '';
+      const reason = nxUnhosted() ? NX_UNHOSTED_NOTICE : calling || active && !active.check && !active.call ? 'End the call to type a message.' : chat?.terminal?.prompt ? 'Answer the question above first.' : chat?.sending ? 'Sending your message.' : attachments.failed(state.sel) ? 'Remove the attachment that failed, then send.' : attachments.blocked(state.sel) ? 'Wait for the attachment to finish.' : !input.value.trim() ? 'Write a message first.' : '';
       send.disabled = !!reason; send.title = reason || 'Send message'; send.setAttribute('aria-label', reason ? 'Send. ' + reason : 'Send message');
     }
   }
